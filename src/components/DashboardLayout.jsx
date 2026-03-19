@@ -155,7 +155,7 @@ export default function DashboardLayout() {
     {
       name: "Lost & Found",
       path: "/lostfound",
-      imgsrc: "/images/lost.png",
+      imgsrc: "/images/lost&found.svg",
       authType: null,
     },
     {
