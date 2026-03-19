@@ -319,7 +319,7 @@ export default function DashboardLayout() {
                   }`
                 }
               >
-                <img className="w-4 h-4" src={link.imgsrc} alt="" />
+                <img className="w-4 h-10" src={link.imgsrc} alt="" />
                 {link.name}
               </NavLink>
             ))}
