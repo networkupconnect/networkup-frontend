@@ -131,12 +131,6 @@ export default function DashboardLayout() {
       imgsrc: "/images/chat.svg",
       authType: null,
     },
-    // {
-    //   name: "My Profile",
-    //   path: "/profile",
-    //   imgsrc: user?.profileImage || "/images/default-avatar.svg",
-    //   authType: null,
-    // },
   ];
 
   const allLinks2 = [
@@ -177,20 +171,12 @@ export default function DashboardLayout() {
       imgsrc: "/images/assignment.svg",
       authType: "profile",
     },
-    // {
-    //   name: "Timetable",
-    //   path: "/timetable",
-    //   imgsrc: "/images/timetable.svg",
-    //   authType: "profile",
-    // },
     {
       name: "Feedback",
       path: "/feedback",
       imgsrc: "/images/feedback.svg",
       authType: "login",
     },
-
-    
 
     ...(user && (user.role === "seller" || user.role === "admin")
       ? [
@@ -288,32 +274,35 @@ export default function DashboardLayout() {
           </div>
         </aside>
 
-        {/* Mobile bottom nav */}
-        <div className="sm:hidden fixed bottom-0 left-0 right-0 z-20 bg-white border-t border-gray-200 flex justify-around items-center h-12 px-2">
+        {/* Mobile bottom nav — h-16 to fit icon + label */}
+        <div className="sm:hidden fixed bottom-0 left-0 right-0 z-20 bg-white border-t border-gray-200 flex justify-around items-center h-16 px-1">
           {allLinks1.map((link) => (
             <NavLink
               key={link.name}
               to={link.path}
               onClick={(e) => handleNavClick(e, link)}
               className={({ isActive }) =>
-                `flex items-center justify-center p-2 ${link.name === "My Profile" ? "rounded-full object-cover" : ""} ${isActive ? "text-black" : "text-gray-500"}`
+                `flex flex-col items-center justify-center gap-0.5 flex-1 py-1 ${isActive ? "text-blue-600" : "text-gray-500"}`
               }
             >
-              <img className="w-7 h-7" src={link.imgsrc} alt="" />
-              <span>{link.name}</span> 
+              <img className="w-5 h-5" src={link.imgsrc} alt="" />
+              <span className="text-[10px] leading-tight text-center truncate w-full px-0.5">
+                {link.name}
+              </span>
             </NavLink>
           ))}
           <button
             onClick={hamBurger}
-            className="flex items-center justify-center p-2 text-gray-500 text-lg"
+            className="flex flex-col items-center justify-center gap-0.5 flex-1 py-1 text-gray-500"
           >
-            ⋯
+            <span className="text-lg leading-none">⋯</span>
+            <span className="text-[10px] leading-tight">More</span>
           </button>
         </div>
 
         {/* Mobile drawer */}
         {isSidebarOpen && (
-          <div className="sm:hidden fixed bottom-12 left-0 right-0 z-10 bg-white border-t border-gray-200 flex flex-wrap justify-around align-middle gap-2 p-3 shadow-lg">
+          <div className="sm:hidden fixed bottom-16 left-0 right-0 z-10 bg-white border-t border-gray-200 flex flex-wrap justify-around align-middle gap-2 p-3 shadow-lg">
             {allLinks2.map((link) => (
               <NavLink
                 key={link.name}
@@ -337,8 +326,8 @@ export default function DashboardLayout() {
           </div>
         )}
 
-        {/* Main content */}
-        <main className="flex-1 overflow-y-auto bg-white hide-scrollbar pb-12 sm:pb-0">
+        {/* Main content — pb-16 to clear the taller bottom nav */}
+        <main className="flex-1 overflow-y-auto bg-white hide-scrollbar pb-16 sm:pb-0">
           <Outlet
             context={{
               cart,
