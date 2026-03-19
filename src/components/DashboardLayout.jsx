@@ -300,6 +300,7 @@ export default function DashboardLayout() {
               }
             >
               <img className="w-7 h-7" src={link.imgsrc} alt="" />
+              <span>{link.name}</span> 
             </NavLink>
           ))}
           <button
