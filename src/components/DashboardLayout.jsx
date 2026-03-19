@@ -312,7 +312,7 @@ export default function DashboardLayout() {
                   setIsSidebarOpen(false);
                 }}
                 className={({ isActive }) =>
-                  `flex w-[45vw] items-center gap-1 px-3 py-1.5 rounded-full text-xs ${
+                  `flex w-[45vw] items-center justify-center gap-1 px-3 py-1.5 rounded-full text-xs ${
                     isActive
                       ? "bg-blue-100 text-black font-semibold"
                       : "bg-gray-200 text-gray-700"
