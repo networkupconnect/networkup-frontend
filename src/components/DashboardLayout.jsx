@@ -113,7 +113,7 @@ export default function DashboardLayout() {
         ]
       : []),
     {
-      name: "Campus Shop",
+      name: "Shop",
       path: "/buy-sell",
       imgsrc: "/images/cart.svg",
       authType: null,
