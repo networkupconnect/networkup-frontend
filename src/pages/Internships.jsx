@@ -15,19 +15,19 @@ function timeAgo(dateStr) {
 }
 
 function normaliseJob(j) {
-  // The internships-api has slightly varied field names — normalise them here
+  // Data comes pre-normalised from our MongoDB — just add safe fallbacks
   return {
-    id:          j.id || j._id || Math.random().toString(36).slice(2),
-    title:       j.title        || j.job_title        || "Untitled",
-    company:     j.company      || j.employer_name    || j.organization || "Unknown",
-    location:    j.location     || j.job_location     || j.city         || "Remote",
-    type:        j.type         || j.employment_type  || j.job_type     || "",
-    url:         j.url          || j.job_url          || j.apply_url    || j.link || "#",
-    postedAt:    j.date_posted  || j.posted_at        || j.createdAt    || "",
-    description: j.description  || j.job_description  || "",
-    logo:        j.company_logo || j.logo             || "",
-    remote:      !!(j.remote    || j.is_remote        || j.location?.toLowerCase().includes("remote")),
-    source:      j.source       || "",
+    id:          j._id || j.externalId || Math.random().toString(36).slice(2),
+    title:       j.title       || "Untitled",
+    company:     j.company     || "Unknown",
+    location:    j.location    || "",
+    type:        j.type        || "",
+    url:         j.url         || "#",
+    postedAt:    j.postedAt    || j.fetchedAt || "",
+    description: j.description || "",
+    logo:        j.logo        || "",
+    remote:      !!j.remote,
+    source:      j.source      || "",
   };
 }
 
