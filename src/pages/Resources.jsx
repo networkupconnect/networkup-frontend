@@ -151,7 +151,7 @@ function UploadModal({ activeTab, onClose, onSuccess, showToast, extraSubjects, 
 
             {/* ── Module counter + optional Topic ── */}
             <div>
-              <label style={lbl}>Module / Unit</label>
+              <label style={lbl}>Unit / Module </label>
 
               {/* +/- counter */}
               <div style={{ display:"flex", alignItems:"center", gap:0, background:"#f5f4f0", borderRadius:10, padding:"3px", width:"fit-content" }}>
@@ -162,7 +162,7 @@ function UploadModal({ activeTab, onClose, onSuccess, showToast, extraSubjects, 
                   −
                 </button>
                 <span style={{ minWidth:52, textAlign:"center", fontSize:14, fontWeight:700, fontFamily:"monospace", color:"#1a1a18" }}>
-                  Module {unit}
+                  {unit}
                 </span>
                 <button type="button"
                   onClick={() => setUnit(u => u + 1)}
@@ -185,7 +185,7 @@ function UploadModal({ activeTab, onClose, onSuccess, showToast, extraSubjects, 
               {(unit > 0) && (
                 <div style={{ marginTop:5, fontSize:11, color:"#9b9890" }}>
                   Saved as: <strong style={{ color:"#1a1a18" }}>
-                    {topic.trim() ? `Module ${unit} — ${topic.trim()}` : `Module ${unit}`}
+                    {topic.trim() ? `Module ${unit} — ${topic.trim()}` : `Unit/Module ${unit}`}
                   </strong>
                 </div>
               )}
