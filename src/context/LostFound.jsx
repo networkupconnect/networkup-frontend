@@ -68,17 +68,21 @@ export default function LostFound() {
   useEffect(() => { fetchItems(); }, [tab, filterCategory, filterLocation]);
 
   const fetchItems = async () => {
+    if (tab === "my-posts" && !user) { setTab("lost"); return; }
+    setLoading(true);
     try {
-      setLoading(true);
       const p = new URLSearchParams();
-      if (tab==="my-posts") { if (!user) { setTab("lost"); return; } p.append("mine","true"); }
+      if (tab === "my-posts") p.append("mine", "true");
       else p.append("type", tab);
       if (filterCategory) p.append("category", filterCategory);
       if (filterLocation)  p.append("location",  filterLocation);
       const res = await api.get(`/api/lostfound?${p}`);
-      setItems(res.data);
-    } catch { flash("Failed to load"); }
-    finally { setLoading(false); }
+      setItems(Array.isArray(res.data) ? res.data : []);
+    } catch (err) {
+      // 404 just means no posts yet — don't show error toast
+      if (err?.response?.status !== 404) flash("Failed to load");
+      setItems([]);
+    } finally { setLoading(false); }
   };
 
   const flash = (msg) => { setToast({ msg }); setTimeout(() => setToast(null), 3000); };
