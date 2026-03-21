@@ -242,7 +242,13 @@ function AddModal({ activeTab, onClose, onSuccess, showToast, extraSubjects, onN
 /* ─── Edit Modal ─────────────────────────────────────────────────────────── */
 function EditModal({ resource, activeTab, onClose, onSuccess, showToast, extraSubjects, onNewSubject }) {
   const [saving, setSaving] = useState(false);
-  const allSubjects = [...BASE_SUBJECTS, ...extraSubjects];
+
+  // Always include this resource's existing subject in the pill list
+  // so it shows pre-selected even if it's not in base or custom lists yet
+  const resourceSubject = resource?.subject || "";
+  const baseAndExtra = [...BASE_SUBJECTS, ...extraSubjects];
+  const alreadyKnown = baseAndExtra.some(s => s.toLowerCase() === resourceSubject.toLowerCase());
+  const allSubjects  = alreadyKnown ? baseAndExtra : [...baseAndExtra, resourceSubject].filter(Boolean);
 
   const handleSave = async (payload) => {
     try {
