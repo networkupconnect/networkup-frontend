@@ -152,7 +152,7 @@ function ResourceForm({
         </div>
         <div style={{ marginTop:5, fontSize:11, color:"#9b9890" }}>
           Saved as: <strong style={{ color:"#1a1a18" }}>
-            {topic.trim() ? `Unit/Module ${unit} — ${topic.trim()}` : `Unit/module ${unit}`}
+            {topic.trim() ? `Unit ${unit} — ${topic.trim()}` : `Unit ${unit}`}
           </strong>
         </div>
       </div>
