@@ -35,63 +35,107 @@ const TYPE_FILTERS = ["All", "Internship", "Full-time", "Part-time", "Remote", "
 
 /* ─── Job Card ──────────────────────────────────────────────────────────── */
 function JobCard({ job }) {
-  const openJob = () => {
-    if (job.url && job.url !== "#") window.open(job.url, "_blank", "noopener,noreferrer");
-  };
+  const [expanded, setExpanded] = useState(false);
+  const hasUrl    = job.url && job.url !== "#";
+  const openJob   = (e) => { e.stopPropagation(); hasUrl && window.open(job.url, "_blank", "noopener,noreferrer"); };
+  const toggleExp = () => setExpanded(p => !p);
+
+  const displayType = (() => {
+    const t = job.type || "";
+    if (t.toLowerCase().includes("internship")) return "Internship";
+    if (t.toLowerCase().includes("full"))       return "Full-time";
+    if (t.toLowerCase().includes("part"))       return "Part-time";
+    if (t.toLowerCase().includes("contract"))   return "Contract";
+    if (t.toLowerCase().includes("remote"))     return "Remote";
+    return t.split(/[,&]/)[0].trim();
+  })();
+
+  const sourceColor = {
+    "Google Jobs": { bg:"#f0ede8", color:"#6b6860" },
+    "Himalayas":   { bg:"#f0ede8", color:"#6b6860" },
+    "Remotive":    { bg:"#f0ede8", color:"#6b6860" },
+    "RemoteOK":    { bg:"#f0ede8", color:"#6b6860" },
+    "Jobicy":      { bg:"#f0ede8", color:"#6b6860" },
+  }[job.source] || { bg:"#f0ede8", color:"#6b6860" };
+
+  const cleanDesc = (job.description || "").replace(/<[^>]+>/g, "").trim();
 
   return (
-    <div style={{ background:"#fff", border:"1px solid #e5e3dc", borderRadius:13, padding:"14px 16px", cursor:"pointer" }}
-         onClick={openJob}>
+    <div style={{ background:"#fff", border:"1px solid #e5e3dc", borderRadius:13, overflow:"hidden" }}
+         onClick={toggleExp}>
 
-      {/* Top row */}
-      <div style={{ display:"flex", alignItems:"flex-start", gap:12, marginBottom:9 }}>
-        {/* Logo / initials */}
-        <div style={{ width:38, height:38, borderRadius:9, border:"1px solid #e5e3dc", background:"#f5f4f0", flexShrink:0, overflow:"hidden", display:"flex", alignItems:"center", justifyContent:"center" }}>
-          {job.logo ? (
-            <img src={job.logo} alt="" style={{ width:"100%", height:"100%", objectFit:"contain" }}
-                 onError={e => { e.target.style.display="none"; }} />
-          ) : (
-            <span style={{ fontSize:13, fontWeight:800, color:"#6b6860" }}>
+      <div style={{ padding:"14px 16px", cursor:"pointer" }}>
+        {/* Top row — logo + title + company */}
+        <div style={{ display:"flex", alignItems:"flex-start", gap:12, marginBottom:10 }}>
+          <div style={{ width:40, height:40, borderRadius:10, border:"1px solid #e5e3dc", background:"#f5f4f0", flexShrink:0, overflow:"hidden", display:"flex", alignItems:"center", justifyContent:"center" }}>
+            {job.logo ? (
+              <img src={job.logo} alt="" style={{ width:"100%", height:"100%", objectFit:"contain" }}
+                   onError={e => { e.target.style.display="none"; e.target.nextSibling.style.display="flex"; }} />
+            ) : null}
+            <span style={{ fontSize:14, fontWeight:800, color:"#6b6860", display: job.logo ? "none" : "flex" }}>
               {job.company?.charAt(0)?.toUpperCase() || "?"}
             </span>
+          </div>
+
+          <div style={{ flex:1, minWidth:0 }}>
+            <div style={{ fontSize:13, fontWeight:700, lineHeight:1.4, marginBottom:2 }}>
+              {job.title}
+            </div>
+            <div style={{ fontSize:12, color:"#6b6860", fontWeight:600 }}>{job.company}</div>
+          </div>
+
+          <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:4, flexShrink:0 }}>
+            {/* Source badge */}
+            <span style={{ fontSize:9, padding:"2px 7px", borderRadius:100, fontWeight:700, background:sourceColor.bg, color:sourceColor.color, whiteSpace:"nowrap" }}>
+              {job.source || "Jobs"}
+            </span>
+            {/* Posted time */}
+            {job.postedAt && (
+              <span style={{ fontSize:10, color:"#b5b3ac", whiteSpace:"nowrap" }}>{timeAgo(job.postedAt)}</span>
+            )}
+          </div>
+        </div>
+
+        {/* Tags row */}
+        <div style={{ display:"flex", gap:5, flexWrap:"wrap", marginBottom:10 }}>
+          {job.location && (
+            <span style={tagStyle(false)}>📍 {job.location}</span>
+          )}
+          {displayType && (
+            <span style={tagStyle(true)}>{displayType}</span>
+          )}
+          {job.remote && !job.location?.toLowerCase().includes("remote") && (
+            <span style={tagStyle(false)}>🌐 Remote</span>
           )}
         </div>
 
-        <div style={{ flex:1, minWidth:0 }}>
-          <div style={{ fontSize:13, fontWeight:700, lineHeight:1.35, marginBottom:2, overflow:"hidden", display:"-webkit-box", WebkitLineClamp:2, WebkitBoxOrient:"vertical" }}>
-            {job.title}
+        {/* Description — 2 lines collapsed, full when expanded */}
+        {cleanDesc && (
+          <div style={{ fontSize:12, color:"#6b6860", lineHeight:1.65, marginBottom:10,
+            ...(!expanded ? { overflow:"hidden", display:"-webkit-box", WebkitLineClamp:2, WebkitBoxOrient:"vertical" } : {}) }}>
+            {cleanDesc}
           </div>
-          <div style={{ fontSize:12, color:"#6b6860", fontWeight:600 }}>{job.company}</div>
-        </div>
+        )}
 
-        {/* Arrow */}
-        <div style={{ color:"#c5c2b8", fontSize:16, flexShrink:0, marginTop:2 }}>↗</div>
-      </div>
-
-      {/* Tags row */}
-      <div style={{ display:"flex", gap:5, flexWrap:"wrap", marginBottom: job.description ? 8 : 0 }}>
-        {job.location && (
-          <span style={tagStyle(false)}>📍 {job.location}</span>
-        )}
-        {job.type && (
-          <span style={tagStyle(true)}>{job.type}</span>
-        )}
-        {job.remote && !job.location?.toLowerCase().includes("remote") && (
-          <span style={tagStyle(true)}>Remote</span>
-        )}
-        {job.postedAt && (
-          <span style={{ fontSize:10, color:"#b5b3ac", marginLeft:"auto", alignSelf:"center", whiteSpace:"nowrap" }}>
-            {timeAgo(job.postedAt)}
+        {/* Bottom row — expand toggle + apply button */}
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:8 }}>
+          <span style={{ fontSize:11, color:"#b5b3ac" }}>
+            {cleanDesc ? (expanded ? "▲ Show less" : "▼ Read more") : ""}
           </span>
-        )}
-      </div>
 
-      {/* Description snippet */}
-      {job.description && (
-        <div style={{ fontSize:11, color:"#9b9890", lineHeight:1.6, overflow:"hidden", display:"-webkit-box", WebkitLineClamp:2, WebkitBoxOrient:"vertical" }}>
-          {job.description.replace(/<[^>]+>/g, "").slice(0, 180)}
+          <div style={{ display:"flex", gap:7, flexShrink:0 }}>
+            {!hasUrl && (
+              <span style={{ fontSize:11, color:"#b5b3ac", alignSelf:"center" }}>No link</span>
+            )}
+            {hasUrl && (
+              <button onClick={openJob}
+                style={{ padding:"6px 16px", borderRadius:9, border:"none", background:"#1a1a18", color:"#fff", fontSize:12, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
+                Apply ↗
+              </button>
+            )}
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }
