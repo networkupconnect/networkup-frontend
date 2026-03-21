@@ -27,7 +27,7 @@ import Chat from "./pages/Chat.jsx";
 import Messages from "./pages/Messages.jsx";
 import Connections from "./pages/Connections.jsx";
 import Confessions from "./pages/Confessions";
-import JMIAlert from "./pages/JMIAlert.jsx";
+import Internships from "./pages/Internships.jsx";
 import Feedback from "./pages/Feedback.jsx";
 import Assignments from "./pages/Assignments.jsx";
 import LostFound from "./context/LostFound.jsx";
@@ -88,7 +88,7 @@ const router = createBrowserRouter([
       { path: "confessions", element: <Confessions /> },
       { path: "messages", element: <Messages /> },
       { path: "connections", element: <Connections /> },
-      { path: "jmi-alert", element: <JMIAlert /> },
+      { path: "Internships", element: <Internships /> },
       { path: "assignments", element: <Assignments /> },
       { path: "lostfound", element: <LostFound /> },
       { path: "rooms", element: <RoomFinder /> },

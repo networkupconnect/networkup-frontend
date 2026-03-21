@@ -141,8 +141,8 @@ export default function DashboardLayout() {
       authType: null,
     },
     {
-      name: "JMI Alert",
-      path: "/jmi-alert",
+      name: "Internships",
+      path: "/Internships",
       imgsrc: "/images/alert.svg",
       authType: null,
     },
