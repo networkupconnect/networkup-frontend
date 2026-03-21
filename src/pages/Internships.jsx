@@ -122,7 +122,7 @@ export default function Internships() {
       setError(null);
       const params = new URLSearchParams();
       if (forceRefresh) params.append("refresh", "1");
-      const res = await api.get(`/api/jobs?${params}`);
+      const res = await api.get(`/api/internships?${params}`);
       setJobs((res.data.data || []).map(normaliseJob));
       setFetchedAt(res.data.fetchedAt);
     } catch (err) {
