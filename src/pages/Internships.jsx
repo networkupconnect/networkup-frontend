@@ -157,8 +157,12 @@ export default function Internships() {
   const [error,       setError]       = useState(null);
   const [search,      setSearch]      = useState("");
   const [activeType,  setActiveType]  = useState("All");
+  const [activeRegion,setActiveRegion]= useState("All");
   const [fetchedAt,   setFetchedAt]   = useState(null);
   const [searchInput, setSearchInput] = useState("");
+
+  const INDIA_REGEX = /india|mumbai|delhi|bangalore|bengaluru|hyderabad|pune|chennai|kolkata|noida|gurgaon|gurugram|ahmedabad|jaipur|surat|kochi|trivandrum|chandigarh|bhopal|lucknow|indore|nagpur/i;
+  const WORLDWIDE_REGEX = /worldwide|remote|anywhere|global|apac|asia/i;
 
   const fetchJobs = useCallback(async (forceRefresh = false) => {
     try {
@@ -169,6 +173,7 @@ export default function Internships() {
       const res = await api.get(`/api/internships?${params}`);
       setJobs((res.data.data || []).map(normaliseJob));
       setFetchedAt(res.data.fetchedAt);
+      if (res.data.rateLimited) setError("Rate limit reached — showing cached data. Try again in a few minutes.");
     } catch (err) {
       setError("Could not load listings. Please try again.");
       console.error(err);
@@ -181,23 +186,38 @@ export default function Internships() {
 
   /* Client-side filter */
   const filtered = jobs.filter(j => {
+    const loc = j.location.toLowerCase();
+
+    // Region filter
+    const matchRegion =
+      activeRegion === "All"      ? true :
+      activeRegion === "India"    ? INDIA_REGEX.test(loc) :
+      activeRegion === "Worldwide"? (j.remote || WORLDWIDE_REGEX.test(loc) || !loc) :
+      true;
+
+    // Type filter
+    const matchType = activeType === "All" ||
+      (activeType === "Remote"
+        ? j.remote || loc.includes("remote")
+        : j.type?.toLowerCase().includes(activeType.toLowerCase()));
+
+    // Search filter
     const matchSearch = !search.trim() ||
       j.title.toLowerCase().includes(search.toLowerCase()) ||
       j.company.toLowerCase().includes(search.toLowerCase()) ||
       j.location.toLowerCase().includes(search.toLowerCase());
 
-    const matchType = activeType === "All" ||
-      (activeType === "Remote"
-        ? j.remote || j.location.toLowerCase().includes("remote")
-        : j.type?.toLowerCase().includes(activeType.toLowerCase()));
-
-    return matchSearch && matchType;
+    return matchRegion && matchType && matchSearch;
   });
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
     setSearch(searchInput);
   };
+
+  // Counts per region
+  const indiaCount     = jobs.filter(j => INDIA_REGEX.test(j.location.toLowerCase())).length;
+  const worldwideCount = jobs.filter(j => j.remote || WORLDWIDE_REGEX.test(j.location.toLowerCase()) || !j.location).length;
 
   /* ── Styles ── */
   const S = {
@@ -208,6 +228,9 @@ export default function Internships() {
     btn:     { padding:"8px 14px", borderRadius:10, border:"none", background:"#1a1a18", color:"#fff", fontSize:12, fontWeight:700, cursor:"pointer", fontFamily:"inherit" },
     input:   { width:"100%", padding:"9px 12px", borderRadius:10, border:"1px solid #e5e3dc", background:"#fff", fontSize:13, fontFamily:"inherit", color:"#1a1a18", outline:"none", boxSizing:"border-box" },
     tag:     (a) => ({ padding:"5px 12px", borderRadius:100, fontSize:11, fontWeight:600, border:"none", cursor:"pointer", background:a?"#1a1a18":"#f0ede8", color:a?"#fff":"#6b6860", transition:"all .13s", whiteSpace:"nowrap", flexShrink:0 }),
+    /* underline tab for region */
+    tabBar:  { display:"flex", borderBottom:"1.5px solid #e5e3dc", marginBottom:14 },
+    tab:     (a) => ({ padding:"8px 0", marginRight:22, fontSize:13, fontWeight:700, border:"none", background:"transparent", cursor:"pointer", color:a?"#1a1a18":"#9b9890", borderBottom:a?"2px solid #1a1a18":"2px solid transparent", marginBottom:"-1.5px", transition:"color .13s" }),
   };
 
   return (
@@ -228,6 +251,20 @@ export default function Internships() {
           <button style={S.btn} onClick={() => fetchJobs(true)} title="Refresh listings">
             ↻
           </button>
+        </div>
+
+        {/* Region underline tabs */}
+        <div style={S.tabBar}>
+          {[
+            { key:"All",       label:`All (${jobs.length})` },
+            { key:"India",     label:`India (${indiaCount})` },
+            { key:"Worldwide", label:`Worldwide (${worldwideCount})` },
+          ].map(t => (
+            <button key={t.key} style={S.tab(activeRegion===t.key)}
+              onClick={() => setActiveRegion(t.key)}>
+              {t.label}
+            </button>
+          ))}
         </div>
 
         {/* Search */}
@@ -280,7 +317,7 @@ export default function Internships() {
               {search ? `Nothing matching "${search}"` : "No listings for this filter"}
             </div>
             <button style={{ ...S.btn, background:"#f0ede8", color:"#1a1a18" }}
-              onClick={() => { setSearch(""); setSearchInput(""); setActiveType("All"); }}>
+              onClick={() => { setSearch(""); setSearchInput(""); setActiveType("All"); setActiveRegion("All"); }}>
               Clear filters
             </button>
           </div>
@@ -289,6 +326,7 @@ export default function Internships() {
           <>
             <div style={{ fontSize:11, color:"#9b9890", marginBottom:10 }}>
               {filtered.length} {filtered.length === 1 ? "listing" : "listings"}
+              {activeRegion !== "All" && ` · ${activeRegion}`}
               {activeType !== "All" && ` · ${activeType}`}
               {search && ` · "${search}"`}
             </div>
