@@ -131,14 +131,14 @@ function ResourceForm({
 
       {/* Module counter + optional topic */}
       <div>
-        <label style={lbl}>Module / Unit</label>
+        <label style={lbl}>Unit / Module</label>
         <div style={{ display:"flex", alignItems:"center", gap:0, background:"#f5f4f0", borderRadius:10, padding:"3px", width:"fit-content" }}>
           <button type="button" onClick={() => setUnit(u=>Math.max(1,u-1))} disabled={unit<=1}
             style={{ width:34, height:34, borderRadius:8, border:"none", background:unit<=1?"transparent":"#fff", cursor:unit<=1?"not-allowed":"pointer", fontSize:18, fontWeight:700, color:unit<=1?"#ccc":"#1a1a18", display:"flex", alignItems:"center", justifyContent:"center", boxShadow:unit<=1?"none":"0 1px 3px rgba(0,0,0,.08)", transition:"all .12s" }}>
             −
           </button>
           <span style={{ minWidth:56, textAlign:"center", fontSize:14, fontWeight:700, fontFamily:"monospace", color:"#1a1a18" }}>
-            Module {unit}
+            {unit}
           </span>
           <button type="button" onClick={() => setUnit(u=>u+1)}
             style={{ width:34, height:34, borderRadius:8, border:"none", background:"#fff", cursor:"pointer", fontSize:18, fontWeight:700, color:"#1a1a18", display:"flex", alignItems:"center", justifyContent:"center", boxShadow:"0 1px 3px rgba(0,0,0,.08)", transition:"all .12s" }}>
@@ -152,7 +152,7 @@ function ResourceForm({
         </div>
         <div style={{ marginTop:5, fontSize:11, color:"#9b9890" }}>
           Saved as: <strong style={{ color:"#1a1a18" }}>
-            {topic.trim() ? `Module ${unit} — ${topic.trim()}` : `Module ${unit}`}
+            {topic.trim() ? `Unit/Module ${unit} — ${topic.trim()}` : `Unit/module ${unit}`}
           </strong>
         </div>
       </div>
