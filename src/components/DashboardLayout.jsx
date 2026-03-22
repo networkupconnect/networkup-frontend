@@ -155,50 +155,63 @@ export default function DashboardLayout() {
         </aside>
 
         {/* ── Mobile bottom nav — 5 tabs, no More/drawer ──────────────────── */}
-        <div className="sm:hidden fixed bottom-0 left-0 right-0 z-20 bg-white border-t border-gray-200 flex justify-around items-center h-16 px-1">
-          {mobileNavTabs.map((tab) =>
-            tab.name === "Explore" ? (
-              // Centre Explore button — slightly elevated pill style
-              <NavLink
-                key="Explore"
-                to="/explore"
-                className={({ isActive }) =>
-                  `flex flex-col items-center justify-center flex-1 py-1 gap-0.5 ${isActive ? "text-blue-600" : "text-gray-500"}`
-                }
-              >
-                {({ isActive }) => (
-                  <>
-                    <span
-                      className={`flex items-center justify-center w-10 h-10 rounded-2xl transition-colors ${
-                        isActive ? "bg-blue-100" : "bg-gray-100"
-                      }`}
-                    >
-                      {/* Compass / grid icon */}
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <circle cx="12" cy="12" r="10"/>
-                        <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>
-                      </svg>
-                    </span>
-                    <span className="text-[10px] leading-tight">Explore</span>
-                  </>
-                )}
-              </NavLink>
-            ) : (
-              <NavLink
-                key={tab.name}
-                to={tab.path}
-                className={({ isActive }) =>
-                  `flex flex-col items-center justify-center gap-0.5 flex-1 py-1 ${isActive ? "text-blue-600" : "text-gray-500"}`
-                }
-              >
-                <img className="w-5 h-5" src={tab.imgsrc} alt="" />
-                <span className="text-[10px] leading-tight text-center truncate w-full px-0.5">
-                  {tab.name}
-                </span>
-              </NavLink>
-            )
-          )}
-        </div>
+        {/* Replace the existing mobile bottom nav JSX with this: */}
+<div className="sm:hidden fixed bottom-0 left-0 right-0 z-20 bg-white border-t border-gray-200 flex justify-around items-center h-16 px-1">
+  {mobileNavTabs.map((tab) =>
+    tab.name === "Explore" ? (
+      <NavLink
+        key="Explore"
+        to="/explore"
+        className={({ isActive }) =>
+          `flex flex-col items-center justify-center flex-1 py-1 gap-0.5 ${
+            isActive ? "text-blue-600" : "text-gray-500"
+          }`
+        }
+      >
+        {({ isActive }) => (
+          <>
+            <span
+              className={`flex items-center justify-center w-10 h-10 rounded-2xl transition-colors ${
+                isActive ? "bg-blue-100" : "bg-gray-100"
+              }`}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>
+              </svg>
+            </span>
+            {/* Active: black text, inactive: gray */}
+            <span className={`text-[10px] leading-tight ${isActive ? "text-black font-semibold" : "text-gray-500"}`}>
+              Explore
+            </span>
+          </>
+        )}
+      </NavLink>
+    ) : (
+      <NavLink
+        key={tab.name}
+        to={tab.path}
+        className={({ isActive }) =>
+          `flex flex-col items-center justify-center gap-0.5 flex-1 py-1 ${
+            isActive ? "text-blue-600" : "text-gray-500"
+          }`
+        }
+      >
+        {({ isActive }) => (
+          <>
+            <img className="w-5 h-5" src={tab.imgsrc} alt="" />
+            {/* Active: black text, inactive: gray */}
+            <span className={`text-[10px] leading-tight text-center truncate w-full px-0.5 ${
+              isActive ? "text-black font-semibold" : "text-gray-500"
+            }`}>
+              {tab.name}
+            </span>
+          </>
+        )}
+      </NavLink>
+    )
+  )}
+</div>
 
         {/* ── Main content ─────────────────────────────────────────────────── */}
         <main className="flex-1 overflow-y-auto bg-white hide-scrollbar pb-16 sm:pb-0">

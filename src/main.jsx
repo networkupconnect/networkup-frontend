@@ -34,6 +34,9 @@ import LostFound from "./context/LostFound.jsx";
 import RoomFinder from "./pages/RoomFinder.jsx";
 import Attendance from "./pages/Attendance.jsx";
 import OnboardingFlow from "./pages/OnboardingFlow.jsx";
+import ExplorePage from "./pages/Explorepage.jsx"; // add this import
+
+
 
 
 
@@ -83,7 +86,8 @@ const router = createBrowserRouter([
     errorElement: <NotFound />,
     children: [
       { index: true, element: <DashboardHome /> },
-
+// Inside the DashboardLayout children array, add:
+{ path: "explore", element: <ExplorePage /> },
       { path: "resources", element: <Resources /> },
       { path: "confessions", element: <Confessions /> },
       { path: "messages", element: <Messages /> },
