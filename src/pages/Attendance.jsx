@@ -1,27 +1,21 @@
 import { useEffect, useState, useRef, useMemo, useCallback } from "react";
 
 /* ─── Constants ─────────────────────────────────────────────────────────── */
-const DAYS      = ["Mon", "Tue", "Wed", "Thu", "Fri"];
-const DAY_FULL  = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
-const MONTHS    = ["January","February","March","April","May","June",
-                   "July","August","September","October","November","December"];
+const MONTHS = ["January","February","March","April","May","June",
+                "July","August","September","October","November","December"];
+const DAYS   = ["Mon","Tue","Wed","Thu","Fri"];
 
-// Holidays — "YYYY-MM-DD". Feb 28 = Sat (already off), Mar 1 = Sun (already off).
-// Listed here so they render visually if navigated to.
-const HOLIDAYS  = new Set(["2026-02-28", "2026-03-01"]);
+const HOLIDAYS = new Set(["2026-02-28","2026-03-01"]);
 
 const STORAGE_KEYS = {
-  subjects:   "att26_subjects",
   attendance: "att26_data",
-  baseline:   "att26_baseline",   // { pct: number }
+  baseline:   "att26_baseline",
 };
 
 /* ─── Helpers ───────────────────────────────────────────────────────────── */
 function fmtKey(y, m, d) {
-  return `${y}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+  return `${y}-${String(m+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
 }
-
-function pct(p, t) { return t ? Math.round((p / t) * 100) : 0; }
 
 function isWeekend(y, m, d) {
   const w = new Date(y, m, d).getDay();
@@ -30,15 +24,9 @@ function isWeekend(y, m, d) {
 
 function isHoliday(dk) { return HOLIDAYS.has(dk); }
 
-function isWorkday(y, m, d) {
-  return !isWeekend(y, m, d) && !isHoliday(fmtKey(y, m, d));
-}
-
 function getWeekdayBlanks(y, m) {
-  // How many Mon-aligned blank cells before the 1st of month
-  const firstDow  = new Date(y, m, 1).getDay(); // 0=Sun
+  const firstDow  = new Date(y, m, 1).getDay();
   const monOffset = firstDow === 0 ? 6 : firstDow - 1;
-  // Count only Mon–Fri slots in that offset
   let blanks = 0;
   for (let i = 0; i < monOffset; i++) { if (i % 7 < 5) blanks++; }
   return blanks;
@@ -46,13 +34,7 @@ function getWeekdayBlanks(y, m) {
 
 function fmtDateLong(y, m, d) {
   return new Date(y, m, d).toLocaleDateString("en-IN", {
-    weekday: "long", day: "numeric", month: "long", year: "numeric",
-  });
-}
-
-function fmtDateShort(y, m, d) {
-  return new Date(y, m, d).toLocaleDateString("en-IN", {
-    day: "numeric", month: "short",
+    weekday: "long", day: "numeric", month: "long",
   });
 }
 
@@ -60,240 +42,258 @@ function load(key, fallback) {
   try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }
   catch { return fallback; }
 }
-
 function save(key, val) {
   try { localStorage.setItem(key, JSON.stringify(val)); } catch {}
 }
 
-/* ─── Sub-components ────────────────────────────────────────────────────── */
+/* ─── Default day record ────────────────────────────────────────────────── */
+function emptyDay() {
+  return { total: 0, attended: 0, bunk: 0, massBunk: false };
+}
 
-function Toast({ toast }) {
-  if (!toast) return null;
+/* ─── Toast ─────────────────────────────────────────────────────────────── */
+function Toast({ msg }) {
+  if (!msg) return null;
   return (
     <div style={{
-      position: "fixed", bottom: 22, left: "50%", transform: "translateX(-50%)",
-      background: "#1c1b18", color: "#fff", fontSize: 12, fontWeight: 600,
-      padding: "8px 18px", borderRadius: 100,
-      boxShadow: "0 4px 14px rgba(0,0,0,.18)",
-      zIndex: 999, whiteSpace: "nowrap", pointerEvents: "none",
-      animation: "att-fadein .15s ease both",
-    }}>
-      {toast}
-    </div>
+      position:"fixed", bottom:24, left:"50%", transform:"translateX(-50%)",
+      background:"#111", color:"#fff", fontSize:12, fontWeight:600,
+      padding:"7px 18px", borderRadius:100,
+      boxShadow:"0 4px 20px rgba(0,0,0,.22)",
+      zIndex:999, whiteSpace:"nowrap", pointerEvents:"none",
+      animation:"fadeup .15s ease both",
+    }}>{msg}</div>
   );
 }
 
-function StatCard({ val, label, color }) {
-  const colors = {
-    default: "#1c1b18",
-    green:   "#1a7a52",
-    red:     "#b83030",
-    amber:   "#a05810",
-  };
+/* ─── Counter Row ───────────────────────────────────────────────────────── */
+function Counter({ label, value, onInc, onDec, accent, disabled, extra }) {
   return (
     <div style={{
-      background: "#fff", border: "1px solid #e0ddd5",
-      borderRadius: 10, padding: "11px 8px", textAlign: "center",
-      boxShadow: "0 1px 3px rgba(0,0,0,.06)",
+      display:"flex", alignItems:"center", justifyContent:"space-between",
+      padding:"11px 0",
     }}>
-      <div style={{ fontSize: 22, fontWeight: 700, fontFamily: "monospace", lineHeight: 1, color: colors[color] || colors.default }}>{val}</div>
-      <div style={{ fontSize: 10, color: "#aaa89e", fontWeight: 600, marginTop: 4, textTransform: "uppercase", letterSpacing: ".06em" }}>{label}</div>
+      <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+        <div style={{ fontSize:12, fontWeight:600, color:"#6b6860", minWidth:110 }}>{label}</div>
+        {extra}
+      </div>
+      <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+        <button
+          onClick={onDec}
+          disabled={disabled || value <= 0}
+          style={{
+            width:30, height:30, borderRadius:8,
+            border:"1px solid #e0ddd5", background:"#f5f4f0",
+            fontSize:16, fontWeight:700, color: disabled || value <= 0 ? "#ccc" : "#1c1b18",
+            cursor: disabled || value <= 0 ? "not-allowed" : "pointer",
+            display:"flex", alignItems:"center", justifyContent:"center",
+            transition:"all .12s",
+          }}>−</button>
+        <span style={{
+          minWidth:36, textAlign:"center",
+          fontSize:17, fontWeight:700, fontFamily:"monospace",
+          color: accent || "#1c1b18",
+        }}>{value}</span>
+        <button
+          onClick={onInc}
+          disabled={disabled}
+          style={{
+            width:30, height:30, borderRadius:8,
+            border:"1px solid #e0ddd5", background:"#f5f4f0",
+            fontSize:16, fontWeight:700, color: disabled ? "#ccc" : "#1c1b18",
+            cursor: disabled ? "not-allowed" : "pointer",
+            display:"flex", alignItems:"center", justifyContent:"center",
+            transition:"all .12s",
+          }}>+</button>
+      </div>
     </div>
   );
 }
 
 /* ════════════════════════════════════════════════════════════════════════════
-   MAIN COMPONENT
+   MAIN
 ════════════════════════════════════════════════════════════════════════════ */
 export default function Attendance() {
   const today = useMemo(() => { const d = new Date(); d.setHours(0,0,0,0); return d; }, []);
+  const todayKey = fmtKey(today.getFullYear(), today.getMonth(), today.getDate());
 
-  /* ── Core state ── */
-  const [subjects,   setSubjects]   = useState(() => load(STORAGE_KEYS.subjects,   []));
+  /* ── State ── */
   const [attendance, setAttendance] = useState(() => load(STORAGE_KEYS.attendance, {}));
   const [baseline,   setBaseline]   = useState(() => load(STORAGE_KEYS.baseline,   null));
-
-  /* ── View state ── */
-  const [viewYear,  setViewYear]  = useState(today.getFullYear());
-  const [viewMonth, setViewMonth] = useState(today.getMonth());
-  const [selectedKey, setSelectedKey] = useState(() => {
-    if (today.getDay() !== 0 && today.getDay() !== 6) {
-      return fmtKey(today.getFullYear(), today.getMonth(), today.getDate());
-    }
-    return null;
-  });
-
-  /* ── UI state ── */
-  const [toast,       setToast]       = useState(null);
-  const [subjectInput, setSubjectInput] = useState("");
+  const [viewYear,   setViewYear]   = useState(today.getFullYear());
+  const [viewMonth,  setViewMonth]  = useState(today.getMonth());
+  const [selectedKey, setSelectedKey] = useState(() =>
+    today.getDay() !== 0 && today.getDay() !== 6 ? todayKey : null
+  );
+  const [toast,         setToast]         = useState(null);
   const [baselineInput, setBaselineInput] = useState("");
-  const [showAddSubject, setShowAddSubject] = useState(false);
   const toastRef = useRef(null);
 
-  /* ── Persist on change ── */
-  useEffect(() => { save(STORAGE_KEYS.subjects,   subjects);   }, [subjects]);
+  /* ── Persist ── */
   useEffect(() => { save(STORAGE_KEYS.attendance, attendance); }, [attendance]);
   useEffect(() => { save(STORAGE_KEYS.baseline,   baseline);   }, [baseline]);
 
-  /* ── Toast helper ── */
+  /* ── Toast ── */
   const showToast = useCallback((msg) => {
     clearTimeout(toastRef.current);
     setToast(msg);
-    toastRef.current = setTimeout(() => setToast(null), 2200);
+    toastRef.current = setTimeout(() => setToast(null), 1800);
   }, []);
 
-  /* ── Derived: today key ── */
-  const todayKey = fmtKey(today.getFullYear(), today.getMonth(), today.getDate());
-
-  /* ── Selected date parts ── */
+  /* ── Selected day data ── */
   const selectedParts = useMemo(() => {
     if (!selectedKey) return null;
     const [y, m, d] = selectedKey.split("-").map(Number);
-    return { y, m: m - 1, d };
+    return { y, m: m-1, d };
   }, [selectedKey]);
 
-  const isFutureSelected = selectedParts
+  const isFuture = selectedParts
     ? new Date(selectedParts.y, selectedParts.m, selectedParts.d) > today
     : false;
 
-  /* ── Attendance calculations ── */
-  function getDayStats(dk) {
-    if (!attendance[dk] || !subjects.length) return null;
-    let p = 0, a = 0, b = 0;
-    subjects.forEach(s => {
-      const v = attendance[dk]?.[s];
-      if (v === "p") p++; else if (v === "a") a++; else if (v === "b") b++;
-    });
-    const marked = p + a;
-    if (!marked && !b) return null;
-    return { p, a, b, marked, pct: marked ? Math.round(p / marked * 100) : null };
-  }
+  const dayData = useMemo(() => {
+    if (!selectedKey) return emptyDay();
+    return { ...emptyDay(), ...(attendance[selectedKey] || {}) };
+  }, [attendance, selectedKey]);
 
-  const overallStats = useMemo(() => {
-    let tP = 0, tA = 0, tB = 0;
-    Object.keys(attendance).forEach(dk => {
-      subjects.forEach(s => {
-        const v = attendance[dk]?.[s];
-        if (v === "p") tP++; else if (v === "a") tA++; else if (v === "b") tB++;
-      });
-    });
-    // Baseline: student entered a %. We treat it as a virtual 100-class block.
-    const bPct = baseline?.pct ?? null;
-    let totalP = tP, totalA = tA;
-    if (bPct !== null) { totalP += bPct; totalA += (100 - bPct); }
-    const marked = totalP + totalA;
-    return { totalP, totalA, tB, marked, pct: marked ? Math.round(totalP / marked * 100) : null };
-  }, [attendance, subjects, baseline]);
-
-  function getSubjectStats(subj) {
-    let p = 0, a = 0, b = 0;
-    Object.keys(attendance).forEach(dk => {
-      const v = attendance[dk]?.[subj];
-      if (v === "p") p++; else if (v === "a") a++; else if (v === "b") b++;
-    });
-    const marked = p + a;
-    return { p, a, b, marked, pct: marked ? Math.round(p / marked * 100) : null };
-  }
-
-  /* ── Mark attendance ── */
-  const markAttendance = useCallback((subj, val) => {
-    if (!selectedKey || isFutureSelected) return;
+  /* ── Mutate day ── */
+  const mutatDay = useCallback((patch) => {
+    if (!selectedKey || isFuture) return;
     setAttendance(prev => {
-      const next = { ...prev };
-      const day  = { ...(next[selectedKey] || {}) };
-      if (day[subj] === val) {
-        delete day[subj];
-        showToast("Unmarked");
-      } else {
-        day[subj] = val;
-        showToast(val === "p" ? "Present ✓" : val === "a" ? "Absent" : "Bunk 🚪");
+      const cur = { ...emptyDay(), ...(prev[selectedKey] || {}) };
+      const next = { ...cur, ...patch };
+      return { ...prev, [selectedKey]: next };
+    });
+  }, [selectedKey, isFuture]);
+
+  /* ── Counter handlers ── */
+  const handlers = useMemo(() => {
+    const d = dayData;
+    return {
+      totalInc: () => { mutatDay({ total: d.total + 1 }); showToast("Total +1"); },
+      totalDec: () => {
+        if (d.total <= 0) return;
+        const newTotal = d.total - 1;
+        mutatDay({
+          total:    newTotal,
+          attended: Math.min(d.attended, newTotal),
+          bunk:     Math.min(d.bunk, newTotal),
+        });
+        showToast("Total −1");
+      },
+      attendedInc: () => {
+        if (d.attended >= d.total) { showToast("Can't exceed total"); return; }
+        mutatDay({ attended: d.attended + 1, massBunk: false });
+        showToast("Attended +1");
+      },
+      attendedDec: () => {
+        if (d.attended <= 0) return;
+        mutatDay({ attended: d.attended - 1 });
+        showToast("Attended −1");
+      },
+      bunkInc: () => {
+        if (d.bunk >= d.total) { showToast("Can't exceed total"); return; }
+        mutatDay({ bunk: d.bunk + 1, massBunk: false });
+        showToast("Bunk +1");
+      },
+      bunkDec: () => {
+        if (d.bunk <= 0) return;
+        mutatDay({ bunk: d.bunk - 1, massBunk: false });
+        showToast("Bunk −1");
+      },
+      massBunk: () => {
+        if (d.massBunk) {
+          mutatDay({ massBunk: false });
+          showToast("Mass bunk cleared");
+        } else {
+          mutatDay({ massBunk: true, attended: 0, bunk: 0 });
+          showToast("Mass bunk — day off");
+        }
+      },
+    };
+  }, [dayData, mutatDay, showToast]);
+
+  /* ── Overall stats ── */
+  const overall = useMemo(() => {
+    let tTotal = 0, tAttended = 0, tBunk = 0;
+    Object.values(attendance).forEach(d => {
+      if (!d.massBunk) {
+        tTotal    += d.total    || 0;
+        tAttended += d.attended || 0;
+        tBunk     += d.bunk     || 0;
       }
-      if (!Object.keys(day).length) delete next[selectedKey];
-      else next[selectedKey] = day;
-      return next;
     });
-  }, [selectedKey, isFutureSelected, showToast]);
+    // Baseline: virtual classes before this tracker
+    const bPct = baseline?.pct ?? null;
+    let fTotal = tTotal, fAttended = tAttended;
+    if (bPct !== null) { fTotal += 100; fAttended += bPct; }
+    const pct = fTotal ? Math.round((fAttended / fTotal) * 100) : null;
+    return { pct, attended: fAttended, total: fTotal, bunk: tBunk };
+  }, [attendance, baseline]);
 
-  /* ── Subject CRUD ── */
-  const addSubject = () => {
-    const val = subjectInput.trim();
-    if (!val) return;
-    if (subjects.map(s => s.toLowerCase()).includes(val.toLowerCase())) {
-      showToast("Subject already exists"); setSubjectInput(""); return;
+  /* ── Insight ── */
+  const insight = useMemo(() => {
+    const { pct: op, attended, total } = overall;
+    if (op === null || total === 0) return null;
+    const T = 75;
+    if (op >= T) {
+      const skip = Math.max(0, Math.floor((100*attended - T*total) / T));
+      return { type:"ok", msg:`${op}% · can skip ${skip} more` };
     }
-    setSubjects(prev => [...prev, val]);
-    setSubjectInput("");
-    showToast(`"${val}" added`);
-  };
+    const need = Math.max(0, Math.ceil((T*total - 100*attended) / (100 - T)));
+    return { type: op >= 60 ? "warn" : "danger", msg:`${op}% · need ${need} more` };
+  }, [overall]);
 
-  const deleteSubject = (subj) => {
-    if (!window.confirm(`Remove "${subj}" and all its data?`)) return;
-    setAttendance(prev => {
-      const next = { ...prev };
-      Object.keys(next).forEach(dk => { if (next[dk]) { delete next[dk][subj]; } });
-      return next;
-    });
-    setSubjects(prev => prev.filter(s => s !== subj));
-    showToast(`"${subj}" removed`);
-  };
+  /* ── Calendar ── */
+  function getDayDot(dk) {
+    const d = attendance[dk];
+    if (!d) return null;
+    if (d.massBunk) return "mb";
+    if (!d.total) return null;
+    const p = Math.round((d.attended / d.total) * 100);
+    if (p >= 75) return "ok";
+    if (p >= 60) return "warn";
+    return "bad";
+  }
 
-  /* ── Baseline ── */
-  const saveBaseline = () => {
-    const v = parseFloat(baselineInput);
-    if (baselineInput === "" || isNaN(v)) { showToast("Enter your attendance %"); return; }
-    if (v < 0 || v > 100) { showToast("Enter a value between 0 and 100"); return; }
-    setBaseline({ pct: Math.round(v * 10) / 10 });
-    showToast("Baseline saved ✓");
-  };
-
-  /* ── Month nav ── */
-  const prevMonth = () => {
-    setViewMonth(m => { if (m === 0) { setViewYear(y => y - 1); return 11; } return m - 1; });
-  };
-  const nextMonth = () => {
-    setViewMonth(m => { if (m === 11) { setViewYear(y => y + 1); return 0; } return m + 1; });
-  };
-
-  /* ── Calendar cells ── */
-  const calendarCells = useMemo(() => {
+  const calCells = useMemo(() => {
     const blanks   = getWeekdayBlanks(viewYear, viewMonth);
-    const daysInMo = new Date(viewYear, viewMonth + 1, 0).getDate();
+    const daysInMo = new Date(viewYear, viewMonth+1, 0).getDate();
     const cells    = [];
-
-    for (let i = 0; i < blanks; i++) cells.push({ type: "blank" });
-
+    for (let i = 0; i < blanks; i++) cells.push({ type:"blank" });
     for (let d = 1; d <= daysInMo; d++) {
       if (isWeekend(viewYear, viewMonth, d)) continue;
       const dk  = fmtKey(viewYear, viewMonth, d);
       const hol = isHoliday(dk);
       cells.push({
-        type: "day", d, dk,
-        isHoliday: hol,
-        isToday:   dk === todayKey,
-        isFuture:  !hol && new Date(viewYear, viewMonth, d) > today,
-        isSelected: dk === selectedKey,
-        stats: hol ? null : getDayStats(dk),
+        type:"day", d, dk, hol,
+        isToday:  dk === todayKey,
+        isFuture: !hol && new Date(viewYear, viewMonth, d) > today,
+        isSel:    dk === selectedKey,
+        dot:      hol ? null : getDayDot(dk),
       });
     }
     return cells;
-  }, [viewYear, viewMonth, attendance, subjects, selectedKey, todayKey, today]);
+  }, [viewYear, viewMonth, attendance, selectedKey, todayKey, today]);
 
-  /* ── Insight line ── */
-  const insight = useMemo(() => {
-    const { pct: op, totalP, totalA, marked } = overallStats;
-    if (op === null) return null;
-    const target = 75;
-    if (op >= target) {
-      const skip = Math.max(0, Math.floor((100 * totalP - target * marked) / target));
-      return { type: "ok", msg: `You're at ${op}% — can skip ${skip} more class${skip !== 1 ? "es" : ""} and stay above ${target}%` };
-    } else {
-      const need = Math.max(0, Math.ceil((target * marked - 100 * totalP) / (100 - target)));
-      return {
-        type: op >= 60 ? "warn" : "danger",
-        msg: `At ${op}% — need ${need} more present class${need !== 1 ? "es" : ""} to reach ${target}%`,
-      };
-    }
-  }, [overallStats]);
+  /* ── Month nav ── */
+  const prevMonth = () => setViewMonth(m => { if(m===0){setViewYear(y=>y-1);return 11;} return m-1; });
+  const nextMonth = () => setViewMonth(m => { if(m===11){setViewYear(y=>y+1);return 0;} return m+1; });
+
+  /* ── Baseline ── */
+  const saveBaseline = () => {
+    const v = parseFloat(baselineInput);
+    if (isNaN(v) || v < 0 || v > 100) { showToast("Enter 0–100"); return; }
+    setBaseline({ pct: Math.round(v * 10) / 10 });
+    showToast("Baseline saved");
+  };
+
+  /* ── Color helpers ── */
+  const pctColor  = (p) => p === null ? "#aaa89e" : p >= 75 ? "#1a7a52" : p >= 60 ? "#a05810" : "#b83030";
+  const pctBg     = (p) => p === null ? "#eeecea" : p >= 75 ? "#e6f4ee" : p >= 60 ? "#fdf0dc" : "#faeaea";
+  const dotColors = { ok:"#1a7a52", warn:"#a05810", bad:"#b83030", mb:"#9b8fb5" };
+
+  const dayPct = dayData.total ? Math.round((dayData.attended / dayData.total) * 100) : null;
 
   /* ══════════════════════════════════════════════════════════════════════
      RENDER
@@ -301,284 +301,194 @@ export default function Attendance() {
   return (
     <>
       <style>{`
-        .att2026 *, .att2026 *::before, .att2026 *::after { box-sizing: border-box; }
-        .att2026 {
+        .a26 *, .a26 *::before, .a26 *::after { box-sizing:border-box; }
+        .a26 {
           font-family: 'DM Sans', system-ui, sans-serif;
-          background: #f5f4f0; min-height: 100vh; color: #1c1b18; font-size: 14px; line-height: 1.5;
+          background:#f5f4f0; min-height:100vh; color:#1c1b18; font-size:14px;
         }
-        @keyframes att-fadein { from { opacity:0; transform:translateX(-50%) translateY(4px); } to { opacity:1; transform:translateX(-50%) translateY(0); } }
-
-        /* ── Inputs & buttons ── */
-        .att2026 .rf {
-          width: 100%; padding: 9px 12px; border-radius: 10px;
-          border: 1px solid #e0ddd5; background: #fff;
-          font-size: 13px; font-family: inherit; color: #1c1b18; outline: none;
-          transition: border-color .15s;
+        @keyframes fadeup {
+          from { opacity:0; transform:translateX(-50%) translateY(6px); }
+          to   { opacity:1; transform:translateX(-50%) translateY(0); }
         }
-        .att2026 .rf:focus { border-color: #c5c2b8; }
-        .att2026 .rf::placeholder { color: #aaa89e; }
-
-        .att2026 .btn-dark {
-          padding: 9px 16px; border-radius: 10px; border: none;
-          background: #1c1b18; color: #fff; font-size: 13px; font-weight: 600;
-          cursor: pointer; font-family: inherit; transition: background .13s; white-space: nowrap;
+        .a26 .rf {
+          width:100%; padding:9px 12px; border-radius:10px;
+          border:1px solid #e0ddd5; background:#fff;
+          font-size:13px; font-family:inherit; color:#1c1b18; outline:none;
+          transition:border-color .15s;
         }
-        .att2026 .btn-dark:hover { background: #3a3936; }
-        .att2026 .btn-dark:disabled { opacity: .4; cursor: not-allowed; }
-
-        .att2026 .btn-ghost {
-          background: none; border: none; cursor: pointer;
-          font-family: inherit; font-size: 12px; color: #aaa89e; padding: 0;
-          transition: color .13s;
+        .a26 .rf:focus { border-color:#c5c2b8; }
+        .a26 .rf::placeholder { color:#aaa89e; }
+        .a26 .btn {
+          padding:8px 14px; border-radius:10px; border:none;
+          background:#1c1b18; color:#fff; font-size:12px; font-weight:600;
+          cursor:pointer; font-family:inherit; transition:background .13s;
         }
-        .att2026 .btn-ghost:hover { color: #b83030; }
-
-        /* ── Overlay / modal ── */
-        .att2026 .overlay {
-          position: fixed; inset: 0; z-index: 80;
-          background: rgba(0,0,0,.18);
-          display: flex; align-items: center; justify-content: center; padding: 20px;
+        .a26 .btn:hover { background:#333; }
+        .a26 .btn-ghost {
+          background:none; border:none; cursor:pointer;
+          font-family:inherit; font-size:11px; color:#aaa89e; padding:0;
         }
-        .att2026 .modal {
-          background: #fff; border-radius: 16px; padding: 22px; width: 100%;
-          max-width: 400px; box-shadow: 0 12px 40px rgba(0,0,0,.12);
-          max-height: 90vh; overflow-y: auto;
+        .a26 .btn-ghost:hover { color:#b83030; }
+        /* Calendar */
+        .a26 .cc {
+          border-right:1px solid #e0ddd5; border-bottom:1px solid #e0ddd5;
+          min-height:60px; padding:7px 6px; cursor:pointer;
+          transition:background .1s;
         }
-
-        /* ── Calendar cell ── */
-        .att2026 .cc {
-          border-right: 1px solid #e0ddd5; border-bottom: 1px solid #e0ddd5;
-          min-height: 66px; padding: 7px 6px; cursor: pointer;
-          transition: background .12s;
+        .a26 .cc:nth-child(5n) { border-right:none; }
+        .a26 .cc:hover { background:#eeecea; }
+        .a26 .cc-blank  { background:#f5f4f0; cursor:default; }
+        .a26 .cc-hol    { background:#fdf5f5; cursor:default; }
+        .a26 .cc-future { opacity:.4; cursor:default; }
+        .a26 .cc-future:hover { background:#fff; }
+        .a26 .cc-sel    { background:#1c1b18 !important; }
+        .a26 .cc-sel:hover { background:#333 !important; }
+        /* Divider */
+        .a26 .divider { border:none; border-top:1px solid #e0ddd5; margin:0; }
+        /* Counter section */
+        .a26 .ctr-wrap { padding:14px 16px; }
+        .a26 .ctr-wrap .ctr-row + .ctr-row { border-top:1px solid #f0ede8; }
+        /* Mass bunk pill */
+        .a26 .mb-pill {
+          display:inline-flex; align-items:center; gap:4px;
+          padding:3px 10px; border-radius:100px; font-size:11px; font-weight:600;
+          cursor:pointer; border:1.5px solid #d5cde8;
+          transition:all .12s;
         }
-        .att2026 .cc:nth-child(5n) { border-right: none; }
-        .att2026 .cc:hover { background: #eeecea; }
-        .att2026 .cc.empty   { background: #f5f4f0; cursor: default; opacity: .4; }
-        .att2026 .cc.empty:hover { background: #f5f4f0; }
-        .att2026 .cc.holiday { background: #fdf5f5; cursor: default; }
-        .att2026 .cc.holiday:hover { background: #fdf5f5; }
-        .att2026 .cc.future  { opacity: .5; cursor: default; }
-        .att2026 .cc.future:hover { background: #fff; }
-        .att2026 .cc.selected { background: #1c1b18 !important; }
-        .att2026 .cc.selected:hover { background: #3a3936 !important; }
-
-        /* ── Mark buttons ── */
-        .att2026 .mbtn {
-          flex: 1; padding: 7px 4px; border-radius: 8px; border: 1px solid #e0ddd5;
-          background: #fff; color: #6b6860; font-size: 11px; font-weight: 600;
-          cursor: pointer; font-family: inherit; transition: all .12s; white-space: nowrap;
-        }
-        .att2026 .mbtn:hover:not(:disabled) { border-color: #c5c2b8; background: #eeecea; color: #1c1b18; }
-        .att2026 .mbtn:disabled { opacity: .3; cursor: not-allowed; }
-        .att2026 .mbtn.on-p { background: #e6f4ee; border-color: #a3d9be; color: #1a7a52; }
-        .att2026 .mbtn.on-a { background: #faeaea; border-color: #e8aaaa; color: #b83030; }
-        .att2026 .mbtn.on-b { background: #fdf0dc; border-color: #e8c878; color: #a05810; }
-
-        /* ── Subject tags ── */
-        .att2026 .stag {
-          display: inline-flex; align-items: center; gap: 6px;
-          padding: 5px 10px 5px 12px; border-radius: 100px;
-          background: #fff; border: 1px solid #e0ddd5;
-          font-size: 12px; font-weight: 500;
-          box-shadow: 0 1px 3px rgba(0,0,0,.06);
-        }
-
-        /* ── Progress bar ── */
-        .att2026 .prog { height: 3px; background: #e0ddd5; border-radius: 100px; overflow: hidden; }
-        .att2026 .prog-f { height: 100%; border-radius: 100px; transition: width .3s; }
-
-        /* ── Spinner ── */
-        @keyframes att-spin { to { transform: rotate(360deg); } }
-        .att2026 .spin {
-          width: 18px; height: 18px; border: 2px solid #e0ddd5;
-          border-top-color: #1c1b18; border-radius: 50%;
-          animation: att-spin .7s linear infinite;
-        }
+        .a26 .mb-pill.off { background:#fff; color:#9b8fb5; }
+        .a26 .mb-pill.on  { background:#9b8fb5; color:#fff; border-color:#9b8fb5; }
       `}</style>
 
-      <div className="att2026">
-        <div style={{ maxWidth: 640, margin: "0 auto", padding: "22px 16px 80px" }}>
+      <div className="a26">
+        <div style={{ maxWidth:580, margin:"0 auto", padding:"20px 14px 80px" }}>
 
           {/* ── Header ── */}
-          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 22, gap: 12 }}>
-            <div>
-              <div style={{ fontSize: 21, fontWeight: 700, letterSpacing: "-.4px" }}>Attendance Tracker</div>
-              <div style={{ fontSize: 12, color: "#6b6860", marginTop: 2 }}>2026 · Classes started Mar 2 (Mar 1 = Sunday)</div>
-            </div>
-            {/* Month nav */}
-            <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0, marginTop: 4 }}>
-              <button onClick={prevMonth} style={{
-                width: 30, height: 30, borderRadius: 10, border: "1px solid #e0ddd5",
-                background: "#fff", cursor: "pointer", fontSize: 15, color: "#6b6860",
-                display: "flex", alignItems: "center", justifyContent: "center",
-              }}>‹</button>
-              <span style={{ fontSize: 12, fontWeight: 600, fontFamily: "monospace", minWidth: 108, textAlign: "center" }}>
-                {MONTHS[viewMonth]} {viewYear}
-              </span>
-              <button onClick={nextMonth} style={{
-                width: 30, height: 30, borderRadius: 10, border: "1px solid #e0ddd5",
-                background: "#fff", cursor: "pointer", fontSize: 15, color: "#6b6860",
-                display: "flex", alignItems: "center", justifyContent: "center",
-              }}>›</button>
-            </div>
+          <div style={{ marginBottom:20 }}>
+            <div style={{ fontSize:19, fontWeight:700, letterSpacing:"-.3px" }}>Attendance</div>
+            <div style={{ fontSize:11, color:"#aaa89e", marginTop:1 }}>2026 · Mar 2 onward</div>
           </div>
 
-          {/* ── Baseline Banner ── */}
+          {/* ── Stats row ── */}
           <div style={{
-            background: "#fff", border: "1px solid #e0ddd5", borderRadius: 14,
-            padding: "14px 16px", marginBottom: 16,
-            boxShadow: "0 1px 3px rgba(0,0,0,.06)",
+            display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:7, marginBottom:10,
           }}>
-            <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}>Your attendance as of Feb 27, 2026</div>
-            <div style={{ fontSize: 12, color: "#6b6860", marginBottom: 12, lineHeight: 1.55 }}>
-              Feb 28 was a holiday &amp; Mar 1 is Sunday — classes resume Mar 2. Enter your attendance % as of Feb 27 to set your baseline.
-            </div>
-
-            {baseline?.pct != null ? (
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: 10, borderTop: "1px solid #e0ddd5" }}>
-                <span style={{ fontSize: 12, color: "#6b6860" }}>
-                  Baseline set: <strong style={{ color: "#1c1b18" }}>{baseline.pct}%</strong> as of Feb 27
-                </span>
-                <button className="btn-ghost" onClick={() => { setBaseline(null); setBaselineInput(""); }}>Edit</button>
+            {[
+              { v: overall.pct !== null ? `${overall.pct}%` : "—", l:"Overall",  c: pctColor(overall.pct) },
+              { v: overall.attended,                                l:"Attended", c:"#1a7a52" },
+              { v: overall.total - overall.attended,               l:"Absent",   c:"#b83030" },
+              { v: overall.bunk,                                    l:"Bunk",     c:"#a05810" },
+            ].map(({ v, l, c }) => (
+              <div key={l} style={{
+                background:"#fff", border:"1px solid #e0ddd5", borderRadius:10,
+                padding:"10px 6px", textAlign:"center",
+              }}>
+                <div style={{ fontSize:20, fontWeight:700, fontFamily:"monospace", color:c, lineHeight:1 }}>{v}</div>
+                <div style={{ fontSize:10, color:"#aaa89e", fontWeight:600, marginTop:3, textTransform:"uppercase", letterSpacing:".05em" }}>{l}</div>
               </div>
-            ) : (
-              <>
-                <div style={{ marginBottom: 10 }}>
-                  <label style={{ fontSize: 10, color: "#aaa89e", fontWeight: 700, display: "block", marginBottom: 6, textTransform: "uppercase", letterSpacing: ".05em" }}>
-                    Attendance % as of Feb 27
-                  </label>
-                  <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
-                    <input
-                      className="rf"
-                      type="number"
-                      placeholder="e.g. 78"
-                      min="0" max="100" step="0.1"
-                      value={baselineInput}
-                      onChange={e => setBaselineInput(e.target.value)}
-                      onKeyDown={e => e.key === "Enter" && saveBaseline()}
-                      style={{ fontSize: 18, fontWeight: 600, fontFamily: "monospace", paddingRight: 36 }}
-                    />
-                    <span style={{ position: "absolute", right: 13, fontSize: 16, fontWeight: 700, color: "#6b6860", fontFamily: "monospace", pointerEvents: "none" }}>%</span>
-                  </div>
-                </div>
-                <button className="btn-dark" style={{ width: "100%", padding: 10 }} onClick={saveBaseline}>
-                  Save Baseline
-                </button>
-              </>
-            )}
-          </div>
-
-          {/* ── Summary ── */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8, marginBottom: 14 }}>
-            <StatCard val={overallStats.pct !== null ? `${overallStats.pct}%` : "—"} label="Overall"
-              color={overallStats.pct === null ? "default" : overallStats.pct >= 75 ? "green" : overallStats.pct >= 60 ? "amber" : "red"} />
-            <StatCard val={overallStats.totalP} label="Present" color="green" />
-            <StatCard val={overallStats.totalA} label="Absent"  color="red" />
-            <StatCard val={overallStats.tB}     label="Bunked"  color="amber" />
+            ))}
           </div>
 
           {/* ── Insight ── */}
           {insight && (
             <div style={{
-              borderRadius: 10, padding: "9px 13px", marginBottom: 14,
-              fontSize: 12, lineHeight: 1.5,
-              background: insight.type === "ok" ? "#e6f4ee" : insight.type === "warn" ? "#fdf0dc" : "#faeaea",
-              border: `1px solid ${insight.type === "ok" ? "#a3d9be" : insight.type === "warn" ? "#e8c878" : "#e8aaaa"}`,
-              color: insight.type === "ok" ? "#1a7a52" : insight.type === "warn" ? "#a05810" : "#b83030",
-            }}>
-              {insight.msg}
-            </div>
+              borderRadius:9, padding:"7px 12px", marginBottom:14,
+              fontSize:12, fontWeight:600,
+              background: insight.type==="ok" ? "#e6f4ee" : insight.type==="warn" ? "#fdf0dc" : "#faeaea",
+              border:`1px solid ${insight.type==="ok" ? "#a3d9be" : insight.type==="warn" ? "#e8c878" : "#e8aaaa"}`,
+              color: insight.type==="ok" ? "#1a7a52" : insight.type==="warn" ? "#a05810" : "#b83030",
+            }}>{insight.msg}</div>
           )}
 
-          {/* ── Add Subjects ── */}
-          <div style={{ fontSize: 11, fontWeight: 700, color: "#aaa89e", textTransform: "uppercase", letterSpacing: ".07em", marginBottom: 8 }}>
-            Your Subjects
-          </div>
-          <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
-            <input
-              className="rf"
-              placeholder="Type a subject name and press Enter"
-              maxLength={50}
-              value={subjectInput}
-              onChange={e => setSubjectInput(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && addSubject()}
-            />
-            <button className="btn-dark" onClick={addSubject}>+ Add</button>
-          </div>
-
-          {/* Subject tags */}
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 18, minHeight: 28 }}>
-            {subjects.length === 0
-              ? <span style={{ fontSize: 12, color: "#aaa89e", fontStyle: "italic" }}>No subjects yet — add your first subject above</span>
-              : subjects.map(s => (
-                  <div key={s} className="stag">
-                    <span>{s}</span>
-                    <button className="btn-ghost" style={{ fontSize: 14, lineHeight: 1 }} onClick={() => deleteSubject(s)}>✕</button>
-                  </div>
-                ))
-            }
+          {/* ── Baseline ── */}
+          <div style={{
+            background:"#fff", border:"1px solid #e0ddd5", borderRadius:12,
+            padding:"12px 14px", marginBottom:14,
+          }}>
+            <div style={{ fontSize:11, fontWeight:700, color:"#aaa89e", textTransform:"uppercase", letterSpacing:".06em", marginBottom:8 }}>
+              Baseline · as of Feb 27
+            </div>
+            {baseline?.pct != null ? (
+              <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+                <span style={{ fontSize:13, fontWeight:600 }}>{baseline.pct}%</span>
+                <button className="btn-ghost" onClick={() => { setBaseline(null); setBaselineInput(""); }}>Edit</button>
+              </div>
+            ) : (
+              <div style={{ display:"flex", gap:8 }}>
+                <div style={{ position:"relative", flex:1 }}>
+                  <input
+                    className="rf"
+                    type="number" placeholder="e.g. 78" min="0" max="100" step="0.1"
+                    value={baselineInput}
+                    onChange={e => setBaselineInput(e.target.value)}
+                    onKeyDown={e => e.key==="Enter" && saveBaseline()}
+                    style={{ fontFamily:"monospace", fontWeight:600, paddingRight:28 }}
+                  />
+                  <span style={{ position:"absolute", right:10, top:"50%", transform:"translateY(-50%)", fontSize:13, color:"#aaa89e", pointerEvents:"none" }}>%</span>
+                </div>
+                <button className="btn" onClick={saveBaseline}>Save</button>
+              </div>
+            )}
           </div>
 
           {/* ── Legend ── */}
-          <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 14 }}>
-            {[["#1a7a52","Present"],["#b83030","Absent"],["#a05810","Bunk"],["#c5c2b8","Unmarked"],["#e8aaaa","Holiday"]].map(([bg,lbl]) => (
-              <div key={lbl} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: "#6b6860" }}>
-                <div style={{ width: 8, height: 8, borderRadius: "50%", background: bg, flexShrink: 0 }} />{lbl}
+          <div style={{ display:"flex", gap:12, flexWrap:"wrap", marginBottom:12 }}>
+            {[["#1a7a52","≥75%"],["#a05810","60–74%"],["#b83030","<60%"],["#9b8fb5","Mass bunk"],["#d4d1c8","Unmarked"]].map(([bg,lbl])=>(
+              <div key={lbl} style={{ display:"flex", alignItems:"center", gap:4, fontSize:10, color:"#6b6860" }}>
+                <div style={{ width:7, height:7, borderRadius:"50%", background:bg }} />{lbl}
               </div>
             ))}
           </div>
 
           {/* ── Calendar ── */}
-          <div style={{ fontSize: 11, fontWeight: 700, color: "#aaa89e", textTransform: "uppercase", letterSpacing: ".07em", marginBottom: 8 }}>
-            {MONTHS[viewMonth]} {viewYear} — click a weekday to mark attendance
-          </div>
-
           <div style={{
-            background: "#fff", border: "1px solid #e0ddd5",
-            borderRadius: 14, overflow: "hidden", marginBottom: 16,
-            boxShadow: "0 1px 3px rgba(0,0,0,.06)",
+            background:"#fff", border:"1px solid #e0ddd5", borderRadius:12,
+            overflow:"hidden", marginBottom:14,
           }}>
-            {/* Day headers */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", borderBottom: "1px solid #e0ddd5", background: "#eeecea" }}>
+            {/* Month nav */}
+            <div style={{
+              display:"flex", alignItems:"center", justifyContent:"space-between",
+              padding:"9px 12px", borderBottom:"1px solid #e0ddd5", background:"#faf9f7",
+            }}>
+              <button onClick={prevMonth} style={{
+                width:26, height:26, borderRadius:7, border:"1px solid #e0ddd5",
+                background:"#fff", cursor:"pointer", color:"#6b6860", fontSize:13,
+                display:"flex", alignItems:"center", justifyContent:"center",
+              }}>‹</button>
+              <span style={{ fontSize:12, fontWeight:700, fontFamily:"monospace", color:"#1c1b18" }}>
+                {MONTHS[viewMonth]} {viewYear}
+              </span>
+              <button onClick={nextMonth} style={{
+                width:26, height:26, borderRadius:7, border:"1px solid #e0ddd5",
+                background:"#fff", cursor:"pointer", color:"#6b6860", fontSize:13,
+                display:"flex", alignItems:"center", justifyContent:"center",
+              }}>›</button>
+            </div>
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(5,1fr)", borderBottom:"1px solid #e0ddd5", background:"#eeecea" }}>
               {DAYS.map(d => (
-                <div key={d} style={{ textAlign: "center", fontSize: 11, fontWeight: 700, color: "#aaa89e", padding: "8px 4px", textTransform: "uppercase", letterSpacing: ".05em" }}>{d}</div>
+                <div key={d} style={{ textAlign:"center", fontSize:10, fontWeight:700, color:"#aaa89e", padding:"6px 4px", textTransform:"uppercase", letterSpacing:".05em" }}>{d}</div>
               ))}
             </div>
-
-            {/* Cells */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)" }}>
-              {calendarCells.map((cell, idx) => {
-                if (cell.type === "blank") return <div key={`blank-${idx}`} className="cc empty" />;
-
-                const { d, dk, isHoliday: hol, isToday: todayC, isFuture: future, isSelected: sel, stats } = cell;
-                const numStyle = todayC && !sel
-                  ? { background: "#1c1b18", color: "#fff", width: 22, height: 22, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700 }
-                  : { fontSize: 13, fontWeight: 700, fontFamily: "monospace", color: sel ? "rgba(255,255,255,.9)" : hol ? "#b83030" : future ? "#aaa89e" : "#1c1b18" };
-
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(5,1fr)" }}>
+              {calCells.map((cell, idx) => {
+                if (cell.type === "blank") return <div key={`b${idx}`} className="cc cc-blank" style={{ minHeight:60 }} />;
+                const { d, dk, hol, isToday, isFuture: fut, isSel: sel, dot } = cell;
+                const numStyle = isToday && !sel
+                  ? { background:"#1c1b18", color:"#fff", width:20, height:20, borderRadius:"50%", display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, fontWeight:700 }
+                  : { fontSize:12, fontWeight:700, fontFamily:"monospace",
+                      color: sel ? "rgba(255,255,255,.9)" : hol ? "#b83030" : fut ? "#bbb" : "#1c1b18" };
                 return (
                   <div
                     key={dk}
-                    className={`cc ${hol ? "holiday" : ""} ${todayC && !sel ? "is-today" : ""} ${sel ? "selected" : ""} ${future ? "future" : ""}`}
-                    onClick={() => { if (!future && !hol) { setSelectedKey(dk); } }}
+                    className={`cc ${hol?"cc-hol":""} ${sel?"cc-sel":""} ${fut?"cc-future":""}`}
+                    onClick={() => { if (!fut && !hol) setSelectedKey(dk); }}
                   >
                     <div style={numStyle}>{d}</div>
-                    {hol && <div style={{ fontSize: 9, color: "#b83030", marginTop: 2, fontWeight: 600 }}>holiday</div>}
-                    {!hol && subjects.length > 0 && (
-                      <div style={{ display: "flex", gap: 2, flexWrap: "wrap", marginTop: 4 }}>
-                        {subjects.map(s => {
-                          const v = attendance[dk]?.[s];
-                          const bg = v === "p" ? "#1a7a52" : v === "a" ? "#b83030" : v === "b" ? "#a05810" : "#c5c2b8";
-                          return <div key={s} style={{ width: 5, height: 5, borderRadius: "50%", background: bg, flexShrink: 0 }} />;
-                        })}
-                      </div>
+                    {hol && <div style={{ fontSize:8, color:"#e8aaaa", marginTop:2, fontWeight:600 }}>holiday</div>}
+                    {!hol && dot && (
+                      <div style={{ width:5, height:5, borderRadius:"50%", background:dotColors[dot], marginTop:4 }} />
                     )}
-                    {!hol && stats?.pct != null && (
-                      <div style={{
-                        fontSize: 9, fontWeight: 700, marginTop: 3, fontFamily: "monospace",
-                        color: sel ? "rgba(255,255,255,.6)" : stats.pct >= 75 ? "#1a7a52" : stats.pct >= 60 ? "#a05810" : "#b83030",
-                      }}>
-                        {stats.pct}%
-                      </div>
+                    {!hol && !dot && attendance[dk] && !attendance[dk].massBunk && !attendance[dk].total && (
+                      <div style={{ width:5, height:5, borderRadius:"50%", background:"#d4d1c8", marginTop:4 }} />
                     )}
                   </div>
                 );
@@ -588,108 +498,136 @@ export default function Attendance() {
 
           {/* ── Day Panel ── */}
           <div style={{
-            background: "#fff", border: "1px solid #e0ddd5",
-            borderRadius: 14, overflow: "hidden",
-            boxShadow: "0 1px 3px rgba(0,0,0,.06)", marginBottom: 20,
+            background:"#fff", border:"1px solid #e0ddd5", borderRadius:12, overflow:"hidden",
           }}>
-            {/* Panel header */}
+            {/* Header */}
             <div style={{
-              padding: "13px 16px", borderBottom: "1px solid #e0ddd5",
-              display: "flex", alignItems: "center", justifyContent: "space-between",
-              background: "#eeecea",
+              padding:"11px 14px", borderBottom:"1px solid #e0ddd5",
+              display:"flex", alignItems:"center", justifyContent:"space-between",
+              background:"#eeecea",
             }}>
-              <div style={{ fontSize: 14, fontWeight: 700 }}>
-                {selectedParts
-                  ? fmtDateLong(selectedParts.y, selectedParts.m, selectedParts.d)
-                  : "Select a day to mark attendance"}
+              <div style={{ fontSize:13, fontWeight:700 }}>
+                {selectedParts ? fmtDateLong(selectedParts.y, selectedParts.m, selectedParts.d) : "Select a day"}
               </div>
-              {isFutureSelected && (
-                <div style={{
-                  fontSize: 11, color: "#aaa89e", background: "#f5f4f0",
-                  border: "1px solid #e0ddd5", padding: "3px 10px", borderRadius: 100,
-                }}>Future — locked</div>
+              {selectedKey && !isFuture && !isHoliday(selectedKey) && dayPct !== null && (
+                <span style={{
+                  fontSize:11, fontWeight:700, fontFamily:"monospace",
+                  padding:"2px 8px", borderRadius:100,
+                  color: pctColor(dayPct), background: pctBg(dayPct),
+                }}>{dayPct}%</span>
+              )}
+              {isFuture && (
+                <span style={{ fontSize:10, color:"#aaa89e", background:"#f5f4f0", border:"1px solid #e0ddd5", padding:"2px 8px", borderRadius:100 }}>locked</span>
               )}
             </div>
 
-            {/* Panel body */}
+            {/* Body */}
             {!selectedKey ? (
-              <div style={{ textAlign: "center", padding: "34px 20px", color: "#aaa89e", fontSize: 13 }}>
-                ↑ Click any working day on the calendar above
+              <div style={{ textAlign:"center", padding:"28px 16px", color:"#aaa89e", fontSize:12 }}>
+                ↑ tap a day
               </div>
             ) : isHoliday(selectedKey) ? (
-              <div style={{ textAlign: "center", padding: "28px 20px" }}>
-                <div style={{ fontSize: 13, color: "#b83030", fontWeight: 600 }}>Holiday</div>
-                <div style={{ fontSize: 12, color: "#aaa89e", marginTop: 4 }}>No classes scheduled</div>
+              <div style={{ textAlign:"center", padding:"22px 16px" }}>
+                <div style={{ fontSize:12, color:"#b83030", fontWeight:600 }}>Holiday</div>
               </div>
-            ) : subjects.length === 0 ? (
-              <div style={{ textAlign: "center", padding: "34px 20px", color: "#aaa89e", fontSize: 13 }}>
-                Add your subjects above first, then mark attendance here
+            ) : isFuture ? (
+              <div style={{ textAlign:"center", padding:"22px 16px", color:"#aaa89e", fontSize:12 }}>
+                Future date
+              </div>
+            ) : dayData.massBunk ? (
+              <div className="ctr-wrap">
+                <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"8px 0" }}>
+                  <span style={{ fontSize:13, fontWeight:600, color:"#9b8fb5" }}>Mass Bunk Day</span>
+                  <button
+                    className="mb-pill on"
+                    onClick={handlers.massBunk}
+                  >✕ Clear</button>
+                </div>
+                <div style={{ fontSize:11, color:"#aaa89e" }}>No classes were held · nothing counted</div>
               </div>
             ) : (
-              <div>
-                {subjects.map(s => {
-                  const cur  = attendance[selectedKey]?.[s] || null;
-                  const sts  = getSubjectStats(s);
-                  const pColor = sts.pct === null ? "#aaa89e" : sts.pct >= 75 ? "#1a7a52" : sts.pct >= 60 ? "#a05810" : "#b83030";
-                  const pBg   = sts.pct === null ? "#eeecea" : sts.pct >= 75 ? "#e6f4ee" : sts.pct >= 60 ? "#fdf0dc" : "#faeaea";
+              <div className="ctr-wrap">
+                {/* Total classes today */}
+                <div className="ctr-row">
+                  <Counter
+                    label="Total classes"
+                    value={dayData.total}
+                    onInc={handlers.totalInc}
+                    onDec={handlers.totalDec}
+                    disabled={isFuture}
+                  />
+                </div>
 
-                  return (
-                    <div key={s} style={{
-                      padding: "12px 16px", borderBottom: "1px solid #e0ddd5",
-                      display: "flex", alignItems: "center", gap: 10,
-                    }}>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s}</div>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                          <span style={{
-                            fontSize: 11, fontWeight: 700, fontFamily: "monospace",
-                            padding: "2px 7px", borderRadius: 100,
-                            color: pColor, background: pBg,
-                          }}>
-                            {sts.pct !== null ? `${sts.pct}%` : "—"}
-                          </span>
-                          <span style={{ fontSize: 11, color: "#aaa89e", fontFamily: "monospace" }}>
-                            {sts.p}P · {sts.a}A · {sts.b}Bk
-                          </span>
-                        </div>
-                        <div className="prog">
-                          <div className="prog-f" style={{
-                            width: sts.pct !== null ? `${Math.min(sts.pct, 100)}%` : "0%",
-                            background: pColor,
-                          }} />
-                        </div>
-                      </div>
-                      <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
-                        {[
-                          { v: "p", label: cur === "p" ? "✓ Present" : "Present", cls: cur === "p" ? "on-p" : "" },
-                          { v: "a", label: cur === "a" ? "✕ Absent"  : "Absent",  cls: cur === "a" ? "on-a" : "" },
-                          { v: "b", label: cur === "b" ? "— Bunk"    : "Bunk",    cls: cur === "b" ? "on-b" : "" },
-                        ].map(({ v, label, cls }) => (
-                          <button
-                            key={v}
-                            className={`mbtn ${cls}`}
-                            disabled={isFutureSelected}
-                            onClick={() => markAttendance(s, v)}
-                          >
-                            {label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
+                <hr className="divider" />
+
+                {/* Attended */}
+                <div className="ctr-row">
+                  <Counter
+                    label="Attended"
+                    value={dayData.attended}
+                    onInc={handlers.attendedInc}
+                    onDec={handlers.attendedDec}
+                    accent="#1a7a52"
+                    disabled={isFuture || dayData.total === 0}
+                  />
+                </div>
+
+                <hr className="divider" />
+
+                {/* Bunk */}
+                <div className="ctr-row">
+                  <Counter
+                    label="Bunk"
+                    value={dayData.bunk}
+                    onInc={handlers.bunkInc}
+                    onDec={handlers.bunkDec}
+                    accent="#a05810"
+                    disabled={isFuture || dayData.total === 0}
+                    extra={
+                      <button
+                        className={`mb-pill ${dayData.massBunk ? "on" : "off"}`}
+                        onClick={handlers.massBunk}
+                        style={{ display: dayData.total === 0 && !dayData.massBunk ? "none" : undefined }}
+                      >
+                        Mass bunk
+                      </button>
+                    }
+                  />
+                </div>
+
+                {/* Progress bar */}
+                {dayData.total > 0 && (
+                  <div style={{ marginTop:12, height:3, background:"#e0ddd5", borderRadius:100, overflow:"hidden" }}>
+                    <div style={{
+                      height:"100%", borderRadius:100,
+                      width: `${Math.min(100, Math.round((dayData.attended / dayData.total) * 100))}%`,
+                      background: pctColor(dayPct),
+                      transition:"width .25s",
+                    }} />
+                  </div>
+                )}
+
+                {/* Mass bunk toggle when no total set yet */}
+                {dayData.total === 0 && (
+                  <div style={{ marginTop:10, display:"flex", justifyContent:"flex-end" }}>
+                    <button
+                      className={`mb-pill ${dayData.massBunk ? "on" : "off"}`}
+                      onClick={handlers.massBunk}
+                    >
+                      Mass bunk
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>
 
           {/* Footer */}
-          <div style={{ fontSize: 11, color: "#aaa89e", textAlign: "center", lineHeight: 1.8 }}>
-            Data saved in your browser &nbsp;·&nbsp; Sat &amp; Sun = no classes &nbsp;·&nbsp; Feb 28 &amp; Mar 1 = holidays<br />
-            <strong style={{ color: "#6b6860" }}>Bunk</strong> = voluntary skip — not counted in absence % &nbsp;·&nbsp; % = Present ÷ (Present + Absent)
+          <div style={{ fontSize:10, color:"#c5c2b8", textAlign:"center", marginTop:20, lineHeight:1.8 }}>
+            Bunk = voluntary skip, not counted in % &nbsp;·&nbsp; Mass bunk = day off, nothing counted
           </div>
         </div>
-
-        <Toast toast={toast} />
+        <Toast msg={toast} />
       </div>
     </>
   );

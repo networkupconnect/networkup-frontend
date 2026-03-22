@@ -3,17 +3,38 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import api from "../api/axios";
 
-const TAGS = ["Love 💕", "Study 📚", "Hostel 🏠", "Faculty 👨‍🏫", "Canteen 🍕", "Crush 😍", "Funny 😂", "Serious 😤", "Regret 😔", "Random 🎲"];
+const TAGS = ["Love 💕","Study 📚","Hostel 🏠","Faculty 👨‍🏫","Canteen 🍕","Crush 😍","Funny 😂","Serious 😤","Regret 😔","Random 🎲"];
 
 function timeAgo(date) {
   const diff = Date.now() - new Date(date);
-  const mins = Math.floor(diff / 60000);
-  const hrs  = Math.floor(diff / 3600000);
-  const days = Math.floor(diff / 86400000);
-  if (mins < 1)  return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  if (hrs < 24)  return `${hrs}h ago`;
+  const mins = Math.floor(diff/60000), hrs = Math.floor(diff/3600000), days = Math.floor(diff/86400000);
+  if (mins<1) return "just now";
+  if (mins<60) return `${mins}m ago`;
+  if (hrs<24)  return `${hrs}h ago`;
   return `${days}d ago`;
+}
+
+const T = {
+  page:     { minHeight:"100vh", background:"#fafaf9", fontFamily:"'DM Sans',system-ui,sans-serif", color:"#1a1a18", fontSize:14 },
+  wrap:     { maxWidth:600, margin:"0 auto", padding:"20px 16px 88px" },
+  hdr:      { display:"flex", alignItems:"center", gap:12, marginBottom:24 },
+  backBtn:  { width:34, height:34, borderRadius:9, border:"1px solid #e5e3dc", background:"#fff", cursor:"pointer", fontSize:17, color:"#6b6860", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 },
+  /* tag pill — no border, gray → black on active */
+  tag:      (a) => ({ padding:"5px 12px", borderRadius:100, fontSize:11, fontWeight:600, border:"none", cursor:"pointer", background:a?"#1a1a18":"#f0ede8", color:a?"#fff":"#6b6860", transition:"all .13s", whiteSpace:"nowrap", flexShrink:0 }),
+  input:    { width:"100%", padding:"9px 12px", borderRadius:10, border:"1px solid #e5e3dc", background:"#fff", fontSize:13, fontFamily:"inherit", color:"#1a1a18", outline:"none", boxSizing:"border-box" },
+  textarea: { width:"100%", padding:"9px 12px", borderRadius:10, border:"1px solid #e5e3dc", background:"#fff", fontSize:13, fontFamily:"inherit", color:"#1a1a18", outline:"none", resize:"none", boxSizing:"border-box" },
+  btn:      { padding:"9px 16px", borderRadius:10, border:"none", background:"#1a1a18", color:"#fff", fontSize:12, fontWeight:700, cursor:"pointer", fontFamily:"inherit" },
+  btnFull:  { width:"100%", padding:"11px", borderRadius:11, border:"none", background:"#1a1a18", color:"#fff", fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"inherit" },
+  overlay:  { position:"fixed", inset:0, zIndex:50, background:"rgba(0,0,0,.2)", backdropFilter:"blur(4px)", display:"flex", alignItems:"flex-end", justifyContent:"center", padding:16 },
+  modal:    { background:"#fff", borderRadius:"18px 18px 0 0", width:"100%", maxWidth:520, maxHeight:"92vh", overflowY:"auto", boxShadow:"0 -8px 40px rgba(0,0,0,.1)" },
+  closeBtn: { width:28, height:28, borderRadius:7, border:"1px solid #e5e3dc", background:"#f5f4f0", cursor:"pointer", color:"#9b9890", display:"flex", alignItems:"center", justifyContent:"center", fontSize:12, flexShrink:0 },
+  /* sort select */
+  sortSel:  { padding:"7px 10px", borderRadius:9, border:"1px solid #e5e3dc", background:"#fff", fontSize:11, color:"#6b6860", outline:"none", flexShrink:0, fontFamily:"inherit" },
+};
+
+function Toast({ toast }) {
+  if (!toast) return null;
+  return <div style={{ position:"fixed", top:16, right:16, zIndex:99, padding:"9px 16px", borderRadius:11, background:"#1a1a18", color:"#fff", fontSize:12, fontWeight:700, boxShadow:"0 4px 20px rgba(0,0,0,.18)" }}>{toast.msg}</div>;
 }
 
 export default function Confessions() {
@@ -21,150 +42,100 @@ export default function Confessions() {
   const navigate = useNavigate();
 
   const [confessions, setConfessions] = useState([]);
-  const [loading, setLoading]         = useState(true);
-  const [toast, setToast]             = useState(null);
-  const [showPost, setShowPost]       = useState(false);
-  const [filterTag, setFilterTag]     = useState("");
-  const [sort, setSort]               = useState("newest");
-
-  // post form
-  const [text, setText]           = useState("");
-  const [selectedTag, setSelectedTag] = useState("");
-  const [posting, setPosting]     = useState(false);
-
-  // likes
-  const [likedIds, setLikedIds] = useState(() => {
-    try { return JSON.parse(localStorage.getItem("liked_confessions") || "[]"); }
-    catch { return []; }
-  });
+  const [loading,  setLoading]   = useState(true);
+  const [toast,    setToast]     = useState(null);
+  const [showPost, setShowPost]  = useState(false);
+  const [filterTag, setFilterTag]= useState("");
+  const [sort,     setSort]      = useState("newest");
+  const [text,     setText]      = useState("");
+  const [selTag,   setSelTag]    = useState("");
+  const [posting,  setPosting]   = useState(false);
+  const [likedIds, setLikedIds]  = useState(() => { try { return JSON.parse(localStorage.getItem("liked_confessions")||"[]"); } catch { return []; } });
 
   useEffect(() => { fetchConfessions(); }, [filterTag, sort]);
 
   const fetchConfessions = async () => {
     try {
       setLoading(true);
-      const params = new URLSearchParams();
-      if (filterTag) params.append("tag", filterTag);
-      params.append("sort", sort);
-      const res = await api.get(`/api/confessions?${params}`);
+      const p = new URLSearchParams();
+      if (filterTag) p.append("tag", filterTag);
+      p.append("sort", sort);
+      const res = await api.get(`/api/confessions?${p}`);
       setConfessions(res.data);
-    } catch { showToast("Failed to load", "error"); }
+    } catch { flash("Failed to load"); }
     finally { setLoading(false); }
   };
 
-  const showToast = (msg, type = "success") => {
-    setToast({ msg, type });
-    setTimeout(() => setToast(null), 3000);
-  };
+  const flash = (msg) => { setToast({ msg }); setTimeout(() => setToast(null), 3000); };
 
   const handlePost = async (e) => {
     e.preventDefault();
-    if (!text.trim()) return showToast("Write something first", "error");
-    if (text.trim().length < 10) return showToast("Too short! Write at least 10 characters", "error");
-    if (!user) return showToast("Login to post anonymously", "error");
-
+    if (!text.trim()) return flash("Write something first");
+    if (text.trim().length < 10) return flash("Too short — at least 10 chars");
+    if (!user) return flash("Login to post anonymously");
     try {
       setPosting(true);
-      const res = await api.post("/api/confessions", { text, tag: selectedTag });
-      setConfessions(p => [res.data, ...p]);
-      setText(""); setSelectedTag(""); setShowPost(false);
-      showToast("Posted anonymously! 🎭");
-    } catch (err) {
-      showToast(err.response?.data?.message || "Failed", "error");
-    } finally { setPosting(false); }
+      const res = await api.post("/api/confessions", { text, tag: selTag });
+      setConfessions(p => [res.data,...p]);
+      setText(""); setSelTag(""); setShowPost(false); flash("Posted anonymously!");
+    } catch (err) { flash(err.response?.data?.message||"Failed"); }
+    finally { setPosting(false); }
   };
 
   const handleLike = async (id) => {
-    const alreadyLiked = likedIds.includes(id);
-    // optimistic update
-    setConfessions(p => p.map(c =>
-      c._id === id ? { ...c, likes: alreadyLiked ? c.likes - 1 : c.likes + 1 } : c
-    ));
-    const newLiked = alreadyLiked ? likedIds.filter(i => i !== id) : [...likedIds, id];
-    setLikedIds(newLiked);
-    localStorage.setItem("liked_confessions", JSON.stringify(newLiked));
-
-    try {
-      await api.patch(`/api/confessions/${id}/like`);
-    } catch {
-      // revert on error
-      setConfessions(p => p.map(c =>
-        c._id === id ? { ...c, likes: alreadyLiked ? c.likes + 1 : c.likes - 1 } : c
-      ));
-      setLikedIds(likedIds);
-      localStorage.setItem("liked_confessions", JSON.stringify(likedIds));
-    }
+    const liked = likedIds.includes(id);
+    setConfessions(p => p.map(c => c._id===id ? {...c, likes: liked?c.likes-1:c.likes+1} : c));
+    const next = liked ? likedIds.filter(i=>i!==id) : [...likedIds,id];
+    setLikedIds(next); localStorage.setItem("liked_confessions", JSON.stringify(next));
+    try { await api.patch(`/api/confessions/${id}/like`); }
+    catch { setConfessions(p=>p.map(c=>c._id===id?{...c,likes:liked?c.likes+1:c.likes-1}:c)); setLikedIds(likedIds); localStorage.setItem("liked_confessions",JSON.stringify(likedIds)); }
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm("Delete this confession?")) return;
-    try {
-      await api.delete(`/api/confessions/${id}`);
-      setConfessions(p => p.filter(c => c._id !== id));
-      showToast("Deleted!");
-    } catch { showToast("Failed", "error"); }
+    if (!window.confirm("Delete?")) return;
+    try { await api.delete(`/api/confessions/${id}`); setConfessions(p=>p.filter(c=>c._id!==id)); flash("Deleted"); }
+    catch { flash("Failed"); }
   };
 
   const charLimit = 500;
 
   return (
-    <div className="min-h-screen bg-zinc-950">
+    <div style={T.page}>
+      <Toast toast={toast} />
 
-      {/* Toast */}
-      {toast && (
-        <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-xl text-white text-sm font-semibold shadow-xl ${
-          toast.type === "error" ? "bg-red-500" : "bg-emerald-500"
-        }`}>{toast.msg}</div>
-      )}
-
-      {/* ── Post Modal ── */}
+      {/* Post Modal */}
       {showPost && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-3xl w-full max-w-lg">
-            <div className="p-5">
-              {/* Anonymous indicator */}
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-full bg-zinc-700 flex items-center justify-center text-xl">🎭</div>
-                <div>
-                  <p className="text-white font-bold text-sm">Anonymous</p>
-                  <p className="text-zinc-500 text-xs">Your identity is completely hidden</p>
+        <div style={T.overlay} onClick={() => setShowPost(false)}>
+          <div style={T.modal} onClick={e => e.stopPropagation()}>
+            <div style={{ padding:20 }}>
+              <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16 }}>
+                <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                  <div style={{ width:34, height:34, borderRadius:"50%", background:"#f0ede8", display:"flex", alignItems:"center", justifyContent:"center", fontSize:16 }}>🎭</div>
+                  <div>
+                    <div style={{ fontSize:13, fontWeight:700 }}>Anonymous</div>
+                    <div style={{ fontSize:11, color:"#9b9890" }}>Identity completely hidden</div>
+                  </div>
                 </div>
-                <button onClick={() => setShowPost(false)}
-                  className="ml-auto w-8 h-8 bg-zinc-800 rounded-lg flex items-center justify-center text-zinc-400 hover:text-white">✕</button>
+                <button style={T.closeBtn} onClick={() => setShowPost(false)}>✕</button>
               </div>
 
-              <form onSubmit={handlePost}>
-                <textarea
-                  placeholder="Confess something... no one will know it's you 🤫"
-                  rows={5} value={text}
-                  onChange={e => setText(e.target.value.slice(0, charLimit))}
-                  className="w-full bg-zinc-800 border border-zinc-700 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-purple-500 resize-none mb-1"
-                />
-                <div className="flex justify-between mb-3">
-                  <p className="text-zinc-600 text-xs">Be kind. No hate speech.</p>
-                  <p className={`text-xs ${text.length > charLimit * 0.9 ? "text-red-400" : "text-zinc-600"}`}>
-                    {text.length}/{charLimit}
-                  </p>
+              <form onSubmit={handlePost} style={{ display:"flex", flexDirection:"column", gap:10 }}>
+                <div>
+                  <textarea style={{...T.textarea, minHeight:110}} placeholder="Confess something… no one will know 🤫" value={text} onChange={e=>setText(e.target.value.slice(0,charLimit))} rows={5} />
+                  <div style={{ textAlign:"right", marginTop:3, fontSize:11, color:text.length>charLimit*.9?"#dc2626":"#9b9890" }}>{text.length}/{charLimit}</div>
                 </div>
 
-                {/* Tag selector */}
-                <p className="text-zinc-500 text-xs uppercase tracking-wider mb-2 font-semibold">Tag (optional)</p>
-                <div className="flex flex-wrap gap-1.5 mb-4">
-                  {TAGS.map(t => (
-                    <button key={t} type="button" onClick={() => setSelectedTag(selectedTag === t ? "" : t)}
-                      className={`text-xs px-3 py-1 rounded-full border transition-all font-medium ${
-                        selectedTag === t
-                          ? "bg-purple-500 text-white border-purple-500"
-                          : "bg-zinc-800 text-zinc-400 border-zinc-700 hover:border-zinc-500"
-                      }`}>
-                      {t}
-                    </button>
-                  ))}
+                <div>
+                  <div style={{ fontSize:10, fontWeight:700, color:"#9b9890", textTransform:"uppercase", letterSpacing:".05em", marginBottom:8 }}>Tag (optional)</div>
+                  <div style={{ display:"flex", flexWrap:"wrap", gap:5 }}>
+                    {TAGS.map(t => (
+                      <button key={t} type="button" onClick={() => setSelTag(selTag===t?"":t)} style={T.tag(selTag===t)}>{t}</button>
+                    ))}
+                  </div>
                 </div>
 
-                <button type="submit" disabled={posting || !text.trim()}
-                  className="w-full bg-purple-500 hover:bg-purple-600 disabled:opacity-50 text-white py-3 rounded-xl font-bold text-sm transition-all">
-                  {posting ? "Posting..." : "🎭 Post Anonymously"}
+                <button type="submit" disabled={posting||!text.trim()} style={{...T.btnFull, opacity:posting||!text.trim()?.5:1}}>
+                  {posting ? "Posting…" : "Post Anonymously"}
                 </button>
               </form>
             </div>
@@ -172,122 +143,73 @@ export default function Confessions() {
         </div>
       )}
 
-      <div className="max-w-2xl mx-auto px-4 py-6 pb-24">
-
+      <div style={T.wrap}>
         {/* Header */}
-        <div className="flex items-center gap-3 mb-5">
-          <button onClick={() => navigate("/")}
-            className="w-10 h-10 bg-zinc-800 hover:bg-purple-500 text-white rounded-xl flex items-center justify-center font-bold text-lg transition-all flex-shrink-0">
-            ‹
-          </button>
-          <div className="flex-1">
-            <h1 className="text-xl font-black text-white">Confessions 🎭</h1>
-            <p className="text-zinc-500 text-xs">Anonymous campus confessions — no judgement</p>
+        <div style={T.hdr}>
+          <button style={T.backBtn} onClick={() => navigate("/")}>‹</button>
+          <div style={{ flex:1 }}>
+            <div style={{ fontSize:18, fontWeight:800, letterSpacing:"-.3px" }}>Confessions 🎭</div>
+            <div style={{ fontSize:11, color:"#9b9890", marginTop:1 }}>Anonymous · no judgement</div>
           </div>
-          {user && (
-            <button onClick={() => setShowPost(true)}
-              className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-xl text-sm font-bold transition-all">
-              + Confess
-            </button>
-          )}
+          {user && <button style={T.btn} onClick={() => setShowPost(true)}>+ Confess</button>}
         </div>
 
-        {/* Hero */}
-        <div className="rounded-3xl p-5 mb-5 relative overflow-hidden"
-          style={{ background: "linear-gradient(135deg, #1a0b2e 0%, #0f0f1a 100%)", border: "1px solid #4a1d96" }}>
-          <div className="absolute top-0 right-0 w-32 h-32 rounded-full opacity-20"
-            style={{ background: "radial-gradient(circle, #a855f7, transparent)", transform: "translate(30%,-30%)" }} />
-          <p className="text-5xl mb-2">🎭</p>
-          <h2 className="text-white font-black text-lg">Say it anonymously</h2>
-          <p className="text-zinc-400 text-xs mt-1">Your name is never shown. Post freely, read honestly.</p>
-          {!user && (
-            <button onClick={() => navigate("/login")}
-              className="mt-3 bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-xl text-sm font-bold transition-all">
-              Login to Confess →
-            </button>
-          )}
-        </div>
+        {/* Guest CTA */}
+        {!user && (
+          <div style={{ background:"#f5f4f0", borderRadius:11, padding:"12px 14px", display:"flex", alignItems:"center", justifyContent:"space-between", gap:12, marginBottom:16 }}>
+            <span style={{ fontSize:12, color:"#6b6860" }}>Login to confess anonymously</span>
+            <button onClick={() => navigate("/login")} style={T.btn}>Login →</button>
+          </div>
+        )}
 
-        {/* Filters */}
-        <div className="flex gap-2 mb-4 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
-          <select value={sort} onChange={e => setSort(e.target.value)}
-            className="bg-zinc-900 border border-zinc-800 text-zinc-400 rounded-xl px-3 py-2 text-xs flex-shrink-0 focus:outline-none focus:border-purple-500">
+        {/* Sort + Tag filters */}
+        <div style={{ display:"flex", gap:6, marginBottom:14, overflowX:"auto", paddingBottom:2 }}>
+          <select value={sort} onChange={e => setSort(e.target.value)} style={T.sortSel}>
             <option value="newest">Newest</option>
             <option value="popular">Most Liked</option>
           </select>
-          <button onClick={() => setFilterTag("")}
-            className={`flex-shrink-0 px-3 py-2 rounded-xl text-xs font-medium border transition-all ${
-              !filterTag ? "bg-purple-500 text-white border-purple-500" : "bg-zinc-900 text-zinc-400 border-zinc-800"
-            }`}>
-            All
-          </button>
+          {/* "All" tag */}
+          <button onClick={() => setFilterTag("")} style={T.tag(!filterTag)}>All</button>
           {TAGS.map(t => (
-            <button key={t} onClick={() => setFilterTag(filterTag === t ? "" : t)}
-              className={`flex-shrink-0 px-3 py-2 rounded-xl text-xs font-medium border transition-all ${
-                filterTag === t ? "bg-purple-500 text-white border-purple-500" : "bg-zinc-900 text-zinc-400 border-zinc-800 hover:border-zinc-600"
-              }`}>
-              {t}
-            </button>
+            <button key={t} onClick={() => setFilterTag(filterTag===t?"":t)} style={T.tag(filterTag===t)}>{t}</button>
           ))}
         </div>
 
         {/* List */}
         {loading ? (
-          <div className="text-center py-16">
-            <div className="w-8 h-8 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-            <p className="text-zinc-500 text-sm">Loading confessions...</p>
-          </div>
+          <div style={{ textAlign:"center", padding:"48px 0", color:"#9b9890" }}>Loading…</div>
         ) : confessions.length === 0 ? (
-          <div className="text-center py-16 bg-zinc-900 border border-zinc-800 rounded-2xl">
-            <p className="text-5xl mb-3">🤫</p>
-            <p className="text-white font-bold">No confessions yet</p>
-            <p className="text-zinc-500 text-sm mt-1">Be the first to confess!</p>
+          <div style={{ textAlign:"center", padding:"48px", background:"#fff", border:"1px solid #e5e3dc", borderRadius:13 }}>
+            <div style={{ fontSize:32, marginBottom:8 }}>🤫</div>
+            <div style={{ fontWeight:700 }}>No confessions yet</div>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
             {confessions.map((c, i) => {
               const liked = likedIds.includes(c._id);
               const isMyPost = c.postedBy === user?._id;
               return (
-                <div key={c._id}
-                  className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 transition-all">
-
-                  {/* Top */}
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-sm flex-shrink-0">
-                      🎭
+                <div key={c._id} style={{ background:"#fff", border:"1px solid #e5e3dc", borderRadius:13, padding:"14px 16px" }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:10 }}>
+                    <div style={{ width:30, height:30, borderRadius:"50%", background:"#f0ede8", display:"flex", alignItems:"center", justifyContent:"center", fontSize:14, flexShrink:0 }}>🎭</div>
+                    <div style={{ flex:1 }}>
+                      <div style={{ fontSize:11, fontWeight:700, color:"#6b6860" }}>Anonymous #{(i+1).toString().padStart(3,"0")}</div>
+                      <div style={{ fontSize:10, color:"#b5b3ac" }}>{timeAgo(c.createdAt)}</div>
                     </div>
-                    <div className="flex-1">
-                      <p className="text-zinc-400 text-xs font-semibold">Anonymous #{(i + 1).toString().padStart(3, "0")}</p>
-                      <p className="text-zinc-600 text-xs">{timeAgo(c.createdAt)}</p>
-                    </div>
-                    {c.tag && (
-                      <span className="bg-purple-500/20 text-purple-400 border border-purple-500/30 text-xs px-2 py-0.5 rounded-full font-medium">
-                        {c.tag}
-                      </span>
-                    )}
-                    {/* Admin or own post delete */}
-                    {(user?.role === "admin" || isMyPost) && (
-                      <button onClick={() => handleDelete(c._id)}
-                        className="text-zinc-700 hover:text-red-400 text-sm transition-all ml-1">
-                        🗑
-                      </button>
+                    {c.tag && <span style={{ fontSize:10, padding:"2px 9px", borderRadius:100, background:"#f0ede8", color:"#6b6860", fontWeight:600 }}>{c.tag}</span>}
+                    {(user?.role==="admin"||isMyPost) && (
+                      <button onClick={() => handleDelete(c._id)} style={{ background:"none", border:"none", cursor:"pointer", fontSize:13, color:"#d1d0ca", padding:0 }}>🗑</button>
                     )}
                   </div>
 
-                  {/* Content */}
-                  <p className="text-zinc-100 text-sm leading-relaxed mb-3">{c.text}</p>
+                  <p style={{ fontSize:13, lineHeight:1.65, color:"#2a2a28", marginBottom:12 }}>{c.text}</p>
 
-                  {/* Footer */}
-                  <div className="flex items-center gap-4 pt-2 border-t border-zinc-800">
-                    <button onClick={() => handleLike(c._id)}
-                      className={`flex items-center gap-1.5 text-sm transition-all ${
-                        liked ? "text-pink-400" : "text-zinc-600 hover:text-pink-400"
-                      }`}>
-                      <span>{liked ? "❤️" : "🤍"}</span>
-                      <span className="text-xs font-semibold">{c.likes || 0}</span>
+                  <div style={{ display:"flex", alignItems:"center", paddingTop:10, borderTop:"1px solid #f0ede8" }}>
+                    <button onClick={() => handleLike(c._id)} style={{ display:"flex", alignItems:"center", gap:5, background:"none", border:"none", cursor:"pointer", padding:0, color: liked ? "#1a1a18" : "#b5b3ac" }}>
+                      <span style={{ fontSize:14 }}>{liked ? "❤️" : "🤍"}</span>
+                      <span style={{ fontSize:12, fontWeight:600 }}>{c.likes||0}</span>
                     </button>
-                    <p className="text-zinc-700 text-xs ml-auto">🔒 100% Anonymous</p>
+                    <span style={{ fontSize:10, color:"#d1d0ca", marginLeft:"auto" }}>🔒 Anonymous</span>
                   </div>
                 </div>
               );

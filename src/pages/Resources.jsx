@@ -3,2606 +3,532 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import api from "../api/axios";
 
-const SUBJECTS = {
-  CSE: {
-    1: [
-      {
-        name: "Engineering Physics I",
-        units: [
-          "Wave Optics",
-          "Laser & Fiber Optics",
-          "Quantum Mechanics",
-          "Band Theory",
-          "Superconductivity",
-        ],
-      },
-      {
-        name: "Engineering Chemistry",
-        units: [
-          "Water Chemistry",
-          "Polymers",
-          "Corrosion",
-          "Fuels & Combustion",
-          "Spectroscopy",
-        ],
-      },
-      {
-        name: "Engineering Mathematics - I",
-        units: [
-          "Differential Calculus",
-          "Integral Calculus",
-          "Differential Equations",
-          "Laplace Transforms",
-          "Vector Calculus",
-        ],
-      },
-      {
-        name: "Communication Skills",
-        units: [
-          "Grammar",
-          "Reading Comprehension",
-          "Writing Skills",
-          "Speaking Skills",
-          "Presentation Skills",
-        ],
-      },
-      {
-        name: "Constitution of India",
-        units: [
-          "Historical Background",
-          "Preamble & Citizenship",
-          "Fundamental Rights",
-          "Directive Principles",
-          "Constitutional Amendments",
-        ],
-      },
-      {
-        name: "Basics of Civil Engineering",
-        units: [
-          "Building Materials",
-          "Construction",
-          "Surveying",
-          "Roads & Bridges",
-          "Water Supply",
-        ],
-      },
-      {
-        name: "Basics of Mechanical Engineering",
-        units: [
-          "Engineering Materials",
-          "Manufacturing",
-          "Thermodynamics",
-          "Fluid Mechanics",
-          "Machine Elements",
-        ],
-      },
-      {
-        name: "Engineering Physics Lab I",
-        units: ["Experiments Set 1", "Experiments Set 2"],
-      },
-      {
-        name: "Engineering Chemistry Lab",
-        units: ["Experiments Set 1", "Experiments Set 2"],
-      },
-      { name: "Language Laboratory", units: ["Lab Sessions"] },
-      { name: "Engineering Mechanics Lab", units: ["Lab Sessions"] },
-      {
-        name: "Engineering Physics II",
-        units: [
-          "Electromagnetic Theory",
-          "Dielectric Properties",
-          "Magnetic Properties",
-          "Semiconductors",
-          "Nano Materials",
-        ],
-      },
-      {
-        name: "Engineering Mathematics - II",
-        units: [
-          "Matrices",
-          "Fourier Series",
-          "PDE",
-          "Z-Transforms",
-          "Numerical Methods",
-        ],
-      },
-      {
-        name: "Biology for Engineers",
-        units: [
-          "Cell Biology",
-          "Genetics",
-          "Biochemistry",
-          "Biotechnology",
-          "Biomechanics",
-        ],
-      },
-      {
-        name: "Environmental Science",
-        units: [
-          "Ecosystems",
-          "Pollution",
-          "Natural Resources",
-          "Social Issues",
-          "Environmental Acts",
-        ],
-      },
-      {
-        name: "Basics of Electrical Engineering",
-        units: [
-          "DC Circuits",
-          "AC Circuits",
-          "Transformers",
-          "Electrical Machines",
-          "Measuring Instruments",
-        ],
-      },
-      {
-        name: "Basics of Electronics & Communication Engg",
-        units: [
-          "Semiconductor Devices",
-          "Amplifiers",
-          "Digital Electronics",
-          "Communication Basics",
-          "Modulation",
-        ],
-      },
-      {
-        name: "Fundamentals of Computing",
-        units: [
-          "Introduction to Computers",
-          "Programming Basics",
-          "Algorithms",
-          "Data Types",
-          "Basic I/O",
-        ],
-      },
-      {
-        name: "Engineering Physics Lab II",
-        units: ["Experiments Set 1", "Experiments Set 2"],
-      },
-      {
-        name: "Design Thinking & Idea Lab",
-        units: ["Empathize", "Define", "Ideate", "Prototype", "Test"],
-      },
-      {
-        name: "Engineering Graphics & Design",
-        units: [
-          "Orthographic Projection",
-          "Isometric Views",
-          "Sections",
-          "Development",
-          "CAD",
-        ],
-      },
-      {
-        name: "Workshop Practice",
-        units: [
-          "Carpentry",
-          "Fitting",
-          "Welding",
-          "Plumbing",
-          "Electrical Wiring",
-        ],
-      },
-    ],
-    2: [
-      {
-        name: "Data Structures",
-        units: [
-          "Arrays & Linked Lists",
-          "Stacks & Queues",
-          "Trees",
-          "Graphs",
-          "Sorting & Searching",
-        ],
-      },
-      {
-        name: "OOP with Java",
-        units: [
-          "Classes & Objects",
-          "Inheritance",
-          "Polymorphism",
-          "Exception Handling",
-          "Collections",
-        ],
-      },
-      {
-        name: "Discrete Mathematics",
-        units: [
-          "Logic & Proofs",
-          "Set Theory",
-          "Graph Theory",
-          "Combinatorics",
-          "Algebraic Structures",
-        ],
-      },
-      {
-        name: "Digital Electronics",
-        units: [
-          "Number Systems",
-          "Boolean Algebra",
-          "Combinational Circuits",
-          "Sequential Circuits",
-          "Memory Devices",
-        ],
-      },
-      {
-        name: "Computer Organization",
-        units: [
-          "Basic Structure",
-          "Machine Instructions",
-          "Memory Organization",
-          "I/O Organization",
-          "Pipelining",
-        ],
-      },
-      {
-        name: "Probability & Statistics",
-        units: [
-          "Probability",
-          "Random Variables",
-          "Distributions",
-          "Sampling",
-          "Hypothesis Testing",
-        ],
-      },
-      {
-        name: "Economics",
-        units: [
-          "Micro Economics",
-          "Macro Economics",
-          "Market Structures",
-          "Indian Economy",
-          "Economic Policies",
-        ],
-      },
-    ],
-    3: [
-      {
-        name: "Operating Systems",
-        units: [
-          "Process Management",
-          "Thread & Concurrency",
-          "Memory Management",
-          "File Systems",
-          "Security",
-        ],
-      },
-      {
-        name: "DBMS",
-        units: [
-          "ER Model",
-          "Relational Model",
-          "SQL",
-          "Normalization",
-          "Transactions",
-        ],
-      },
-      {
-        name: "Computer Networks",
-        units: [
-          "Physical Layer",
-          "Data Link Layer",
-          "Network Layer",
-          "Transport Layer",
-          "Application Layer",
-        ],
-      },
-      {
-        name: "Software Engineering",
-        units: [
-          "SDLC Models",
-          "Requirements",
-          "Design",
-          "Testing",
-          "Project Management",
-        ],
-      },
-      {
-        name: "Theory of Computation",
-        units: [
-          "Finite Automata",
-          "Regular Languages",
-          "Context Free Grammars",
-          "Pushdown Automata",
-          "Turing Machines",
-        ],
-      },
-      {
-        name: "Web Development",
-        units: [
-          "HTML & CSS",
-          "JavaScript",
-          "React",
-          "Node.js",
-          "Databases & APIs",
-        ],
-      },
-      {
-        name: "Compiler Design",
-        units: [
-          "Lexical Analysis",
-          "Syntax Analysis",
-          "Semantic Analysis",
-          "Code Generation",
-          "Optimization",
-        ],
-      },
-    ],
-    4: [
-      {
-        name: "Machine Learning",
-        units: [
-          "Introduction & Regression",
-          "Classification",
-          "Clustering",
-          "Neural Networks",
-          "Deep Learning",
-        ],
-      },
-      {
-        name: "Cloud Computing",
-        units: [
-          "Cloud Fundamentals",
-          "Virtualization",
-          "Cloud Services",
-          "Security",
-          "Case Studies",
-        ],
-      },
-      {
-        name: "Information Security",
-        units: [
-          "Cryptography",
-          "Network Security",
-          "Web Security",
-          "Forensics",
-          "Ethical Hacking",
-        ],
-      },
-      {
-        name: "Project",
-        units: [
-          "Problem Statement",
-          "Literature Survey",
-          "Design & Implementation",
-          "Testing",
-          "Final Report",
-        ],
-      },
-      {
-        name: "Elective I",
-        units: ["Unit 1", "Unit 2", "Unit 3", "Unit 4", "Unit 5"],
-      },
-      {
-        name: "Elective II",
-        units: ["Unit 1", "Unit 2", "Unit 3", "Unit 4", "Unit 5"],
-      },
-    ],
-  },
-  ECE: {
-    1: [
-      {
-        name: "Engineering Physics I",
-        units: [
-          "Wave Optics",
-          "Laser & Fiber Optics",
-          "Quantum Mechanics",
-          "Band Theory",
-          "Superconductivity",
-        ],
-      },
-      {
-        name: "Engineering Chemistry",
-        units: [
-          "Water Chemistry",
-          "Polymers",
-          "Corrosion",
-          "Fuels & Combustion",
-          "Spectroscopy",
-        ],
-      },
-      {
-        name: "Engineering Mathematics - I",
-        units: [
-          "Differential Calculus",
-          "Integral Calculus",
-          "Differential Equations",
-          "Laplace Transforms",
-          "Vector Calculus",
-        ],
-      },
-      {
-        name: "Communication Skills",
-        units: [
-          "Grammar",
-          "Reading Comprehension",
-          "Writing Skills",
-          "Speaking Skills",
-          "Presentation Skills",
-        ],
-      },
-      {
-        name: "Constitution of India",
-        units: [
-          "Historical Background",
-          "Preamble & Citizenship",
-          "Fundamental Rights",
-          "Directive Principles",
-          "Constitutional Amendments",
-        ],
-      },
-      {
-        name: "Basics of Civil Engineering",
-        units: [
-          "Building Materials",
-          "Construction",
-          "Surveying",
-          "Roads & Bridges",
-          "Water Supply",
-        ],
-      },
-      {
-        name: "Basics of Mechanical Engineering",
-        units: [
-          "Engineering Materials",
-          "Manufacturing",
-          "Thermodynamics",
-          "Fluid Mechanics",
-          "Machine Elements",
-        ],
-      },
-      {
-        name: "Engineering Physics Lab I",
-        units: ["Experiments Set 1", "Experiments Set 2"],
-      },
-      {
-        name: "Engineering Chemistry Lab",
-        units: ["Experiments Set 1", "Experiments Set 2"],
-      },
-      { name: "Language Laboratory", units: ["Lab Sessions"] },
-      { name: "Engineering Mechanics Lab", units: ["Lab Sessions"] },
-      {
-        name: "Engineering Physics II",
-        units: [
-          "Electromagnetic Theory",
-          "Dielectric Properties",
-          "Magnetic Properties",
-          "Semiconductors",
-          "Nano Materials",
-        ],
-      },
-      {
-        name: "Engineering Mathematics - II",
-        units: [
-          "Matrices",
-          "Fourier Series",
-          "PDE",
-          "Z-Transforms",
-          "Numerical Methods",
-        ],
-      },
-      {
-        name: "Biology for Engineers",
-        units: [
-          "Cell Biology",
-          "Genetics",
-          "Biochemistry",
-          "Biotechnology",
-          "Biomechanics",
-        ],
-      },
-      {
-        name: "Environmental Science",
-        units: [
-          "Ecosystems",
-          "Pollution",
-          "Natural Resources",
-          "Social Issues",
-          "Environmental Acts",
-        ],
-      },
-      {
-        name: "Basics of Electrical Engineering",
-        units: [
-          "DC Circuits",
-          "AC Circuits",
-          "Transformers",
-          "Electrical Machines",
-          "Measuring Instruments",
-        ],
-      },
-      {
-        name: "Basics of Electronics & Communication Engg",
-        units: [
-          "Semiconductor Devices",
-          "Amplifiers",
-          "Digital Electronics",
-          "Communication Basics",
-          "Modulation",
-        ],
-      },
-      {
-        name: "Fundamentals of Computing",
-        units: [
-          "Introduction to Computers",
-          "Programming Basics",
-          "Algorithms",
-          "Data Types",
-          "Basic I/O",
-        ],
-      },
-      {
-        name: "Engineering Physics Lab II",
-        units: ["Experiments Set 1", "Experiments Set 2"],
-      },
-      {
-        name: "Design Thinking & Idea Lab",
-        units: ["Empathize", "Define", "Ideate", "Prototype", "Test"],
-      },
-      {
-        name: "Engineering Graphics & Design",
-        units: [
-          "Orthographic Projection",
-          "Isometric Views",
-          "Sections",
-          "Development",
-          "CAD",
-        ],
-      },
-      {
-        name: "Workshop Practice",
-        units: [
-          "Carpentry",
-          "Fitting",
-          "Welding",
-          "Plumbing",
-          "Electrical Wiring",
-        ],
-      },
-    ],
-    2: [
-      {
-        name: "Network Analysis",
-        units: [
-          "Basic Concepts",
-          "Network Theorems",
-          "Resonance",
-          "Two-Port Networks",
-          "Filters",
-        ],
-      },
-      {
-        name: "Electronic Devices",
-        units: [
-          "Semiconductor Physics",
-          "Diodes",
-          "Transistors",
-          "FETs",
-          "Special Devices",
-        ],
-      },
-      {
-        name: "Digital Electronics",
-        units: [
-          "Number Systems",
-          "Boolean Algebra",
-          "Combinational Circuits",
-          "Sequential Circuits",
-          "Memory Devices",
-        ],
-      },
-      {
-        name: "Signals & Systems",
-        units: [
-          "Signal Classification",
-          "LTI Systems",
-          "Fourier Analysis",
-          "Laplace Transform",
-          "Z-Transform",
-        ],
-      },
-      {
-        name: "Mathematics III",
-        units: [
-          "Complex Analysis",
-          "Probability",
-          "Statistics",
-          "Numerical Methods",
-          "Transforms",
-        ],
-      },
-      {
-        name: "Electromagnetic Theory",
-        units: [
-          "Electrostatics",
-          "Magnetostatics",
-          "Maxwell's Equations",
-          "EM Waves",
-          "Waveguides",
-        ],
-      },
-    ],
-    3: [
-      {
-        name: "Analog Circuits",
-        units: [
-          "Amplifier Analysis",
-          "Feedback Amplifiers",
-          "Oscillators",
-          "Power Amplifiers",
-          "Op-Amps",
-        ],
-      },
-      {
-        name: "Microprocessors",
-        units: [
-          "8085 Architecture",
-          "Instruction Set",
-          "Assembly Programming",
-          "Interfacing",
-          "Applications",
-        ],
-      },
-      {
-        name: "Communication Systems",
-        units: [
-          "AM",
-          "FM",
-          "Pulse Modulation",
-          "Digital Comm",
-          "Noise Analysis",
-        ],
-      },
-      {
-        name: "Control Systems",
-        units: [
-          "System Modeling",
-          "Transfer Functions",
-          "Time Response",
-          "Stability",
-          "Frequency Response",
-        ],
-      },
-      {
-        name: "VLSI Design",
-        units: [
-          "MOS Transistor",
-          "Logic Gates",
-          "Combinational Circuits",
-          "Sequential Circuits",
-          "Testing",
-        ],
-      },
-      {
-        name: "DSP",
-        units: [
-          "Discrete Signals",
-          "DFT & FFT",
-          "FIR Filters",
-          "IIR Filters",
-          "Applications",
-        ],
-      },
-    ],
-    4: [
-      {
-        name: "Wireless Communication",
-        units: ["Mobile Radio", "Cellular Concepts", "GSM", "CDMA", "4G/5G"],
-      },
-      {
-        name: "Embedded Systems",
-        units: [
-          "Architecture",
-          "Interfacing",
-          "RTOS",
-          "Protocols",
-          "Applications",
-        ],
-      },
-      {
-        name: "Antenna Theory",
-        units: [
-          "Fundamentals",
-          "Wire Antennas",
-          "Aperture Antennas",
-          "Arrays",
-          "Applications",
-        ],
-      },
-      {
-        name: "Project",
-        units: [
-          "Problem Statement",
-          "Literature Survey",
-          "Design & Implementation",
-          "Testing",
-          "Final Report",
-        ],
-      },
-      {
-        name: "Elective I",
-        units: ["Unit 1", "Unit 2", "Unit 3", "Unit 4", "Unit 5"],
-      },
-      {
-        name: "Elective II",
-        units: ["Unit 1", "Unit 2", "Unit 3", "Unit 4", "Unit 5"],
-      },
-    ],
-  },
-  ME: {
-    1: [
-      {
-        name: "Engineering Physics I",
-        units: [
-          "Wave Optics",
-          "Laser & Fiber Optics",
-          "Quantum Mechanics",
-          "Band Theory",
-          "Superconductivity",
-        ],
-      },
-      {
-        name: "Engineering Chemistry",
-        units: [
-          "Water Chemistry",
-          "Polymers",
-          "Corrosion",
-          "Fuels & Combustion",
-          "Spectroscopy",
-        ],
-      },
-      {
-        name: "Engineering Mathematics - I",
-        units: [
-          "Differential Calculus",
-          "Integral Calculus",
-          "Differential Equations",
-          "Laplace Transforms",
-          "Vector Calculus",
-        ],
-      },
-      {
-        name: "Communication Skills",
-        units: [
-          "Grammar",
-          "Reading Comprehension",
-          "Writing Skills",
-          "Speaking Skills",
-          "Presentation Skills",
-        ],
-      },
-      {
-        name: "Constitution of India",
-        units: [
-          "Historical Background",
-          "Preamble & Citizenship",
-          "Fundamental Rights",
-          "Directive Principles",
-          "Constitutional Amendments",
-        ],
-      },
-      {
-        name: "Basics of Civil Engineering",
-        units: [
-          "Building Materials",
-          "Construction",
-          "Surveying",
-          "Roads & Bridges",
-          "Water Supply",
-        ],
-      },
-      {
-        name: "Basics of Mechanical Engineering",
-        units: [
-          "Engineering Materials",
-          "Manufacturing",
-          "Thermodynamics",
-          "Fluid Mechanics",
-          "Machine Elements",
-        ],
-      },
-      { name: "Engineering Physics Lab I", units: ["Experiments"] },
-      { name: "Engineering Chemistry Lab", units: ["Experiments"] },
-      { name: "Language Laboratory", units: ["Lab Sessions"] },
-      { name: "Engineering Mechanics Lab", units: ["Lab Sessions"] },
-      {
-        name: "Engineering Physics II",
-        units: [
-          "EM Theory",
-          "Dielectric",
-          "Magnetic",
-          "Semiconductors",
-          "Nano Materials",
-        ],
-      },
-      {
-        name: "Engineering Mathematics - II",
-        units: [
-          "Matrices",
-          "Fourier Series",
-          "PDE",
-          "Z-Transforms",
-          "Numerical Methods",
-        ],
-      },
-      {
-        name: "Biology for Engineers",
-        units: [
-          "Cell Biology",
-          "Genetics",
-          "Biochemistry",
-          "Biotechnology",
-          "Biomechanics",
-        ],
-      },
-      {
-        name: "Environmental Science",
-        units: [
-          "Ecosystems",
-          "Pollution",
-          "Natural Resources",
-          "Social Issues",
-          "Environmental Acts",
-        ],
-      },
-      {
-        name: "Basics of Electrical Engineering",
-        units: [
-          "DC Circuits",
-          "AC Circuits",
-          "Transformers",
-          "Machines",
-          "Instruments",
-        ],
-      },
-      {
-        name: "Basics of Electronics & Communication Engg",
-        units: [
-          "Semiconductor Devices",
-          "Amplifiers",
-          "Digital Electronics",
-          "Communication Basics",
-          "Modulation",
-        ],
-      },
-      {
-        name: "Fundamentals of Computing",
-        units: ["Computers", "Programming", "Algorithms", "Data Types", "I/O"],
-      },
-      { name: "Engineering Physics Lab II", units: ["Experiments"] },
-      {
-        name: "Design Thinking & Idea Lab",
-        units: ["Empathize", "Define", "Ideate", "Prototype", "Test"],
-      },
-      {
-        name: "Engineering Graphics & Design",
-        units: ["Orthographic", "Isometric", "Sections", "Development", "CAD"],
-      },
-      {
-        name: "Workshop Practice",
-        units: ["Carpentry", "Fitting", "Welding", "Plumbing", "Electrical"],
-      },
-    ],
-    2: [
-      {
-        name: "Engineering Mechanics",
-        units: ["Statics", "Dynamics", "Friction", "Beams", "Kinematics"],
-      },
-      {
-        name: "Thermodynamics",
-        units: [
-          "Laws of Thermo",
-          "Pure Substances",
-          "Gas Cycles",
-          "Vapor Cycles",
-          "Refrigeration",
-        ],
-      },
-      {
-        name: "Material Science",
-        units: [
-          "Crystal Structure",
-          "Mechanical Properties",
-          "Phase Diagrams",
-          "Heat Treatment",
-          "Non-metals",
-        ],
-      },
-      {
-        name: "Manufacturing Processes",
-        units: [
-          "Casting",
-          "Welding",
-          "Forming",
-          "Machining",
-          "Surface Finishing",
-        ],
-      },
-      {
-        name: "Fluid Mechanics",
-        units: [
-          "Properties",
-          "Statics",
-          "Kinematics",
-          "Dynamics",
-          "Viscous Flow",
-        ],
-      },
-      {
-        name: "Mathematics III",
-        units: [
-          "Complex Analysis",
-          "Probability",
-          "Statistics",
-          "Numerical Methods",
-          "Transforms",
-        ],
-      },
-    ],
-    3: [
-      {
-        name: "Machine Design",
-        units: [
-          "Design Philosophy",
-          "Shafts & Couplings",
-          "Bearings",
-          "Gears",
-          "Springs",
-        ],
-      },
-      {
-        name: "Heat Transfer",
-        units: [
-          "Conduction",
-          "Convection",
-          "Radiation",
-          "Heat Exchangers",
-          "Boiling & Condensation",
-        ],
-      },
-      {
-        name: "Theory of Machines",
-        units: [
-          "Mechanisms",
-          "Velocity Analysis",
-          "Acceleration",
-          "Governors",
-          "Vibrations",
-        ],
-      },
-      {
-        name: "Industrial Engineering",
-        units: [
-          "Work Study",
-          "Ergonomics",
-          "Production Planning",
-          "Quality Control",
-          "Inventory",
-        ],
-      },
-      {
-        name: "Metrology",
-        units: [
-          "Standards",
-          "Linear Measurement",
-          "Angular Measurement",
-          "Surface Finish",
-          "Gauges",
-        ],
-      },
-      {
-        name: "CAD/CAM",
-        units: [
-          "CAD Fundamentals",
-          "Modeling",
-          "CNC",
-          "Part Programming",
-          "FMS",
-        ],
-      },
-    ],
-    4: [
-      {
-        name: "Automobile Engineering",
-        units: [
-          "Engine",
-          "Transmission",
-          "Steering & Braking",
-          "Suspension",
-          "Electrical Systems",
-        ],
-      },
-      {
-        name: "Robotics",
-        units: [
-          "Robot Anatomy",
-          "Kinematics",
-          "Dynamics",
-          "Sensors & Actuators",
-          "Programming",
-        ],
-      },
-      {
-        name: "Project",
-        units: [
-          "Problem Statement",
-          "Literature Survey",
-          "Design",
-          "Fabrication",
-          "Testing",
-        ],
-      },
-      {
-        name: "Elective I",
-        units: ["Unit 1", "Unit 2", "Unit 3", "Unit 4", "Unit 5"],
-      },
-      {
-        name: "Elective II",
-        units: ["Unit 1", "Unit 2", "Unit 3", "Unit 4", "Unit 5"],
-      },
-    ],
-  },
-  CE: {
-    1: [
-      {
-        name: "Engineering Physics I",
-        units: [
-          "Wave Optics",
-          "Laser & Fiber Optics",
-          "Quantum Mechanics",
-          "Band Theory",
-          "Superconductivity",
-        ],
-      },
-      {
-        name: "Engineering Chemistry",
-        units: [
-          "Water Chemistry",
-          "Polymers",
-          "Corrosion",
-          "Fuels & Combustion",
-          "Spectroscopy",
-        ],
-      },
-      {
-        name: "Engineering Mathematics - I",
-        units: [
-          "Differential Calculus",
-          "Integral Calculus",
-          "Differential Equations",
-          "Laplace Transforms",
-          "Vector Calculus",
-        ],
-      },
-      {
-        name: "Communication Skills",
-        units: ["Grammar", "Reading", "Writing", "Speaking", "Presentation"],
-      },
-      {
-        name: "Constitution of India",
-        units: [
-          "Historical Background",
-          "Preamble & Citizenship",
-          "Fundamental Rights",
-          "Directive Principles",
-          "Amendments",
-        ],
-      },
-      {
-        name: "Basics of Civil Engineering",
-        units: [
-          "Building Materials",
-          "Construction",
-          "Surveying",
-          "Roads & Bridges",
-          "Water Supply",
-        ],
-      },
-      {
-        name: "Basics of Mechanical Engineering",
-        units: [
-          "Materials",
-          "Manufacturing",
-          "Thermodynamics",
-          "Fluid Mechanics",
-          "Machine Elements",
-        ],
-      },
-      { name: "Engineering Physics Lab I", units: ["Experiments"] },
-      { name: "Engineering Chemistry Lab", units: ["Experiments"] },
-      { name: "Language Laboratory", units: ["Sessions"] },
-      { name: "Engineering Mechanics Lab", units: ["Sessions"] },
-      {
-        name: "Engineering Physics II",
-        units: [
-          "EM Theory",
-          "Dielectric",
-          "Magnetic",
-          "Semiconductors",
-          "Nano Materials",
-        ],
-      },
-      {
-        name: "Engineering Mathematics - II",
-        units: [
-          "Matrices",
-          "Fourier Series",
-          "PDE",
-          "Z-Transforms",
-          "Numerical Methods",
-        ],
-      },
-      {
-        name: "Biology for Engineers",
-        units: [
-          "Cell Biology",
-          "Genetics",
-          "Biochemistry",
-          "Biotechnology",
-          "Biomechanics",
-        ],
-      },
-      {
-        name: "Environmental Science",
-        units: [
-          "Ecosystems",
-          "Pollution",
-          "Natural Resources",
-          "Social Issues",
-          "Environmental Acts",
-        ],
-      },
-      {
-        name: "Basics of Electrical Engineering",
-        units: [
-          "DC Circuits",
-          "AC Circuits",
-          "Transformers",
-          "Machines",
-          "Instruments",
-        ],
-      },
-      {
-        name: "Basics of Electronics & Communication Engg",
-        units: [
-          "Devices",
-          "Amplifiers",
-          "Digital",
-          "Communication",
-          "Modulation",
-        ],
-      },
-      {
-        name: "Fundamentals of Computing",
-        units: ["Computers", "Programming", "Algorithms", "Data Types", "I/O"],
-      },
-      { name: "Engineering Physics Lab II", units: ["Experiments"] },
-      {
-        name: "Design Thinking & Idea Lab",
-        units: ["Empathize", "Define", "Ideate", "Prototype", "Test"],
-      },
-      {
-        name: "Engineering Graphics & Design",
-        units: ["Orthographic", "Isometric", "Sections", "Development", "CAD"],
-      },
-      {
-        name: "Workshop Practice",
-        units: ["Carpentry", "Fitting", "Welding", "Plumbing", "Electrical"],
-      },
-    ],
-    2: [
-      {
-        name: "Strength of Materials",
-        units: [
-          "Stress & Strain",
-          "Bending",
-          "Torsion",
-          "Columns",
-          "Deflection",
-        ],
-      },
-      {
-        name: "Fluid Mechanics",
-        units: [
-          "Properties",
-          "Statics",
-          "Kinematics",
-          "Dynamics",
-          "Flow Measurement",
-        ],
-      },
-      {
-        name: "Building Materials",
-        units: [
-          "Stones & Bricks",
-          "Cement & Concrete",
-          "Metals",
-          "Timber",
-          "Modern Materials",
-        ],
-      },
-      {
-        name: "Surveying II",
-        units: ["Theodolite", "Total Station", "GPS", "Remote Sensing", "GIS"],
-      },
-      {
-        name: "Mathematics III",
-        units: [
-          "Complex Analysis",
-          "Probability",
-          "Statistics",
-          "Numerical Methods",
-          "Transforms",
-        ],
-      },
-      {
-        name: "Geology",
-        units: [
-          "Mineralogy",
-          "Rocks",
-          "Structural Geology",
-          "Groundwater",
-          "Engineering Geology",
-        ],
-      },
-    ],
-    3: [
-      {
-        name: "Structural Analysis",
-        units: [
-          "Energy Methods",
-          "Arches",
-          "Moving Loads",
-          "Matrix Methods",
-          "Plastic Analysis",
-        ],
-      },
-      {
-        name: "Geotechnical Engineering",
-        units: [
-          "Soil Classification",
-          "Permeability",
-          "Consolidation",
-          "Shear Strength",
-          "Foundation",
-        ],
-      },
-      {
-        name: "Transportation Engineering",
-        units: [
-          "Highway Materials",
-          "Pavement Design",
-          "Traffic Engineering",
-          "Railway",
-          "Airport",
-        ],
-      },
-      {
-        name: "Environmental Engineering",
-        units: [
-          "Water Treatment",
-          "Sewage Treatment",
-          "Solid Waste",
-          "Air Pollution",
-          "Noise Pollution",
-        ],
-      },
-      {
-        name: "Concrete Technology",
-        units: [
-          "Cement",
-          "Aggregates",
-          "Mix Design",
-          "Special Concrete",
-          "Testing",
-        ],
-      },
-    ],
-    4: [
-      {
-        name: "Design of Structures",
-        units: ["LSM Concepts", "Beams", "Slabs", "Columns", "Footings"],
-      },
-      {
-        name: "Construction Management",
-        units: [
-          "Planning",
-          "Scheduling",
-          "Project Control",
-          "Contracts",
-          "Safety",
-        ],
-      },
-      {
-        name: "Project",
-        units: [
-          "Problem Statement",
-          "Literature Survey",
-          "Design",
-          "Implementation",
-          "Report",
-        ],
-      },
-      {
-        name: "Elective I",
-        units: ["Unit 1", "Unit 2", "Unit 3", "Unit 4", "Unit 5"],
-      },
-      {
-        name: "Elective II",
-        units: ["Unit 1", "Unit 2", "Unit 3", "Unit 4", "Unit 5"],
-      },
-    ],
-  },
-  EE: {
-    1: [
-      {
-        name: "Engineering Physics I",
-        units: [
-          "Wave Optics",
-          "Laser & Fiber Optics",
-          "Quantum Mechanics",
-          "Band Theory",
-          "Superconductivity",
-        ],
-      },
-      {
-        name: "Engineering Chemistry",
-        units: [
-          "Water Chemistry",
-          "Polymers",
-          "Corrosion",
-          "Fuels & Combustion",
-          "Spectroscopy",
-        ],
-      },
-      {
-        name: "Engineering Mathematics - I",
-        units: [
-          "Differential Calculus",
-          "Integral Calculus",
-          "Differential Equations",
-          "Laplace Transforms",
-          "Vector Calculus",
-        ],
-      },
-      {
-        name: "Communication Skills",
-        units: ["Grammar", "Reading", "Writing", "Speaking", "Presentation"],
-      },
-      {
-        name: "Constitution of India",
-        units: [
-          "Historical Background",
-          "Preamble & Citizenship",
-          "Fundamental Rights",
-          "Directive Principles",
-          "Amendments",
-        ],
-      },
-      {
-        name: "Basics of Civil Engineering",
-        units: [
-          "Building Materials",
-          "Construction",
-          "Surveying",
-          "Roads & Bridges",
-          "Water Supply",
-        ],
-      },
-      {
-        name: "Basics of Mechanical Engineering",
-        units: [
-          "Materials",
-          "Manufacturing",
-          "Thermodynamics",
-          "Fluid Mechanics",
-          "Machine Elements",
-        ],
-      },
-      { name: "Engineering Physics Lab I", units: ["Experiments"] },
-      { name: "Engineering Chemistry Lab", units: ["Experiments"] },
-      { name: "Language Laboratory", units: ["Sessions"] },
-      { name: "Engineering Mechanics Lab", units: ["Sessions"] },
-      {
-        name: "Engineering Physics II",
-        units: [
-          "EM Theory",
-          "Dielectric",
-          "Magnetic",
-          "Semiconductors",
-          "Nano Materials",
-        ],
-      },
-      {
-        name: "Engineering Mathematics - II",
-        units: [
-          "Matrices",
-          "Fourier Series",
-          "PDE",
-          "Z-Transforms",
-          "Numerical Methods",
-        ],
-      },
-      {
-        name: "Biology for Engineers",
-        units: [
-          "Cell Biology",
-          "Genetics",
-          "Biochemistry",
-          "Biotechnology",
-          "Biomechanics",
-        ],
-      },
-      {
-        name: "Environmental Science",
-        units: [
-          "Ecosystems",
-          "Pollution",
-          "Natural Resources",
-          "Social Issues",
-          "Environmental Acts",
-        ],
-      },
-      {
-        name: "Basics of Electrical Engineering",
-        units: [
-          "DC Circuits",
-          "AC Circuits",
-          "Transformers",
-          "Machines",
-          "Instruments",
-        ],
-      },
-      {
-        name: "Basics of Electronics & Communication Engg",
-        units: [
-          "Devices",
-          "Amplifiers",
-          "Digital",
-          "Communication",
-          "Modulation",
-        ],
-      },
-      {
-        name: "Fundamentals of Computing",
-        units: ["Computers", "Programming", "Algorithms", "Data Types", "I/O"],
-      },
-      { name: "Engineering Physics Lab II", units: ["Experiments"] },
-      {
-        name: "Design Thinking & Idea Lab",
-        units: ["Empathize", "Define", "Ideate", "Prototype", "Test"],
-      },
-      {
-        name: "Engineering Graphics & Design",
-        units: ["Orthographic", "Isometric", "Sections", "Development", "CAD"],
-      },
-      {
-        name: "Workshop Practice",
-        units: ["Carpentry", "Fitting", "Welding", "Plumbing", "Electrical"],
-      },
-    ],
-    2: [
-      {
-        name: "Circuit Theory",
-        units: [
-          "Network Fundamentals",
-          "Network Theorems",
-          "Resonance",
-          "Two-Port Networks",
-          "Filters",
-        ],
-      },
-      {
-        name: "Electronic Devices",
-        units: [
-          "Semiconductor Physics",
-          "Diodes",
-          "Transistors",
-          "FETs",
-          "Special Devices",
-        ],
-      },
-      {
-        name: "Electrical Machines I",
-        units: [
-          "DC Machines",
-          "Transformers",
-          "AC Machines",
-          "Testing",
-          "Applications",
-        ],
-      },
-      {
-        name: "Signals & Systems",
-        units: [
-          "Signal Classification",
-          "LTI Systems",
-          "Fourier Analysis",
-          "Laplace",
-          "Z-Transform",
-        ],
-      },
-      {
-        name: "Mathematics III",
-        units: [
-          "Complex Analysis",
-          "Probability",
-          "Statistics",
-          "Numerical Methods",
-          "Transforms",
-        ],
-      },
-      {
-        name: "Electromagnetic Theory",
-        units: [
-          "Electrostatics",
-          "Magnetostatics",
-          "Maxwell's Equations",
-          "EM Waves",
-          "Waveguides",
-        ],
-      },
-    ],
-    3: [
-      {
-        name: "Electrical Machines II",
-        units: [
-          "Synchronous Machines",
-          "Induction Motors",
-          "Special Machines",
-          "Testing",
-          "Drive Systems",
-        ],
-      },
-      {
-        name: "Power Systems",
-        units: [
-          "Transmission Lines",
-          "Line Parameters",
-          "Power Flow",
-          "Fault Analysis",
-          "Protection",
-        ],
-      },
-      {
-        name: "Control Systems",
-        units: [
-          "Modeling",
-          "Transfer Functions",
-          "Time Response",
-          "Stability",
-          "Frequency Response",
-        ],
-      },
-      {
-        name: "Power Electronics",
-        units: [
-          "Thyristors",
-          "Converters",
-          "Inverters",
-          "Choppers",
-          "Applications",
-        ],
-      },
-      {
-        name: "Microprocessors",
-        units: [
-          "8085 Architecture",
-          "Instruction Set",
-          "Programming",
-          "Interfacing",
-          "Applications",
-        ],
-      },
-      {
-        name: "Instrumentation",
-        units: [
-          "Transducers",
-          "Signal Conditioning",
-          "Display",
-          "Data Acquisition",
-          "Process Control",
-        ],
-      },
-    ],
-    4: [
-      {
-        name: "High Voltage Engineering",
-        units: ["Breakdown", "Testing", "Insulation", "HVDC", "Protection"],
-      },
-      {
-        name: "Renewable Energy",
-        units: ["Solar", "Wind", "Hydro", "Biomass", "Hybrid Systems"],
-      },
-      {
-        name: "Project",
-        units: [
-          "Problem Statement",
-          "Literature Survey",
-          "Design",
-          "Implementation",
-          "Report",
-        ],
-      },
-      {
-        name: "Elective I",
-        units: ["Unit 1", "Unit 2", "Unit 3", "Unit 4", "Unit 5"],
-      },
-      {
-        name: "Elective II",
-        units: ["Unit 1", "Unit 2", "Unit 3", "Unit 4", "Unit 5"],
-      },
-    ],
-  },
+/* ─── Predeclared subjects ──────────────────────────────────────────────── */
+const BASE_SUBJECTS = [
+  "Maths","Physics","Chemistry","Biology",
+  "CS","DBMS","OS","Networks","DSA",
+  "Electronics","English","Economics",
+];
+const CUSTOM_KEY = "res_custom_subjects";
+function loadCustom() { try { return JSON.parse(localStorage.getItem(CUSTOM_KEY)||"[]"); } catch { return []; } }
+function saveCustom(arr) { try { localStorage.setItem(CUSTOM_KEY, JSON.stringify(arr)); } catch {} }
+
+/* ─── Shared styles ─────────────────────────────────────────────────────── */
+const inp = {
+  width:"100%", padding:"9px 12px", borderRadius:10,
+  border:"1px solid #e5e3dc", background:"#fff",
+  fontSize:13, fontFamily:"inherit", color:"#1a1a18",
+  outline:"none", boxSizing:"border-box",
 };
+const lbl = {
+  fontSize:10, fontWeight:700, color:"#9b9890",
+  textTransform:"uppercase", letterSpacing:".05em",
+  display:"block", marginBottom:7,
+};
+const pill = (active) => ({
+  padding:"5px 12px", borderRadius:100, fontSize:12, fontWeight:600,
+  border:"none", cursor:"pointer", transition:"all .13s",
+  background: active ? "#1a1a18" : "#f0ede8",
+  color:       active ? "#fff"    : "#6b6860",
+  flexShrink:0, whiteSpace:"nowrap",
+});
 
-const SECTIONS_YEAR1 = ["A", "B", "C", "D", "E", "F", "G", "H"];
+/* ─── ResourceForm — shared between Add and Edit modals ─────────────────── */
+function ResourceForm({
+  initial,       // null for new, resource object for edit
+  activeTab,
+  allSubjects,
+  onSave,        // async fn(payload) → throws on error
+  onClose,
+  showToast,
+  onNewSubject,
+  saving,
+  mode,          // "add" | "edit"
+}) {
+  /* Parse existing unit string back into counter + topic */
+  function parseUnit(str) {
+    if (!str || str === "General") return { num: 1, topic: "" };
+    const m = str.match(/^Module\s+(\d+)(?:\s+—\s+(.+))?$/i);
+    if (m) return { num: parseInt(m[1], 10)||1, topic: m[2]||"" };
+    return { num: 1, topic: str };
+  }
 
-// ─── Image Viewer (inline) ───────────────────────────────────────────────────
-// PDFs open in new tab — browser PDF viewer handles them natively (no CORS issues)
-function FileViewer({ url, title, ext, onClose, onDownload }) {
-  const isPdf = ext === "pdf";
-  const [imgLoading, setImgLoading] = useState(true);
+  const parsed = parseUnit(initial?.unit);
 
-  return (
-    <div className="fixed inset-0 z-50 bg-black flex flex-col">
-      <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-gray-200 flex-shrink-0">
-        <p className="font-semibold text-black text-sm truncate flex-1 mr-3">
-          {isPdf ? "📄" : "🖼"} {title}
-        </p>
-        <div className="flex gap-2 flex-shrink-0">
-          <button
-            onClick={onDownload}
-            className="bg-blue-500 hover:bg-blue-600 text-white text-xs px-3 py-1.5 rounded-lg font-medium"
-          >
-            Download
-          </button>
-          <button
-            onClick={onClose}
-            className="bg-gray-200 hover:bg-gray-300 text-black text-xs px-3 py-1.5 rounded-lg font-bold"
-          >
-            ✕
-          </button>
-        </div>
-      </div>
-      <div className="flex-1 overflow-y-auto bg-gray-800 flex items-center justify-center p-4">
-        {imgLoading && !isPdf && (
-          <div className="absolute flex flex-col items-center gap-3">
-            <div className="w-10 h-10 border-4 border-blue-400 border-t-transparent rounded-full animate-spin" />
-            <p className="text-white text-sm">Loading...</p>
-          </div>
-        )}
-        {!isPdf && (
-          <img
-            src={url}
-            alt={title}
-            className="max-w-full max-h-full object-contain rounded-lg"
-            onLoad={() => setImgLoading(false)}
-          />
-        )}
-      </div>
-    </div>
-  );
-}
+  const [title,       setTitle]       = useState(initial?.title       || "");
+  const [description, setDescription] = useState(initial?.description || "");
+  const [lectureLink, setLectureLink] = useState(initial?.lectureLink || "");
+  const [notesLink,   setNotesLink]   = useState(initial?.notesLink   || "");
+  const [unit,        setUnit]        = useState(parsed.num);
+  const [topic,       setTopic]       = useState(parsed.topic);
 
-// ─── Upload Modal ─────────────────────────────────────────────────────────────
-function UploadModal({ user, activeTab, onClose, onSuccess, showToast }) {
-  const [uploading, setUploading] = useState(false);
-  const [file, setFile] = useState(null);
-  const [form, setForm] = useState({
-    title: "",
-    description: "",
-    branch: user?.branch || "CSE",
-    year: String(user?.year || "1"),
-    section: "all",
-    subject: "",
-    unit: "",
-  });
+  /* Subject state */
+  const initSubj = initial?.subject || "";
+  const isBaseOrExtra = allSubjects.some(s => s.toLowerCase() === initSubj.toLowerCase());
+  const [subject,    setSubject]    = useState(isBaseOrExtra ? initSubj : "");
+  const [isOther,    setIsOther]    = useState(!!initSubj && !isBaseOrExtra);
+  const [customSubj, setCustomSubj] = useState(isBaseOrExtra ? "" : initSubj);
 
-  const isFirstYear = String(form.year) === "1";
-  const subjectOptions = SUBJECTS[form.branch]?.[Number(form.year)] || [];
-  const selectedSubjectObj = subjectOptions.find(
-    (s) => s.name === form.subject,
-  );
-  const unitOptions = selectedSubjectObj?.units || [];
+  const finalSubject = isOther ? customSubj.trim() : subject;
+  const tabLabel = { notes:"Note", pyq:"PYQ", assignment:"Assignment" }[activeTab] || "Resource";
 
-  const handleBranchChange = (e) =>
-    setForm((f) => ({
-      ...f,
-      branch: e.target.value,
-      subject: "",
-      unit: "",
-      section: "all",
-    }));
-  const handleYearChange = (e) =>
-    setForm((f) => ({
-      ...f,
-      year: e.target.value,
-      subject: "",
-      unit: "",
-      section: "all",
-    }));
-  const handleSubjectChange = (e) =>
-    setForm((f) => ({ ...f, subject: e.target.value, unit: "" }));
-
-  const handleUpload = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!file) return showToast("Please select a file", "error");
-    if (!form.subject) return showToast("Please select a subject", "error");
-    // ✅ Unit is now required for notes tab
-    if (activeTab === "notes" && unitOptions.length > 0 && !form.unit) {
-      return showToast("Please select a unit", "error");
-    }
+    if (!title.trim())    return showToast("Title is required");
+    if (!finalSubject)    return showToast("Select or enter a subject");
+    if (!lectureLink.trim() && !notesLink.trim()) return showToast("Add at least one link");
 
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("title", form.title);
-    formData.append("description", form.description);
-    formData.append("type", activeTab);
-    formData.append("branch", form.branch);
-    formData.append("year", form.year);
-    formData.append("section", isFirstYear ? form.section : "all");
-    formData.append("subject", form.subject);
-    formData.append("unit", form.unit || "General");
+    if (isOther && customSubj.trim()) onNewSubject(customSubj.trim());
 
-    try {
-      setUploading(true);
+    const unitStr = topic.trim()
+      ? `Module ${unit} — ${topic.trim()}`
+      : `Module ${unit}`;
 
-      console.log("unit being sent:", form.unit);
-      await api.post("/api/resources", formData);
-      onClose();
-      onSuccess(); // refetches from API — guarantees unit/all fields are correct
-      showToast("Uploaded successfully! 🎉");
-    } catch (err) {
-      showToast(err.response?.data?.message || "Failed to upload", "error");
-    } finally {
-      setUploading(false);
-    }
+    await onSave({
+      title:       title.trim(),
+      description: description.trim(),
+      subject:     finalSubject,
+      unit:        unitStr,
+      lectureLink: lectureLink.trim(),
+      notesLink:   notesLink.trim(),
+    });
   };
 
-  const tabLabels = { notes: "Note", pyq: "PYQ", assignment: "Assignment" };
-
   return (
-    <div className="fixed inset-0 z-40 bg-black/50 flex items-end sm:items-center justify-center p-0 sm:p-4">
-      <div className="bg-white w-full sm:max-w-lg rounded-t-3xl sm:rounded-2xl shadow-2xl max-h-[92vh] overflow-y-auto">
-        <div className="sticky top-0 bg-white border-b border-gray-100 px-5 py-4 flex items-center justify-between rounded-t-3xl sm:rounded-t-2xl">
-          <h2 className="font-bold text-base text-gray-900">
-            Upload {tabLabels[activeTab] || "Resource"}
-          </h2>
-          <button
-            onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center bg-gray-100 rounded-full text-gray-600 hover:bg-gray-200 font-bold"
-          >
-            ✕
+    <form onSubmit={handleSubmit} style={{ display:"flex", flexDirection:"column", gap:16 }}>
+
+      {/* Title */}
+      <div>
+        <label style={lbl}>Title *</label>
+        <input style={inp} placeholder="e.g. Fourier Series full lecture" value={title} onChange={e=>setTitle(e.target.value)} required />
+      </div>
+
+      {/* Subject */}
+      <div>
+        <label style={lbl}>Subject *</label>
+        <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
+          {allSubjects.map(s => (
+            <button key={s} type="button" style={pill(!isOther && subject.toLowerCase()===s.toLowerCase())}
+              onClick={() => { setSubject(s); setIsOther(false); }}>
+              {s}
+            </button>
+          ))}
+          <button type="button"
+            style={{ ...pill(isOther), border: isOther ? "none" : "1.5px dashed #c5c2b8" }}
+            onClick={() => { setIsOther(true); setSubject(""); }}>
+            + Other
           </button>
         </div>
-
-        <form onSubmit={handleUpload} className="p-5 space-y-3">
-          <input
-            placeholder="Title *"
-            value={form.title}
-            onChange={(e) => setForm({ ...form, title: e.target.value })}
-            required
-            className="w-full p-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-400 focus:border-transparent outline-none"
-          />
-
-          <textarea
-            placeholder="Description (optional)"
-            value={form.description}
-            onChange={(e) => setForm({ ...form, description: e.target.value })}
-            rows={2}
-            className="w-full p-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-400 focus:border-transparent outline-none resize-none"
-          />
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs text-gray-500 mb-1 block font-medium">
-                Branch
-              </label>
-              <select
-                value={form.branch}
-                onChange={handleBranchChange}
-                className="w-full p-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-400 outline-none bg-white"
-              >
-                {["CSE", "ECE", "ME", "CE", "EE"].map((b) => (
-                  <option key={b} value={b}>
-                    {b}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="text-xs text-gray-500 mb-1 block font-medium">
-                Year
-              </label>
-              <select
-                value={form.year}
-                onChange={handleYearChange}
-                className="w-full p-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-400 outline-none bg-white"
-              >
-                {["1", "2", "3", "4"].map((y) => (
-                  <option key={y} value={y}>
-                    {y === "1"
-                      ? "1st"
-                      : y === "2"
-                        ? "2nd"
-                        : y === "3"
-                          ? "3rd"
-                          : "4th"}{" "}
-                    Year
-                  </option>
-                ))}
-              </select>
-            </div>
+        {isOther && (
+          <div style={{ marginTop:8 }}>
+            <input style={{ ...inp, borderColor: customSubj.trim() ? "#1a1a18" : "#e5e3dc" }}
+              placeholder="Type subject name…" value={customSubj}
+              onChange={e=>setCustomSubj(e.target.value)} autoFocus />
+            <div style={{ fontSize:10, color:"#9b9890", marginTop:3 }}>Will be added to the subject list</div>
           </div>
-
-          <div>
-            <label className="text-xs text-gray-500 mb-1 block font-medium">
-              Subject *
-            </label>
-            <select
-              value={form.subject}
-              onChange={handleSubjectChange}
-              required
-              className="w-full p-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-400 outline-none bg-white"
-            >
-              <option value="">Select Subject</option>
-              {subjectOptions.map((s) => (
-                <option key={s.name} value={s.name}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {unitOptions.length > 0 && (
-            <div>
-              <label className="text-xs text-gray-500 mb-1 block font-medium">
-                Unit *
-                <span className="text-red-400 ml-1 font-normal">
-                  (required)
-                </span>
-              </label>
-              <select
-                value={form.unit}
-                onChange={(e) => setForm({ ...form, unit: e.target.value })}
-                required
-                className={`w-full p-3 border rounded-xl text-sm focus:ring-2 focus:ring-blue-400 outline-none bg-white transition ${
-                  !form.unit
-                    ? "border-orange-300 bg-orange-50"
-                    : "border-gray-200"
-                }`}
-              >
-                <option value="">— Select Unit —</option>
-                {unitOptions.map((u, i) => (
-                  <option key={u} value={u}>
-                    Unit {i + 1}: {u}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {isFirstYear && (
-            <div>
-              <label className="text-xs text-gray-500 mb-1 block font-medium">
-                Section
-              </label>
-              <select
-                value={form.section}
-                onChange={(e) => setForm({ ...form, section: e.target.value })}
-                className="w-full p-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-400 outline-none bg-white"
-              >
-                <option value="all">All Sections</option>
-                {SECTIONS_YEAR1.map((s) => (
-                  <option key={s} value={s}>
-                    Section {s}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          <label className="block cursor-pointer">
-            <div
-              className={`border-2 border-dashed rounded-xl p-5 text-center transition ${
-                file
-                  ? "border-blue-400 bg-blue-50"
-                  : "border-gray-200 hover:border-blue-300 hover:bg-gray-50"
-              }`}
-            >
-              {file ? (
-                <div>
-                  <p className="text-2xl mb-1">
-                    {file.name.endsWith(".pdf") ? "📄" : "🖼"}
-                  </p>
-                  <p className="text-blue-600 text-sm font-semibold truncate">
-                    {file.name}
-                  </p>
-                  <p className="text-gray-400 text-xs mt-0.5">
-                    {(file.size / 1024 / 1024).toFixed(2)} MB
-                  </p>
-                </div>
-              ) : (
-                <>
-                  <p className="text-3xl mb-2">📎</p>
-                  <p className="text-gray-600 text-sm font-medium">
-                    Tap to select file
-                  </p>
-                  <p className="text-gray-400 text-xs mt-1">
-                    PDF, JPG, PNG supported
-                  </p>
-                </>
-              )}
-            </div>
-            <input
-              type="file"
-              accept=".pdf,image/*"
-              onChange={(e) => setFile(e.target.files?.[0])}
-              className="hidden"
-            />
-          </label>
-
-          <div className="flex gap-3 pt-1">
-            <button
-              type="submit"
-              disabled={
-                uploading ||
-                (activeTab === "notes" && unitOptions.length > 0 && !form.unit)
-              }
-              className="flex-1 bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white py-3.5 rounded-xl text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition"
-            >
-              {uploading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Uploading...
-                </span>
-              ) : (
-                `Upload ${tabLabels[activeTab]}`
-              )}
-            </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-5 py-3.5 bg-gray-100 hover:bg-gray-200 rounded-xl text-sm font-medium transition"
-            >
-              Cancel
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
-
-// ─── Resource Card (reusable) ─────────────────────────────────────────────────
-function ResourceCard({ resource, user, onView, onDownload, onDelete }) {
-  const ext = resource.fileUrl?.split(".").pop().split("?")[0].toLowerCase();
-  const isPdf = !["png", "jpg", "jpeg", "webp", "gif"].includes(ext);
-  const fileExt = isPdf ? "pdf" : ext;
-  return (
-    <div className="bg-white rounded-xl p-3 border border-gray-100 flex items-center gap-3">
-      <span className="text-xl flex-shrink-0">{isPdf ? "📄" : "🖼"}</span>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-gray-800 truncate">
-          {resource.title}
-        </p>
-        {resource.description && (
-          <p className="text-xs text-gray-400 truncate">
-            {resource.description}
-          </p>
         )}
       </div>
-      <div className="flex gap-1.5 flex-shrink-0">
-        <button
-          onClick={() => onView(resource)}
-          className="text-xs bg-blue-500 text-white px-2.5 py-1.5 rounded-lg hover:bg-blue-600"
-        >
-          View
-        </button>
-        <button
-          onClick={() => onDownload(resource.fileUrl, resource.title, fileExt)}
-          className="text-xs bg-green-500 text-white px-2.5 py-1.5 rounded-lg hover:bg-green-600"
-        >
-          ⬇
-        </button>
-        {user._id === resource.uploadedBy?._id?.toString() && (
-          <button
-            onClick={() => onDelete(resource._id)}
-            className="text-xs bg-red-50 text-red-500 px-2.5 py-1.5 rounded-lg hover:bg-red-100"
-          >
-            🗑
+
+      {/* Module counter + optional topic */}
+      <div>
+        <label style={lbl}>Unit / Module</label>
+        <div style={{ display:"flex", alignItems:"center", gap:0, background:"#f5f4f0", borderRadius:10, padding:"3px", width:"fit-content" }}>
+          <button type="button" onClick={() => setUnit(u=>Math.max(1,u-1))} disabled={unit<=1}
+            style={{ width:34, height:34, borderRadius:8, border:"none", background:unit<=1?"transparent":"#fff", cursor:unit<=1?"not-allowed":"pointer", fontSize:18, fontWeight:700, color:unit<=1?"#ccc":"#1a1a18", display:"flex", alignItems:"center", justifyContent:"center", boxShadow:unit<=1?"none":"0 1px 3px rgba(0,0,0,.08)", transition:"all .12s" }}>
+            −
           </button>
-        )}
+          <span style={{ minWidth:56, textAlign:"center", fontSize:14, fontWeight:700, fontFamily:"monospace", color:"#1a1a18" }}>
+            {unit}
+          </span>
+          <button type="button" onClick={() => setUnit(u=>u+1)}
+            style={{ width:34, height:34, borderRadius:8, border:"none", background:"#fff", cursor:"pointer", fontSize:18, fontWeight:700, color:"#1a1a18", display:"flex", alignItems:"center", justifyContent:"center", boxShadow:"0 1px 3px rgba(0,0,0,.08)", transition:"all .12s" }}>
+            +
+          </button>
+        </div>
+        <div style={{ marginTop:8 }}>
+          <input style={{ ...inp, fontSize:12 }}
+            placeholder="Topic (optional) — e.g. Laplace Transforms, Recursion…"
+            value={topic} onChange={e=>setTopic(e.target.value)} />
+        </div>
+        <div style={{ marginTop:5, fontSize:11, color:"#9b9890" }}>
+          Saved as: <strong style={{ color:"#1a1a18" }}>
+            {topic.trim() ? `Unit ${unit} — ${topic.trim()}` : `Unit ${unit}`}
+          </strong>
+        </div>
+      </div>
+
+      {/* Divider */}
+      <div style={{ borderTop:"1px solid #f0ede8" }} />
+
+      {/* Lecture link */}
+      <div>
+        <label style={lbl}>Lecture Link</label>
+        <div style={{ position:"relative" }}>
+          <span style={{ position:"absolute", left:11, top:"50%", transform:"translateY(-50%)", fontSize:13, color:"#9b9890", pointerEvents:"none" }}>▶</span>
+          <input style={{...inp, paddingLeft:28}} placeholder="YouTube video or playlist URL"
+            value={lectureLink} onChange={e=>setLectureLink(e.target.value)} type="url" />
+        </div>
+        <div style={{ fontSize:10, color:"#b5b3ac", marginTop:3 }}>YouTube video or playlist</div>
+      </div>
+
+      {/* Notes link */}
+      <div>
+        <label style={lbl}>Notes Link</label>
+        <div style={{ position:"relative" }}>
+          <span style={{ position:"absolute", left:11, top:"50%", transform:"translateY(-50%)", fontSize:13, color:"#9b9890", pointerEvents:"none" }}>↗</span>
+          <input style={{...inp, paddingLeft:28}} placeholder="Google Drive, PDF link…"
+            value={notesLink} onChange={e=>setNotesLink(e.target.value)} type="url" />
+        </div>
+        <div style={{ fontSize:10, color:"#b5b3ac", marginTop:3 }}>Google Drive, any public URL</div>
+      </div>
+
+      {/* Description */}
+      <div>
+        <label style={lbl}>Description</label>
+        <textarea style={{...inp, resize:"none", minHeight:50, fontSize:12}}
+          placeholder="Optional — any extra context"
+          value={description} onChange={e=>setDescription(e.target.value)} rows={2} />
+      </div>
+
+      {/* Actions */}
+      <div style={{ display:"flex", gap:8, paddingTop:2 }}>
+        <button type="submit" disabled={saving}
+          style={{ flex:1, padding:"11px", borderRadius:11, border:"none", background:"#1a1a18", color:"#fff", fontSize:13, fontWeight:700, cursor:saving?"not-allowed":"pointer", opacity:saving?.6:1, fontFamily:"inherit" }}>
+          {saving ? "Saving…" : mode==="edit" ? "Save Changes" : `Add ${tabLabel}`}
+        </button>
+        <button type="button" onClick={onClose}
+          style={{ padding:"11px 16px", borderRadius:11, border:"1px solid #e5e3dc", background:"#f5f4f0", color:"#6b6860", fontSize:13, cursor:"pointer", fontFamily:"inherit", whiteSpace:"nowrap" }}>
+          Cancel
+        </button>
+      </div>
+    </form>
+  );
+}
+
+/* ─── Add Modal ─────────────────────────────────────────────────────────── */
+function AddModal({ activeTab, onClose, onSuccess, showToast, extraSubjects, onNewSubject }) {
+  const [saving, setSaving] = useState(false);
+  const allSubjects = [...BASE_SUBJECTS, ...extraSubjects];
+
+  const handleSave = async (payload) => {
+    try {
+      setSaving(true);
+      await api.post("/api/resources", { ...payload, type: activeTab });
+      onSuccess();
+      onClose();
+      showToast("Saved!");
+    } catch (err) {
+      showToast(err.response?.data?.message || "Failed to save");
+    } finally { setSaving(false); }
+  };
+
+  return (
+    <ModalShell title={`Add ${({ notes:"Note", pyq:"PYQ", assignment:"Assignment" }[activeTab]||"Resource")}`} onClose={onClose}>
+      <ResourceForm
+        initial={null}
+        activeTab={activeTab}
+        allSubjects={allSubjects}
+        onSave={handleSave}
+        onClose={onClose}
+        showToast={showToast}
+        onNewSubject={onNewSubject}
+        saving={saving}
+        mode="add"
+      />
+    </ModalShell>
+  );
+}
+
+/* ─── Edit Modal ─────────────────────────────────────────────────────────── */
+function EditModal({ resource, activeTab, onClose, onSuccess, showToast, extraSubjects, onNewSubject }) {
+  const [saving, setSaving] = useState(false);
+
+  // Always include this resource's existing subject in the pill list
+  // so it shows pre-selected even if it's not in base or custom lists yet
+  const resourceSubject = resource?.subject || "";
+  const baseAndExtra = [...BASE_SUBJECTS, ...extraSubjects];
+  const alreadyKnown = baseAndExtra.some(s => s.toLowerCase() === resourceSubject.toLowerCase());
+  const allSubjects  = alreadyKnown ? baseAndExtra : [...baseAndExtra, resourceSubject].filter(Boolean);
+
+  const handleSave = async (payload) => {
+    try {
+      setSaving(true);
+      await api.patch(`/api/resources/${resource._id}`, payload);
+      onSuccess();
+      onClose();
+      showToast("Updated!");
+    } catch (err) {
+      showToast(err.response?.data?.message || "Failed to update");
+    } finally { setSaving(false); }
+  };
+
+  return (
+    <ModalShell title="Edit Resource" onClose={onClose}>
+      <ResourceForm
+        initial={resource}
+        activeTab={activeTab}
+        allSubjects={allSubjects}
+        onSave={handleSave}
+        onClose={onClose}
+        showToast={showToast}
+        onNewSubject={onNewSubject}
+        saving={saving}
+        mode="edit"
+      />
+    </ModalShell>
+  );
+}
+
+/* ─── Modal shell ───────────────────────────────────────────────────────── */
+function ModalShell({ title, onClose, children }) {
+  return (
+    <div style={{ position:"fixed", inset:0, zIndex:50, background:"rgba(0,0,0,.2)", backdropFilter:"blur(4px)", display:"flex", alignItems:"flex-end", justifyContent:"center", padding:16 }}
+         onClick={onClose}>
+      <div style={{ background:"#fff", borderRadius:"18px 18px 0 0", width:"100%", maxWidth:520, maxHeight:"93vh", overflowY:"auto", boxShadow:"0 -8px 40px rgba(0,0,0,.1)" }}
+           onClick={e=>e.stopPropagation()}>
+        <div style={{ padding:20 }}>
+          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:18 }}>
+            <div style={{ fontSize:15, fontWeight:800 }}>{title}</div>
+            <button onClick={onClose} style={{ width:28, height:28, borderRadius:7, border:"1px solid #e5e3dc", background:"#f5f4f0", cursor:"pointer", color:"#9b9890", fontSize:13 }}>✕</button>
+          </div>
+          {children}
+        </div>
       </div>
     </div>
   );
 }
 
-// ─── Syllabus View for Notes ──────────────────────────────────────────────────
-function SyllabusView({ resources, user, onView, onDownload, onDelete }) {
-  const branch = user?.branch || "CSE";
-  const year = Number(user?.year || 1);
-  const subjectList = SUBJECTS[branch]?.[year] || [];
-  const [expandedSubject, setExpandedSubject] = useState(null);
-  const [expandedUnit, setExpandedUnit] = useState(null);
+/* ─── Resource Card ─────────────────────────────────────────────────────── */
+function ResourceCard({ resource, user, onDelete, onEdit }) {
+  const hasLecture = !!resource.lectureLink;
+  const hasNotes   = !!resource.notesLink;
+  const isOwner    = user?._id === resource.uploadedBy?._id?.toString();
+  const isAdmin    = user?.role === "admin";
+  const canDelete  = isOwner || isAdmin;
 
-  // Group resources: subject → unit → []
-  // A resource matches a unit if r.unit exactly equals the unit name.
-  // Resources with no unit / "General" / unrecognised unit go into a catch-all bucket.
-  const bySubjectUnit = {};
-  resources.forEach((r) => {
-    if (!bySubjectUnit[r.subject]) bySubjectUnit[r.subject] = {};
-    const bucket = r.unit || "General";
-    if (!bySubjectUnit[r.subject][bucket])
-      bySubjectUnit[r.subject][bucket] = [];
-    bySubjectUnit[r.subject][bucket].push(r);
-  });
-
-  const countForSubject = (name) =>
-    resources.filter((r) => r.subject === name).length;
+  const openLink = (url) => url && window.open(url, "_blank", "noopener,noreferrer");
 
   return (
-    <div className="space-y-2">
-      {subjectList.map((subjectObj) => {
-        const subjectName = subjectObj.name;
-        const count = countForSubject(subjectName);
-        const isOpen = expandedSubject === subjectName;
+    <div style={{ background:"#fff", border:"1px solid #e5e3dc", borderRadius:13, padding:"13px 15px" }}>
 
-        // Collect any resources for this subject whose unit doesn't match defined units
-        const definedUnitSet = new Set(subjectObj.units);
-        const otherResources = Object.entries(bySubjectUnit[subjectName] || {})
-          .filter(([unitKey]) => !definedUnitSet.has(unitKey))
-          .flatMap(([, arr]) => arr);
+      {/* Title row */}
+      <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", gap:10, marginBottom:7 }}>
+        <div style={{ flex:1, minWidth:0 }}>
+          <div style={{ fontSize:13, fontWeight:700, lineHeight:1.4 }}>{resource.title}</div>
+          {resource.description && (
+            <div style={{ fontSize:11, color:"#9b9890", marginTop:2, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+              {resource.description}
+            </div>
+          )}
+        </div>
 
-        return (
-          <div
-            key={subjectName}
-            className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden"
-          >
-            {/* Subject header */}
-            <button
-              onClick={() => {
-                setExpandedSubject(isOpen ? null : subjectName);
-                setExpandedUnit(null);
-              }}
-              className="w-full flex items-center gap-3 p-4 text-left hover:bg-gray-50 transition"
-            >
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center flex-shrink-0">
-                <span className="text-white text-xs font-bold">
-                  {subjectName.substring(0, 2).toUpperCase()}
-                </span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-gray-900 truncate">
-                  {subjectName}
-                </p>
-                <p className="text-xs text-gray-400">
-                  {subjectObj.units.length} units
-                  {count > 0 ? ` · ${count} file${count !== 1 ? "s" : ""}` : ""}
-                </p>
-              </div>
-              <div className="flex items-center gap-2 flex-shrink-0">
-                {count > 0 && (
-                  <span className="bg-blue-100 text-blue-600 text-xs font-bold px-2 py-0.5 rounded-full">
-                    {count}
-                  </span>
-                )}
-                <span
-                  className={`text-gray-400 text-sm transition-transform duration-200 inline-block ${isOpen ? "rotate-180" : ""}`}
-                >
-                  ▾
-                </span>
-              </div>
+        {/* Action buttons — top-right */}
+        <div style={{ display:"flex", gap:6, flexShrink:0, alignItems:"center" }}>
+          {/* Edit — visible to everyone */}
+          <button onClick={() => onEdit(resource)}
+            style={{ padding:"3px 10px", borderRadius:7, border:"1px solid #e5e3dc", background:"#f5f4f0", color:"#6b6860", fontSize:11, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
+            Edit
+          </button>
+          {/* Delete — owner or admin only */}
+          {canDelete && (
+            <button onClick={() => onDelete(resource._id)}
+              style={{ background:"none", border:"none", cursor:"pointer", fontSize:13, color:"#d1d0ca", padding:0 }}>
+              🗑
             </button>
+          )}
+        </div>
+      </div>
 
-            {/* Units list */}
-            {isOpen && (
-              <div className="border-t border-gray-100">
-                {/* ── Defined units ── */}
-                {subjectObj.units.map((unit, idx) => {
-                  const unitResources =
-                    bySubjectUnit[subjectName]?.[unit] || [];
-                  const isUnitOpen = expandedUnit === `${subjectName}-${unit}`;
+      {/* Tags */}
+      <div style={{ display:"flex", gap:5, flexWrap:"wrap", marginBottom:10 }}>
+        <span style={{ fontSize:10, padding:"2px 8px", borderRadius:100, background:"#1a1a18", color:"#fff", fontWeight:700 }}>
+          {resource.subject}
+        </span>
+        {resource.unit && resource.unit !== "General" && (
+          <span style={{ fontSize:10, padding:"2px 8px", borderRadius:100, background:"#f0ede8", color:"#6b6860", fontWeight:600 }}>
+            {resource.unit}
+          </span>
+        )}
+      </div>
 
-                  return (
-                    <div
-                      key={unit}
-                      className="border-b border-gray-50 last:border-b-0"
-                    >
-                      {/* Unit row — only clickable/expandable if it has files */}
-                      <button
-                        onClick={() =>
-                          unitResources.length > 0 &&
-                          setExpandedUnit(
-                            isUnitOpen ? null : `${subjectName}-${unit}`,
-                          )
-                        }
-                        className={`w-full flex items-center gap-3 px-4 py-3 text-left transition ${unitResources.length > 0 ? "hover:bg-gray-50 cursor-pointer" : "cursor-default"}`}
-                      >
-                        <div className="w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
-                          <span className="text-xs font-bold text-gray-500">
-                            {idx + 1}
-                          </span>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm text-gray-700 font-medium">
-                            Unit {idx + 1}: {unit}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          {unitResources.length > 0 ? (
-                            <span className="bg-green-100 text-green-600 text-xs font-bold px-2 py-0.5 rounded-full">
-                              {unitResources.length}
-                            </span>
-                          ) : (
-                            <span className="text-gray-300 text-xs">
-                              No files
-                            </span>
-                          )}
-                          {unitResources.length > 0 && (
-                            <span
-                              className={`text-gray-400 text-xs inline-block transition-transform duration-200 ${isUnitOpen ? "rotate-180" : ""}`}
-                            >
-                              ▾
-                            </span>
-                          )}
-                        </div>
-                      </button>
+      {/* Link buttons */}
+      {(hasLecture || hasNotes) && (
+        <div style={{ display:"flex", gap:7 }}>
+          {hasLecture && (
+            <button onClick={() => openLink(resource.lectureLink)}
+              style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", gap:6, padding:"8px 12px", borderRadius:9, border:"1px solid #e5e3dc", background:"#fafaf9", cursor:"pointer", fontSize:12, fontWeight:600, color:"#1a1a18", fontFamily:"inherit" }}>
+              <span style={{ fontSize:12 }}>▶</span> Lecture
+            </button>
+          )}
+          {hasNotes && (
+            <button onClick={() => openLink(resource.notesLink)}
+              style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", gap:6, padding:"8px 12px", borderRadius:9, border:"1px solid #e5e3dc", background:"#fafaf9", cursor:"pointer", fontSize:12, fontWeight:600, color:"#1a1a18", fontFamily:"inherit" }}>
+              <span style={{ fontSize:12 }}>↗</span> Notes
+            </button>
+          )}
+        </div>
+      )}
 
-                      {/* Files inside unit */}
-                      {isUnitOpen && (
-                        <div className="bg-gray-50 px-4 pb-3 space-y-2">
-                          {unitResources.map((resource) => (
-                            <ResourceCard
-                              key={resource._id}
-                              resource={resource}
-                              user={user}
-                              onView={onView}
-                              onDownload={onDownload}
-                              onDelete={onDelete}
-                            />
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-
-                {/* ── Catch-all: resources with no matching unit (General / untagged) ── */}
-                {otherResources.length > 0 &&
-                  (() => {
-                    const key = `${subjectName}-__other`;
-                    const isOpen2 = expandedUnit === key;
-                    return (
-                      <div className="border-t border-gray-100">
-                        <button
-                          onClick={() => setExpandedUnit(isOpen2 ? null : key)}
-                          className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 transition"
-                        >
-                          <div className="w-7 h-7 rounded-lg bg-yellow-100 flex items-center justify-center flex-shrink-0">
-                            <span className="text-xs">📎</span>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm text-gray-600 font-medium">
-                              Other / General
-                            </p>
-                          </div>
-                          <span className="bg-yellow-100 text-yellow-700 text-xs font-bold px-2 py-0.5 rounded-full mr-1">
-                            {otherResources.length}
-                          </span>
-                          <span
-                            className={`text-gray-400 text-xs inline-block transition-transform duration-200 ${isOpen2 ? "rotate-180" : ""}`}
-                          >
-                            ▾
-                          </span>
-                        </button>
-                        {isOpen2 && (
-                          <div className="bg-gray-50 px-4 pb-3 space-y-2">
-                            {otherResources.map((resource) => (
-                              <ResourceCard
-                                key={resource._id}
-                                resource={resource}
-                                user={user}
-                                onView={onView}
-                                onDownload={onDownload}
-                                onDelete={onDelete}
-                              />
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })()}
-              </div>
-            )}
-          </div>
-        );
-      })}
     </div>
   );
 }
 
-// ─── Main Component ───────────────────────────────────────────────────────────
+/* ─── Main ──────────────────────────────────────────────────────────────── */
 export default function Resources() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [resources, setResources] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("notes");
-  const [activeSubject, setActiveSubject] = useState("all");
-  const [showUpload, setShowUpload] = useState(false);
-  const [toast, setToast] = useState(null);
-  const [viewer, setViewer] = useState(null);
 
-  useEffect(() => {
-    if (!user?.branch || !user?.year) {
-      setLoading(false);
-      return;
-    }
-    fetchResources();
-  }, [user, activeTab]);
+  const [resources,     setResources]     = useState([]);
+  const [loading,       setLoading]       = useState(true);
+  const [activeTab,     setActiveTab]     = useState("notes");
+  const [activeSubject, setActiveSubject] = useState("all");
+  const [showAdd,       setShowAdd]       = useState(false);
+  const [editTarget,    setEditTarget]    = useState(null);   // resource being edited
+  const [toast,         setToast]         = useState(null);
+  const [customSubjects, setCustomSubjects] = useState(() => loadCustom());
+
+  useEffect(() => { fetchResources(); }, [activeTab]);
 
   const fetchResources = async () => {
     try {
       setLoading(true);
-      const res = await api.get(`/api/resources/my?type=${activeTab}`);
+      setActiveSubject("all");
+      const res = await api.get(`/api/resources/all?type=${activeTab}`);
       setResources(res.data);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
+    } catch (err) { console.error(err); }
+    finally { setLoading(false); }
   };
 
-  const showToast = (msg, type = "success") => {
-    setToast({ msg, type });
-    setTimeout(() => setToast(null), 3000);
-  };
+  const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 3000); };
 
   const handleDelete = async (id) => {
-    if (!window.confirm("Delete this resource?")) return;
+    if (!window.confirm("Delete this entry?")) return;
     try {
       await api.delete(`/api/resources/${id}`);
-      setResources(resources.filter((r) => r._id !== id));
-      showToast("Deleted!");
-    } catch {
-      showToast("Failed to delete", "error");
-    }
+      setResources(r => r.filter(x => x._id !== id));
+      showToast("Deleted");
+    } catch { showToast("Failed to delete"); }
   };
 
-  const getFileExt = (url) => {
-    if (!url) return "pdf";
-    const rawExt = url.split(".").pop().split("?")[0].toLowerCase();
-    return ["png", "jpg", "jpeg", "webp", "gif"].includes(rawExt)
-      ? rawExt
-      : "pdf";
+  const handleNewSubject = (name) => {
+    const all = [...BASE_SUBJECTS, ...customSubjects];
+    if (all.map(s => s.toLowerCase()).includes(name.toLowerCase())) return;
+    const updated = [...customSubjects, name];
+    setCustomSubjects(updated);
+    saveCustom(updated);
   };
 
-  const handleDownload = (url, title, ext) => {
-    // Cloudinary fl_attachment forces browser download instead of open
-    let downloadUrl = url;
-    if (url && url.includes("/upload/")) {
-      downloadUrl = url.replace("/upload/", "/upload/fl_attachment/");
-    }
-    const a = document.createElement("a");
-    a.href = downloadUrl;
-    a.download = `${title || "file"}.${ext}`;
-    a.target = "_blank";
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-  };
+  /* Subject deduplication */
+  const dbSubjects   = Array.from(new Set(resources.map(r => r.subject).filter(Boolean)));
+  const knownLower   = new Set([...BASE_SUBJECTS, ...customSubjects].map(s => s.toLowerCase()));
+  const dbOnly       = dbSubjects.filter(s => !knownLower.has(s.toLowerCase()));
+  const extraSubjects = [...customSubjects, ...dbOnly];
 
-  const handleView = (resource) => {
-    const ext = getFileExt(resource.fileUrl);
-    
-    if (ext === "pdf") {
-      let viewUrl = resource.fileUrl || "";
-      if (!viewUrl.split("?")[0].toLowerCase().endsWith(".pdf")) {
-        viewUrl = viewUrl + ".pdf";
-      }
+  const allKnown    = [...BASE_SUBJECTS, ...extraSubjects];
+  const tagSubjects = ["all", ...Array.from(new Set(
+    dbSubjects.map(s => allKnown.find(k => k.toLowerCase() === s.toLowerCase()) || s)
+  ))];
 
-      // 📱 Mobile device detection
-      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-
-      if (isMobile) {
-        // Mobile ke liye Google Docs Viewer use karenge taaki download na ho
-        const googleViewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(viewUrl)}&embedded=true`;
-        window.open(googleViewerUrl, "_blank", "noopener,noreferrer");
-      } else {
-        // Desktop ke liye normal native viewer best hai
-        window.open(viewUrl, "_blank", "noopener,noreferrer");
-      }
-    } else {
-      setViewer({ url: resource.fileUrl, title: resource.title, ext });
-    }
-  };
-
-  const subjects = ["all", ...new Set(resources.map((r) => r.subject))];
-  const filtered =
-    activeSubject === "all"
-      ? resources
-      : resources.filter((r) => r.subject === activeSubject);
+  const filtered = activeSubject === "all"
+    ? resources
+    : resources.filter(r => r.subject?.toLowerCase() === activeSubject.toLowerCase());
 
   const TABS = [
-    { id: "notes", label: "Notes", icon: "📝" },
-    { id: "pyq", label: "PYQs", icon: "📋" },
-    { id: "assignment", label: "Assignments", icon: "📌" },
+    { id:"notes",      label:"Notes"       },
+    { id:"pyq",        label:"PYQs"        },
+    { id:"assignment", label:"Assignments" },
   ];
 
-  if (!user?.branch || !user?.year) {
-    return (
-      <div className="max-w-2xl mx-auto p-6 text-center">
-        <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-8">
-          <p className="text-4xl mb-4">📚</p>
-          <h2 className="text-xl font-bold mb-2">Setup Your Profile First</h2>
-          <p className="text-gray-600 mb-6">
-            Add your Branch and Year in your profile to see resources.
-          </p>
-          <button
-            onClick={() => navigate("/profile")}
-            className="bg-blue-500 text-white px-6 py-3 rounded-full"
-          >
-            Go to Profile →
-          </button>
-        </div>
-      </div>
-    );
-  }
+  const S = {
+    page:    { minHeight:"100vh", background:"#fafaf9", fontFamily:"'DM Sans',system-ui,sans-serif", color:"#1a1a18", fontSize:14 },
+    wrap:    { maxWidth:600, margin:"0 auto", padding:"20px 16px 88px" },
+    hdr:     { display:"flex", alignItems:"center", gap:12, marginBottom:22 },
+    backBtn: { width:34, height:34, borderRadius:9, border:"1px solid #e5e3dc", background:"#fff", cursor:"pointer", fontSize:17, color:"#6b6860", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 },
+    btn:     { padding:"8px 14px", borderRadius:10, border:"none", background:"#1a1a18", color:"#fff", fontSize:12, fontWeight:700, cursor:"pointer", fontFamily:"inherit" },
+    tabBar:  { display:"flex", borderBottom:"1.5px solid #e5e3dc", marginBottom:14 },
+    tab:     (a) => ({ padding:"8px 0", marginRight:22, fontSize:13, fontWeight:700, border:"none", background:"transparent", cursor:"pointer", color:a?"#1a1a18":"#9b9890", borderBottom:a?"2px solid #1a1a18":"2px solid transparent", marginBottom:"-1.5px", transition:"color .13s" }),
+    ptag:    (a) => ({ padding:"5px 12px", borderRadius:100, fontSize:11, fontWeight:600, border:"none", cursor:"pointer", background:a?"#1a1a18":"#f0ede8", color:a?"#fff":"#6b6860", transition:"all .13s", whiteSpace:"nowrap", flexShrink:0 }),
+  };
+
+  const modalProps = { activeTab, showToast, extraSubjects, onNewSubject: handleNewSubject, onSuccess: fetchResources };
 
   return (
-    <div className="max-w-2xl mx-auto p-4 pb-24">
+    <div style={S.page}>
+
       {/* Toast */}
       {toast && (
-        <div
-          className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-xl shadow-lg text-white text-sm font-medium transition-all ${
-            toast.type === "success" ? "bg-green-500" : "bg-red-500"
-          }`}
-        >
-          {toast.msg}
+        <div style={{ position:"fixed", top:16, right:16, zIndex:99, padding:"9px 16px", borderRadius:11, background:"#1a1a18", color:"#fff", fontSize:12, fontWeight:700, boxShadow:"0 4px 20px rgba(0,0,0,.18)" }}>
+          {toast}
         </div>
       )}
 
-      {/* Viewer */}
-      {viewer && (
-        <FileViewer
-          url={viewer.url}
-          title={viewer.title}
-          ext={viewer.ext}
-          onClose={() => setViewer(null)}
-          onDownload={() =>
-            handleDownload(viewer.url, viewer.title, viewer.ext)
-          }
-        />
+      {/* Add Modal */}
+      {showAdd && (
+        <AddModal {...modalProps} onClose={() => setShowAdd(false)} />
       )}
 
-      {/* Upload Modal */}
-      {showUpload && (
-        <UploadModal
-          user={user}
-          activeTab={activeTab}
-          onClose={() => setShowUpload(false)}
-          onSuccess={() => fetchResources()}
-          showToast={showToast}
-        />
+      {/* Edit Modal */}
+      {editTarget && (
+        <EditModal {...modalProps} resource={editTarget} onClose={() => setEditTarget(null)} />
       )}
 
-      {/* Header */}
-      <div className="flex items-center justify-between mb-5">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Resources</h1>
-          <div className="flex items-center gap-1.5 mt-0.5">
-            <span className="text-xs font-semibold bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full">
-              {user.branch}
-            </span>
-            <span className="text-xs text-gray-400">Year {user.year}</span>
-            {user.section && (
-              <span className="text-xs text-gray-400">
-                · Sec {user.section}
-              </span>
-            )}
+      <div style={S.wrap}>
+
+        {/* Header */}
+        <div style={S.hdr}>
+          <button style={S.backBtn} onClick={() => navigate("/")}>‹</button>
+          <div style={{ flex:1 }}>
+            <div style={{ fontSize:18, fontWeight:800, letterSpacing:"-.3px" }}>Resources</div>
+            <div style={{ fontSize:11, color:"#9b9890", marginTop:1 }}>Notes · PYQs · Assignments</div>
           </div>
+          <button style={S.btn} onClick={() => setShowAdd(true)}>+ Add</button>
         </div>
-        <div className="flex gap-2">
-          <button
-            onClick={() => setShowUpload(true)}
-            className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-xl text-sm font-semibold shadow-sm shadow-blue-200 transition"
-          >
-           Upload
-          </button>
-          <button
-            onClick={() => navigate("/")}
-            className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-xl text-sm transition"
-          >
-            ← Back
-          </button>
+
+        {/* Underline Tabs */}
+        <div style={S.tabBar}>
+          {TABS.map(t => (
+            <button key={t.id} style={S.tab(activeTab===t.id)} onClick={() => setActiveTab(t.id)}>
+              {t.label}
+            </button>
+          ))}
         </div>
-      </div>
 
-      {/* Tabs */}
-      <div className="flex bg-white  w-full">
-        {TABS.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => {
-              setActiveTab(tab.id);
-              setActiveSubject("all");
-            }}
-            className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition ${
-              activeTab === tab.id
-                ? " underline   text-black  decoration-2 decoration-black  "
-                : "text-gray-700 "
-            }`}
-          >
-            <span className="">{tab.icon}</span>
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      {/* ── NOTES: Syllabus Tree View ── */}
-      {activeTab === "notes" && (
-        <>
-          {loading ? (
-            <div className="text-center py-10 text-gray-400">
-              <div className="w-8 h-8 border-4 border-blue-400 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-              Loading...
-            </div>
-          ) : (
-            <SyllabusView
-              resources={resources}
-              user={user}
-              onView={handleView}
-              onDownload={handleDownload}
-              onDelete={handleDelete}
-            />
-          )}
-        </>
-      )}
-
-      {/* ── PYQ / ASSIGNMENT: Flat list with subject filter ── */}
-      {(activeTab === "pyq" || activeTab === "assignment") && (
-        <>
-          {/* Subject filter */}
-          {subjects.length > 1 && (
-            <div className="flex gap-2 overflow-x-auto pb-2 mb-4 scrollbar-none">
-              {subjects.map((subject) => (
-                <button
-                  key={subject}
-                  onClick={() => setActiveSubject(subject)}
-                  className={`flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold transition ${
-                    activeSubject === subject
-                      ? "bg-blue-500 text-white"
-                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                  }`}
-                >
-                  {subject === "all" ? "All Subjects" : subject}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {loading ? (
-            <div className="text-center py-10 text-gray-400">
-              <div className="w-8 h-8 border-4 border-blue-400 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-              Loading...
-            </div>
-          ) : filtered.length === 0 ? (
-            <div className="text-center py-16 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
-              <p className="text-4xl mb-3">
-                {activeTab === "pyq" ? "📋" : "📌"}
-              </p>
-              <p className="text-gray-600 font-semibold">
-                No{" "}
-                {activeTab === "pyq"
-                  ? "Previous Year Questions"
-                  : "Assignments"}{" "}
-                yet
-              </p>
-              <p className="text-gray-400 text-sm mt-1 mb-4">
-                Be the first to upload!
-              </p>
-              <button
-                onClick={() => {
-                  setPrefilledUpload(null);
-                  setShowUpload(true);
-                }}
-                className="text-blue-500 text-sm font-semibold hover:underline"
-              >
-                + Upload {activeTab === "pyq" ? "PYQ" : "Assignment"}
+        {/* Subject Tag Filters */}
+        {tagSubjects.length > 1 && (
+          <div style={{ display:"flex", gap:6, overflowX:"auto", paddingBottom:4, marginBottom:14 }}>
+            {tagSubjects.map(s => (
+              <button key={s} style={S.ptag(activeSubject===s)} onClick={() => setActiveSubject(s)}>
+                {s === "all" ? "All" : s}
               </button>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {filtered.map((resource) => {
-                const ext = getFileExt(resource.fileUrl);
-                const tabColor =
-                  { pyq: "purple", assignment: "orange" }[activeTab] || "blue";
-                const bgMap = {
-                  purple: "bg-purple-50",
-                  orange: "bg-orange-50",
-                };
-                const iconMap = { pyq: "📋", assignment: "📌" };
-                return (
-                  <div
-                    key={resource._id}
-                    className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition"
-                  >
-                    <div className="flex items-start gap-3">
-                      <div
-                        className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${bgMap[tabColor]}`}
-                      >
-                        <span className="text-lg">{iconMap[activeTab]}</span>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-gray-900 truncate">
-                          {resource.title}
-                        </p>
-                        <p className="text-xs text-blue-500 font-medium">
-                          {resource.subject}
-                        </p>
-                        {resource.unit && resource.unit !== "General" && (
-                          <p className="text-xs text-gray-400">
-                            Unit: {resource.unit}
-                          </p>
-                        )}
-                        {resource.description && (
-                          <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">
-                            {resource.description}
-                          </p>
-                        )}
-                        <div className="flex gap-1.5 mt-1.5 flex-wrap">
-                          <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
-                            {resource.branch}
-                          </span>
-                          <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
-                            Year {resource.year}
-                          </span>
-                          <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
-                            {resource.section === "all"
-                              ? "All Sections"
-                              : `Sec ${resource.section}`}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="flex flex-col gap-1.5 flex-shrink-0">
-                        <button
-                          onClick={() => handleView(resource)}
-                          className="bg-blue-500 hover:bg-blue-600 text-white text-xs px-3 py-1.5 rounded-lg"
-                        >
-                          View
-                        </button>
-                        <button
-                          onClick={() =>
-                            handleDownload(
-                              resource.fileUrl,
-                              resource.title,
-                              ext,
-                            )
-                          }
-                          className="bg-green-500 hover:bg-green-600 text-white text-xs px-3 py-1.5 rounded-lg"
-                        >
-                          ⬇
-                        </button>
-                        {user._id === resource.uploadedBy?._id?.toString() && (
-                          <button
-                            onClick={() => handleDelete(resource._id)}
-                            className="bg-red-50 hover:bg-red-100 text-red-500 text-xs px-3 py-1.5 rounded-lg"
-                          >
-                            🗑
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </>
-      )}
+            ))}
+          </div>
+        )}
+
+        {/* Content */}
+        {loading ? (
+          <div style={{ textAlign:"center", padding:"48px 0", color:"#9b9890" }}>Loading…</div>
+        ) : filtered.length === 0 ? (
+          <div style={{ textAlign:"center", padding:"48px", background:"#fff", border:"1px solid #e5e3dc", borderRadius:14 }}>
+            <div style={{ fontSize:32, marginBottom:8 }}>📭</div>
+            <div style={{ fontWeight:700, marginBottom:4 }}>Nothing here yet</div>
+            <div style={{ fontSize:12, color:"#9b9890", marginBottom:16 }}>Be the first to add</div>
+            <button style={S.btn} onClick={() => setShowAdd(true)}>+ Add</button>
+          </div>
+        ) : (
+          <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+            {filtered.map(resource => (
+              <ResourceCard
+                key={resource._id}
+                resource={resource}
+                user={user}
+                onDelete={handleDelete}
+                onEdit={setEditTarget}
+              />
+            ))}
+          </div>
+        )}
+
+      </div>
     </div>
   );
 }

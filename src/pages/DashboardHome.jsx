@@ -7,6 +7,7 @@ import { usePosts } from "../context/PostsContext";
 const STYLES = `
   @keyframes spin    { to{transform:rotate(360deg)} }
   @keyframes shimmer { 0%{background-position:-400px 0} 100%{background-position:400px 0} }
+  @keyframes fadeIn  { from{opacity:0;transform:scale(0.96)} to{opacity:1;transform:scale(1)} }
 
   .dh-wrap  { display:flex; min-height:100vh; }
   .dh-feed  { width:100%; overflow-y:auto; padding-bottom:80px; }
@@ -19,11 +20,12 @@ const STYLES = `
   .compose  { background:#f3f4f6; border-radius:24px; padding:12px; margin:8px 8px 4px; }
   .compose-ta { width:100%; background:#fff; border:1px solid #e5e7eb; outline:none; border-radius:18px; padding:8px 16px; font-size:14px; color:#111110; resize:none; overflow:hidden; min-height:36px; box-sizing:border-box; font-family:inherit; }
   .compose-preview { margin-top:9px; display:flex; align-items:center; gap:9px; padding:7px 9px; background:#fff; border-radius:10px; }
-  .compose-preview img { width:56px; height:56px; object-fit:cover; border-radius:7px; }
+  .compose-preview img,.compose-preview video { width:56px; height:56px; object-fit:cover; border-radius:7px; }
   .compose-preview-rm { font-size:12px; color:#dc2626; background:none; border:none; cursor:pointer; }
   .compose-actions { display:flex; justify-content:flex-end; gap:8px; margin-top:8px; }
   .compose-img-btn { width:34px; height:34px; border-radius:50%; background:#e5e7eb; display:flex; align-items:center; justify-content:center; cursor:pointer; }
-  .compose-send { width:34px; height:34px; border-radius:50%; background:#111110; border:none; display:flex; align-items:center; justify-content:center; cursor:pointer; }
+  /* ✅ FIX 1: Send button now blue */
+  .compose-send { width:34px; height:34px; border-radius:50%; background:#2563eb; border:none; display:flex; align-items:center; justify-content:center; cursor:pointer; }
   .compose-send:disabled { opacity:0.35; cursor:not-allowed; }
   .compose-spinner { width:13px; height:13px; border:2px solid rgba(255,255,255,0.3); border-top-color:#fff; border-radius:50%; animation:spin 0.6s linear infinite; }
 
@@ -37,7 +39,8 @@ const STYLES = `
   .fc-name { font-size:13px; font-weight:600; color:#111110; line-height:1.2; }
   .fc-sub  { font-size:11px; color:#9ca3af; margin-top:1px; }
 
-  .fc-img  { max-width:100%; max-height:300px; object-fit:cover; border-radius:10px; display:block; }
+  /* ✅ FIX 3: Images are constrained but clickable for full view */
+  .fc-img  { max-width:100%; max-height:300px; object-fit:contain; border-radius:10px; display:block; cursor:zoom-in; background:#f3f4f6; }
   .fc-body { padding-left:52px; }
   .fc-img-wrap { padding-left:52px; margin-bottom:8px; }
   .fc-caption { font-size:13px; color:#111110; line-height:1.5; margin-bottom:9px; white-space:pre-wrap; }
@@ -66,7 +69,7 @@ const STYLES = `
   .cmt-send:disabled { opacity:0.3; cursor:not-allowed; }
   .cmt-login { text-align:center; font-size:11px; color:#9ca3af; padding:7px 0; border-top:1px solid #e5e7eb; }
 
-  .fc-cover { width:100%; max-height:200px; object-fit:cover; border-radius:10px; display:block; margin-bottom:8px; }
+  .fc-cover { width:100%; max-height:200px; object-fit:contain; border-radius:10px; display:block; margin-bottom:8px; cursor:zoom-in; background:#f3f4f6; }
   .fc-proj-title  { font-size:14px; font-weight:600; color:#111110; margin-bottom:2px; }
   .fc-proj-tline  { font-size:12px; color:#9ca3af; margin-bottom:5px; }
   .fc-proj-desc   { font-size:13px; color:#6b7280; line-height:1.5; margin-bottom:7px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
@@ -92,13 +95,45 @@ const STYLES = `
   .tc-complete-tag { font-size:10px; font-weight:600; color:#16a34a; font-family:monospace; letter-spacing:0.04em; display:block; margin-bottom:3px; }
   .tc-p-text { font-size:13px; color:#374151; line-height:1.45; }
   .tc-p-link { font-size:11px; color:#2563eb; text-decoration:none; word-break:break-all; display:block; margin-top:3px; }
-  .tc-p-img  { max-width:110px; max-height:80px; object-fit:cover; border-radius:5px; border:1px solid #e5e7eb; display:block; margin-top:6px; }
+  .tc-p-img  { max-width:110px; max-height:80px; object-fit:cover; border-radius:5px; border:1px solid #e5e7eb; display:block; margin-top:6px; cursor:zoom-in; }
   .tc-toggle-btn { font-size:11px; color:#9ca3af; background:none; border:none; cursor:pointer; padding:0; margin-bottom:6px; }
   .tc-expand-list { display:flex; flex-direction:column; gap:5px; margin-bottom:6px; }
 
   .feed-empty { text-align:center; padding:64px 0; color:#9ca3af; font-size:14px; }
   .dh-sidebar { display:none; }
   @media(min-width:640px){ .dh-sidebar{ display:block; flex:1; background:#f3f4f6; border-radius:24px; height:100vh; position:sticky; top:0; } }
+
+  /* ✅ FIX 2: Video upload button */
+  .compose-vid-btn { width:34px; height:34px; border-radius:50%; background:#e5e7eb; display:flex; align-items:center; justify-content:center; cursor:pointer; }
+  .compose-vid-badge { font-size:9px; font-weight:600; color:#fff; background:#dc2626; border-radius:3px; padding:1px 3px; font-family:monospace; }
+
+  /* ✅ FIX 3: Lightbox */
+  .lightbox-overlay {
+    position:fixed; inset:0; z-index:9999;
+    background:rgba(0,0,0,0.92);
+    display:flex; align-items:center; justify-content:center;
+    cursor:zoom-out;
+    animation:fadeIn 0.18s ease;
+  }
+  .lightbox-img {
+    max-width:94vw; max-height:92vh;
+    object-fit:contain;
+    border-radius:8px;
+    box-shadow:0 8px 40px rgba(0,0,0,0.5);
+    cursor:default;
+  }
+  .lightbox-close {
+    position:fixed; top:18px; right:22px;
+    background:rgba(255,255,255,0.12); border:none; color:#fff;
+    width:38px; height:38px; border-radius:50%; font-size:20px;
+    cursor:pointer; display:flex; align-items:center; justify-content:center;
+    backdrop-filter:blur(6px);
+  }
+  .lightbox-close:hover { background:rgba(255,255,255,0.22); }
+
+  /* Feed video player */
+  .fc-video { max-width:100%; max-height:300px; border-radius:10px; display:block; background:#000; }
+  .fc-video-wrap { padding-left:52px; margin-bottom:8px; }
 `;
 
 if (typeof document !== "undefined" && !document.getElementById("dh-styles")) {
@@ -118,7 +153,27 @@ const fmtDate = (d) => {
 const badgeClass = (s) => `badge ${s === "completed" ? "badge-completed" : s === "in-progress" ? "badge-in-progress" : "badge-idea"}`;
 const badgeLabel = (s) => s === "in-progress" ? "In Progress" : s === "completed" ? "Completed" : "Idea";
 
-// Avatar — no onClick on wrapper, click handled by parent selectively
+// ✅ Lightbox component
+const Lightbox = memo(({ src, onClose }) => {
+  useEffect(() => {
+    const handler = (e) => e.key === "Escape" && onClose();
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [onClose]);
+
+  return (
+    <div className="lightbox-overlay" onClick={onClose}>
+      <button className="lightbox-close" onClick={onClose}>✕</button>
+      <img
+        className="lightbox-img"
+        src={src}
+        alt="Full view"
+        onClick={(e) => e.stopPropagation()}
+      />
+    </div>
+  );
+});
+
 const Av = memo(({ src, name, onClick }) =>
   src
     ? <img src={src} alt={name || ""} className="fc-av" onClick={onClick} decoding="async" width={40} height={40} style={onClick ? { cursor: "pointer" } : undefined} />
@@ -140,7 +195,7 @@ const Stars = memo(({ ratings, itemId, type, onRate, userId }) => {
   );
 });
 
-const ProjectCard = memo(({ project, onRate, onNav, userId }) => {
+const ProjectCard = memo(({ project, onRate, onNav, userId, onOpenImage }) => {
   const cover = project.coverImages?.[0] || project.coverImage;
   const tags = project.tags?.length ? project.tags : (project.techStack || []);
   const a = project.author;
@@ -157,7 +212,19 @@ const ProjectCard = memo(({ project, onRate, onNav, userId }) => {
         <span className={badgeClass(project.status)}>{badgeLabel(project.status)}</span>
       </div>
       <div className="fc-body">
-        {cover && <img src={cover} alt={project.title} className="fc-cover" loading="lazy" decoding="async" width={480} height={200} />}
+        {/* ✅ FIX 3: cover image opens lightbox */}
+        {cover && (
+          <img
+            src={cover}
+            alt={project.title}
+            className="fc-cover"
+            loading="lazy"
+            decoding="async"
+            width={480}
+            height={200}
+            onClick={() => onOpenImage(cover)}
+          />
+        )}
         <p className="fc-proj-title">{project.title}</p>
         {project.tagline && <p className="fc-proj-tline">{project.tagline}</p>}
         {project.description && <p className="fc-proj-desc">{project.description}</p>}
@@ -175,7 +242,7 @@ const ProjectCard = memo(({ project, onRate, onNav, userId }) => {
   );
 });
 
-const TargetCard = memo(({ target, onRate, onNav, userId }) => {
+const TargetCard = memo(({ target, onRate, onNav, userId, onOpenImage }) => {
   const [open, setOpen] = useState(false);
   const a = target.author;
   const prog = target.progress || [];
@@ -200,7 +267,17 @@ const TargetCard = memo(({ target, onRate, onNav, userId }) => {
             {latest.isCompletion && <span className="tc-complete-tag">✓ COMPLETION</span>}
             {latest.text && <p className="tc-p-text">{latest.text}</p>}
             {latest.link && <a href={latest.link} target="_blank" rel="noreferrer" className="tc-p-link">{latest.link}</a>}
-            {latest.image && <img src={latest.image} alt="" className="tc-p-img" loading="lazy" decoding="async" />}
+            {/* ✅ FIX 3: progress images open lightbox */}
+            {latest.image && (
+              <img
+                src={latest.image}
+                alt=""
+                className="tc-p-img"
+                loading="lazy"
+                decoding="async"
+                onClick={() => onOpenImage(latest.image)}
+              />
+            )}
           </div>
         )}
         {prog.length > 1 && (
@@ -215,7 +292,16 @@ const TargetCard = memo(({ target, onRate, onNav, userId }) => {
                 {p.isCompletion && <span className="tc-complete-tag">✓ COMPLETION</span>}
                 {p.text && <p className="tc-p-text">{p.text}</p>}
                 {p.link && <a href={p.link} target="_blank" rel="noreferrer" className="tc-p-link">{p.link}</a>}
-                {p.image && <img src={p.image} alt="" className="tc-p-img" loading="lazy" decoding="async" />}
+                {p.image && (
+                  <img
+                    src={p.image}
+                    alt=""
+                    className="tc-p-img"
+                    loading="lazy"
+                    decoding="async"
+                    onClick={() => onOpenImage(p.image)}
+                  />
+                )}
               </div>
             ))}
           </div>
@@ -260,7 +346,7 @@ const CommentSection = memo(({ post, commentText, onChangeComment, onAddComment,
   </div>
 ));
 
-const PostCard = memo(({ post, user, onLike, onDelete, onToggleComments, showComments, commentText, onChangeComment, onAddComment, onProfileClick }) => {
+const PostCard = memo(({ post, user, onLike, onDelete, onToggleComments, showComments, commentText, onChangeComment, onAddComment, onProfileClick, onOpenImage }) => {
   const pImg = typeof post.userId === "object" && post.userId?.profileImage ? post.userId.profileImage
     : (user && (post.userId?._id || post.userId)?.toString() === user._id?.toString() ? user.profileImage : null);
   const pName = typeof post.userId === "object" && post.userId?.name ? post.userId.name : post.userName || "Unknown";
@@ -271,7 +357,6 @@ const PostCard = memo(({ post, user, onLike, onDelete, onToggleComments, showCom
     <article className="fc">
       <div className="fc-hd">
         <div className="fc-who">
-          {/* Click only on avatar + name, not whole row */}
           <div className="fc-clk" onClick={() => onProfileClick(post)}>
             <Av src={pImg} name={pName} />
             <div><p className="fc-name">{pName}</p><p className="fc-sub">{fmtDate(post.createdAt)}</p></div>
@@ -279,12 +364,43 @@ const PostCard = memo(({ post, user, onLike, onDelete, onToggleComments, showCom
         </div>
         {isOwn && <button className="del-btn" onClick={() => onDelete(post._id)}>Delete</button>}
       </div>
+
+      {/* ✅ FIX 3: Post image opens lightbox */}
       {post.image && (
         <div className="fc-img-wrap">
-          <img src={post.image} alt={post.caption || "post"} className="fc-img"
-            loading="lazy" decoding="async" width={468} height={300} />
+          <img
+            src={post.image}
+            alt={post.caption || "post"}
+            className="fc-img"
+            loading="lazy"
+            decoding="async"
+            width={468}
+            height={300}
+            onClick={() => onOpenImage(post.image)}
+          />
         </div>
       )}
+
+      {/* ✅ FIX 2: Show video if post has a video URL (YouTube embed or direct) */}
+      {post.videoUrl && (
+        <div className="fc-video-wrap">
+          {post.videoUrl.includes("youtube.com") || post.videoUrl.includes("youtu.be") ? (
+            <iframe
+              width="100%"
+              height="220"
+              src={post.videoUrl.replace("watch?v=", "embed/").replace("youtu.be/", "youtube.com/embed/")}
+              title="video"
+              frameBorder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              style={{ borderRadius: 10, display: "block" }}
+            />
+          ) : (
+            <video className="fc-video" controls src={post.videoUrl} />
+          )}
+        </div>
+      )}
+
       <div className="fc-body">
         {post.caption && <p className="fc-caption">{post.caption}</p>}
         <div className="fc-actions" style={{ marginBottom: showComments ? 10 : 0 }}>
@@ -314,12 +430,15 @@ const DashboardHome = () => {
 
   const [caption, setCaption] = useState("");
   const [imgFile, setImgFile] = useState(null);
+  const [vidFile, setVidFile] = useState(null);           // ✅ FIX 2: video file state
   const [preview, setPreview] = useState(null);
+  const [vidPreview, setVidPreview] = useState(null);     // ✅ FIX 2: video preview URL
   const [creating, setCreating] = useState(false);
   const [comments, setComments] = useState({});
   const [openCmts, setOpenCmts] = useState({});
   const [projects, setProjects] = useState([]);
   const [targets, setTargets] = useState([]);
+  const [lightboxSrc, setLightboxSrc] = useState(null);  // ✅ FIX 3: lightbox state
   const taRef = useRef(null);
 
   const resize = useCallback(() => {
@@ -368,20 +487,23 @@ const DashboardHome = () => {
     else navigate(`/user/${pid}`);
   }, [user, navigate]);
 
+  // ✅ FIX 2: handleCreatePost now also handles video file
   const handleCreatePost = useCallback(async () => {
-    if (!caption.trim() && !imgFile) { alert("Add a photo or write something"); return; }
+    if (!caption.trim() && !imgFile && !vidFile) { alert("Add a photo, video or write something"); return; }
     const fd = new FormData();
     if (imgFile) fd.append("image", imgFile);
+    if (vidFile) fd.append("video", vidFile);   // backend will handle YouTube upload
     if (caption.trim()) fd.append("caption", caption);
     try {
       setCreating(true);
       const res = await api.post("/api/feed/post", fd);
       setPosts(p => [res.data, ...p]);
-      setImgFile(null); setCaption(""); setPreview(null);
+      setImgFile(null); setVidFile(null);
+      setCaption(""); setPreview(null); setVidPreview(null);
       if (taRef.current) taRef.current.style.height = "36px";
     } catch (e) { alert(e.response?.data?.message || "Failed"); }
     finally { setCreating(false); }
-  }, [caption, imgFile, setPosts]);
+  }, [caption, imgFile, vidFile, setPosts]);
 
   const handleDeletePost = useCallback(async (id) => {
     if (!window.confirm("Delete this post?")) return;
@@ -413,6 +535,10 @@ const DashboardHome = () => {
     } catch { alert("Failed to comment"); }
   }, [comments, user, setPosts]);
 
+  // ✅ FIX 3: open / close lightbox
+  const handleOpenImage = useCallback((src) => setLightboxSrc(src), []);
+  const handleCloseLightbox = useCallback(() => setLightboxSrc(null), []);
+
   const userId = user?._id?.toString();
 
   if (loading && posts.length === 0) return (
@@ -442,6 +568,9 @@ const DashboardHome = () => {
 
   return (
     <div className="dh-wrap">
+      {/* ✅ FIX 3: Lightbox rendered at top level */}
+      {lightboxSrc && <Lightbox src={lightboxSrc} onClose={handleCloseLightbox} />}
+
       <div className="dh-feed">
         {user && (
           <div className="compose">
@@ -451,19 +580,63 @@ const DashboardHome = () => {
               onChange={e => { setCaption(e.target.value); resize(); }}
               onKeyDown={e => e.key === "Enter" && e.ctrlKey && handleCreatePost()}
               rows={1} />
+
+            {/* Image preview */}
             {preview && (
               <div className="compose-preview">
                 <img src={preview} alt="" decoding="async" />
-                <button className="compose-preview-rm" onClick={() => { setImgFile(null); setPreview(null); }}>✕ Remove</button>
+                <button className="compose-preview-rm" onClick={() => { setImgFile(null); setPreview(null); }}>✕ Remove photo</button>
               </div>
             )}
+
+            {/* ✅ FIX 2: Video preview */}
+            {vidPreview && (
+              <div className="compose-preview">
+                <video src={vidPreview} style={{ width:56, height:56, objectFit:"cover", borderRadius:7 }} muted />
+                <div style={{ flex:1 }}>
+                  <p style={{ fontSize:11, color:"#374151", margin:0 }}>{vidFile?.name}</p>
+                  <p style={{ fontSize:10, color:"#9ca3af", margin:"2px 0 0" }}>Will be uploaded to YouTube (Unlisted)</p>
+                </div>
+                <button className="compose-preview-rm" onClick={() => { setVidFile(null); setVidPreview(null); }}>✕</button>
+              </div>
+            )}
+
             <div className="compose-actions">
-              <label className="compose-img-btn">
-                <img src="/images/image.svg" alt="" style={{ width:17, height:17 }} />
+              {/* Image upload */}
+              <label className="compose-img-btn" title="Add photo">
+                <img src="/images/image.svg" alt="photo" style={{ width:17, height:17 }} />
                 <input type="file" accept="image/*" style={{ display:"none" }}
-                  onChange={e => { const f = e.target.files?.[0]; if (f) { setImgFile(f); setPreview(URL.createObjectURL(f)); } }} />
+                  onChange={e => {
+                    const f = e.target.files?.[0];
+                    if (f) {
+                      setImgFile(f);
+                      setPreview(URL.createObjectURL(f));
+                      setVidFile(null); setVidPreview(null); // clear video if switching
+                    }
+                    e.target.value = "";
+                  }} />
               </label>
-              <button className="compose-send" onClick={handleCreatePost} disabled={creating || (!caption.trim() && !imgFile)}>
+
+              {/* ✅ FIX 2: Video upload button */}
+              <label className="compose-vid-btn" title="Add video (uploaded to YouTube Unlisted)">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#374151" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polygon points="23 7 16 12 23 17 23 7"/>
+                  <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+                </svg>
+                <input type="file" accept="video/*" style={{ display:"none" }}
+                  onChange={e => {
+                    const f = e.target.files?.[0];
+                    if (f) {
+                      setVidFile(f);
+                      setVidPreview(URL.createObjectURL(f));
+                      setImgFile(null); setPreview(null); // clear image if switching
+                    }
+                    e.target.value = "";
+                  }} />
+              </label>
+
+              {/* ✅ FIX 1: Send button is now blue */}
+              <button className="compose-send" onClick={handleCreatePost} disabled={creating || (!caption.trim() && !imgFile && !vidFile)}>
                 {creating
                   ? <div className="compose-spinner" />
                   : <img src="/images/send.svg" alt="" style={{ width:15, height:15 }} />}
@@ -476,17 +649,18 @@ const DashboardHome = () => {
           ? <div className="feed-empty">Nothing here yet — be the first to share</div>
           : feed.map(item => {
             if (item._ft === "project") return (
-              <ProjectCard key={`proj-${item._id}`} project={item} onRate={handleRate} onNav={navigate} userId={userId} />
+              <ProjectCard key={`proj-${item._id}`} project={item} onRate={handleRate} onNav={navigate} userId={userId} onOpenImage={handleOpenImage} />
             );
             if (item._ft === "target") return (
-              <TargetCard key={`tgt-${item._id}`} target={item} onRate={handleRate} onNav={navigate} userId={userId} />
+              <TargetCard key={`tgt-${item._id}`} target={item} onRate={handleRate} onNav={navigate} userId={userId} onOpenImage={handleOpenImage} />
             );
             return (
               <PostCard key={item._id} post={item} user={user}
                 onLike={handleLikePost} onDelete={handleDeletePost}
                 onToggleComments={handleToggleComments} showComments={!!openCmts[item._id]}
                 commentText={comments[item._id] || ""} onChangeComment={handleChangeComment}
-                onAddComment={handleAddComment} onProfileClick={handleProfileClick} />
+                onAddComment={handleAddComment} onProfileClick={handleProfileClick}
+                onOpenImage={handleOpenImage} />
             );
           })}
       </div>

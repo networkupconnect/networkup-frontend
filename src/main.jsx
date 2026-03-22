@@ -27,13 +27,16 @@ import Chat from "./pages/Chat.jsx";
 import Messages from "./pages/Messages.jsx";
 import Connections from "./pages/Connections.jsx";
 import Confessions from "./pages/Confessions";
-import JMIAlert from "./pages/JMIAlert.jsx";
+import Internships from "./pages/Internships.jsx";
 import Feedback from "./pages/Feedback.jsx";
 import Assignments from "./pages/Assignments.jsx";
 import LostFound from "./context/LostFound.jsx";
 import RoomFinder from "./pages/RoomFinder.jsx";
 import Attendance from "./pages/Attendance.jsx";
 import OnboardingFlow from "./pages/OnboardingFlow.jsx";
+import ExplorePage from "./pages/Explorepage.jsx"; // add this import
+
+
 
 
 
@@ -83,12 +86,13 @@ const router = createBrowserRouter([
     errorElement: <NotFound />,
     children: [
       { index: true, element: <DashboardHome /> },
-
+// Inside the DashboardLayout children array, add:
+{ path: "explore", element: <ExplorePage /> },
       { path: "resources", element: <Resources /> },
       { path: "confessions", element: <Confessions /> },
       { path: "messages", element: <Messages /> },
       { path: "connections", element: <Connections /> },
-      { path: "jmi-alert", element: <JMIAlert /> },
+      { path: "Internships", element: <Internships /> },
       { path: "assignments", element: <Assignments /> },
       { path: "lostfound", element: <LostFound /> },
       { path: "rooms", element: <RoomFinder /> },

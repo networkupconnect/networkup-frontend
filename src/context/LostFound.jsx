@@ -4,13 +4,12 @@ import { useAuth } from "./AuthContext";
 import api from "../api/axios";
 
 const CATEGORIES = [
-  "Electronics", "Books", "Wallet", "Keys", "ID Card",
-  "Bag", "Bottle", "Clothes", "Jewellery", "Documents", "Other"
+  "Electronics","Books","Wallet","Keys","ID Card",
+  "Bag","Bottle","Clothes","Jewellery","Documents","Other"
 ];
-
 const LOCATIONS = [
-  "Library", "Canteen", "Classroom", "Lab", "Hostel",
-  "Ground", "Parking", "Washroom", "Bus Stop", "Other"
+  "Library","Canteen","Classroom","Lab","Hostel",
+  "Ground","Parking","Washroom","Bus Stop","Other"
 ];
 
 function timeAgo(date) {
@@ -23,366 +22,217 @@ function timeAgo(date) {
   return `${days}d ago`;
 }
 
+const T = {
+  page:     { minHeight:"100vh", background:"#fafaf9", fontFamily:"'DM Sans',system-ui,sans-serif", color:"#1a1a18", fontSize:14 },
+  wrap:     { maxWidth:600, margin:"0 auto", padding:"20px 16px 88px" },
+  hdr:      { display:"flex", alignItems:"center", gap:12, marginBottom:24 },
+  backBtn:  { width:34, height:34, borderRadius:9, border:"1px solid #e5e3dc", background:"#fff", cursor:"pointer", fontSize:17, color:"#6b6860", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 },
+  tabBar:   { display:"flex", borderBottom:"1.5px solid #e5e3dc", marginBottom:18 },
+  tab:      (a) => ({ padding:"8px 0", marginRight:22, fontSize:13, fontWeight:700, border:"none", background:"transparent", cursor:"pointer", color:a?"#1a1a18":"#9b9890", borderBottom:a?"2px solid #1a1a18":"2px solid transparent", marginBottom:"-1.5px", transition:"color .13s" }),
+  tag:      (a) => ({ padding:"5px 12px", borderRadius:100, fontSize:11, fontWeight:600, border:"none", cursor:"pointer", background:a?"#1a1a18":"#f0ede8", color:a?"#fff":"#6b6860", transition:"all .13s" }),
+  input:    { width:"100%", padding:"9px 12px", borderRadius:10, border:"1px solid #e5e3dc", background:"#fff", fontSize:13, fontFamily:"inherit", color:"#1a1a18", outline:"none", boxSizing:"border-box" },
+  select:   { width:"100%", padding:"9px 12px", borderRadius:10, border:"1px solid #e5e3dc", background:"#fff", fontSize:12, fontFamily:"inherit", color:"#6b6860", outline:"none" },
+  textarea: { width:"100%", padding:"9px 12px", borderRadius:10, border:"1px solid #e5e3dc", background:"#fff", fontSize:13, fontFamily:"inherit", color:"#1a1a18", outline:"none", resize:"none", boxSizing:"border-box" },
+  btn:      { padding:"9px 16px", borderRadius:10, border:"none", background:"#1a1a18", color:"#fff", fontSize:12, fontWeight:700, cursor:"pointer", fontFamily:"inherit" },
+  btnFull:  { width:"100%", padding:"11px", borderRadius:11, border:"none", background:"#1a1a18", color:"#fff", fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"inherit" },
+  btnDanger:{ width:"100%", padding:"11px", borderRadius:11, border:"1px solid #e5e3dc", background:"#fff", color:"#dc2626", fontSize:13, fontWeight:600, cursor:"pointer", fontFamily:"inherit" },
+  overlay:  { position:"fixed", inset:0, zIndex:50, background:"rgba(0,0,0,.2)", backdropFilter:"blur(4px)", display:"flex", alignItems:"flex-end", justifyContent:"center", padding:16 },
+  modal:    { background:"#fff", borderRadius:"18px 18px 0 0", width:"100%", maxWidth:520, maxHeight:"92vh", overflowY:"auto", boxShadow:"0 -8px 40px rgba(0,0,0,.1)" },
+  closeBtn: { width:28, height:28, borderRadius:7, border:"1px solid #e5e3dc", background:"#f5f4f0", cursor:"pointer", color:"#9b9890", display:"flex", alignItems:"center", justifyContent:"center", fontSize:12, flexShrink:0 },
+  chip:     (inv) => ({ fontSize:10, padding:"2px 8px", borderRadius:100, fontWeight:700, background:inv?"#1a1a18":"#f0ede8", color:inv?"#fff":"#6b6860" }),
+};
+
+function Toast({ toast }) {
+  if (!toast) return null;
+  return <div style={{ position:"fixed", top:16, right:16, zIndex:99, padding:"9px 16px", borderRadius:11, background:"#1a1a18", color:"#fff", fontSize:12, fontWeight:700, boxShadow:"0 4px 20px rgba(0,0,0,.18)" }}>{toast.msg}</div>;
+}
+
 export default function LostFound() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const [tab, setTab]           = useState("lost");   // lost | found | my-posts
-  const [items, setItems]       = useState([]);
-  const [loading, setLoading]   = useState(true);
-  const [toast, setToast]       = useState(null);
+  const [tab,      setTab]      = useState("lost");
+  const [items,    setItems]    = useState([]);
+  const [loading,  setLoading]  = useState(true);
+  const [toast,    setToast]    = useState(null);
   const [showPost, setShowPost] = useState(false);
   const [selected, setSelected] = useState(null);
-  const [uploading, setUploading] = useState(false);
-  const [files, setFiles]       = useState([]);
+  const [uploading,setUploading]= useState(false);
+  const [files,    setFiles]    = useState([]);
   const [previews, setPreviews] = useState([]);
-
-  // filters
   const [filterCategory, setFilterCategory] = useState("");
-  const [filterLocation, setFilterLocation] = useState("");
-  const [search, setSearch]                 = useState("");
-
-  // form
-  const [form, setForm] = useState({
-    type: "lost", title: "", description: "",
-    category: "", location: "", date: "",
-    contactInfo: "", reward: "",
-  });
+  const [filterLocation,  setFilterLocation] = useState("");
+  const [search,   setSearch]   = useState("");
+  const [form, setForm] = useState({ type:"lost", title:"", description:"", category:"", location:"", date:"", contactInfo:"", reward:"" });
 
   useEffect(() => { fetchItems(); }, [tab, filterCategory, filterLocation]);
 
   const fetchItems = async () => {
+    if (tab === "my-posts" && !user) { setTab("lost"); return; }
+    setLoading(true);
     try {
-      setLoading(true);
-      let url = "/api/lostfound";
-      const params = new URLSearchParams();
-      // "my-posts" tab requires login — fall back to "lost" if not logged in
-      if (tab === "my-posts") {
-        if (!user) { setTab("lost"); return; }
-        params.append("mine", "true");
-      } else {
-        params.append("type", tab);
-      }
-      if (filterCategory) params.append("category", filterCategory);
-      if (filterLocation) params.append("location", filterLocation);
-      const res = await api.get(`${url}?${params}`);
-      setItems(res.data);
-    } catch { showToast("Failed to load", "error"); }
-    finally { setLoading(false); }
+      const p = new URLSearchParams();
+      if (tab === "my-posts") p.append("mine", "true");
+      else p.append("type", tab);
+      if (filterCategory) p.append("category", filterCategory);
+      if (filterLocation)  p.append("location",  filterLocation);
+      const res = await api.get(`/api/lostfound?${p}`);
+      setItems(Array.isArray(res.data) ? res.data : []);
+    } catch (err) {
+      // 404 just means no posts yet — don't show error toast
+      if (err?.response?.status !== 404) flash("Failed to load");
+      setItems([]);
+    } finally { setLoading(false); }
   };
 
-  const showToast = (msg, type = "success") => {
-    setToast({ msg, type });
-    setTimeout(() => setToast(null), 3000);
-  };
-
-  // ── Guard: redirect to login for actions that need auth ──
-  const requireAuth = (action) => {
-    if (!user) {
-      showToast("Please login to continue", "error");
-      setTimeout(() => navigate("/login"), 1000);
-      return false;
-    }
-    return true;
-  };
+  const flash = (msg) => { setToast({ msg }); setTimeout(() => setToast(null), 3000); };
+  const requireAuth = () => { if (!user) { flash("Please login"); setTimeout(() => navigate("/login"), 900); return false; } return true; };
 
   const handlePost = async (e) => {
     e.preventDefault();
     if (!requireAuth()) return;
-    if (!form.title || !form.category || !form.location)
-      return showToast("Fill all required fields", "error");
-
+    if (!form.title||!form.category||!form.location) return flash("Fill required fields");
     const fd = new FormData();
-    Object.entries(form).forEach(([k, v]) => fd.append(k, v));
-    files.forEach(f => fd.append("images", f));
-
+    Object.entries(form).forEach(([k,v]) => fd.append(k,v));
+    files.forEach(f => fd.append("images",f));
     try {
       setUploading(true);
-      const res = await api.post("/api/lostfound", fd, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      setItems(p => [res.data, ...p]);
-      setShowPost(false);
-      setForm({ type: "lost", title: "", description: "", category: "", location: "", date: "", contactInfo: "", reward: "" });
-      setFiles([]); setPreviews([]);
-      showToast(form.type === "lost" ? "Lost item posted!" : "Found item posted!");
-    } catch (err) {
-      showToast(err.response?.data?.message || "Failed", "error");
-    } finally { setUploading(false); }
+      const res = await api.post("/api/lostfound", fd, { headers:{ "Content-Type":"multipart/form-data" } });
+      setItems(p => [res.data,...p]); setShowPost(false);
+      setForm({ type:"lost",title:"",description:"",category:"",location:"",date:"",contactInfo:"",reward:"" });
+      setFiles([]); setPreviews([]); flash("Posted!");
+    } catch (err) { flash(err.response?.data?.message||"Failed"); }
+    finally { setUploading(false); }
   };
 
   const handleDelete = async (id) => {
-    if (!requireAuth()) return;
-    if (!window.confirm("Delete this post?")) return;
-    try {
-      await api.delete(`/api/lostfound/${id}`);
-      setItems(p => p.filter(i => i._id !== id));
-      setSelected(null);
-      showToast("Deleted!");
-    } catch { showToast("Failed", "error"); }
+    if (!requireAuth()||!window.confirm("Delete?")) return;
+    try { await api.delete(`/api/lostfound/${id}`); setItems(p=>p.filter(i=>i._id!==id)); setSelected(null); flash("Deleted"); }
+    catch { flash("Failed"); }
   };
 
   const markResolved = async (id) => {
     if (!requireAuth()) return;
-    try {
-      await api.patch(`/api/lostfound/${id}/resolve`);
-      setItems(p => p.map(i => i._id === id ? { ...i, resolved: true } : i));
-      setSelected(s => s ? { ...s, resolved: true } : s);
-      showToast("Marked as resolved! 🎉");
-    } catch { showToast("Failed", "error"); }
+    try { await api.patch(`/api/lostfound/${id}/resolve`); setItems(p=>p.map(i=>i._id===id?{...i,resolved:true}:i)); setSelected(s=>s?{...s,resolved:true}:s); flash("Resolved!"); }
+    catch { flash("Failed"); }
   };
 
-  const handleImageSelect = (e) => {
-    const selected = Array.from(e.target.files || []);
-    setFiles(selected);
-    setPreviews(selected.map(f => URL.createObjectURL(f)));
-  };
+  const handleImageSelect = (e) => { const s=Array.from(e.target.files||[]); setFiles(s); setPreviews(s.map(f=>URL.createObjectURL(f))); };
 
-  const filtered = items.filter(i =>
-    !search ||
-    i.title.toLowerCase().includes(search.toLowerCase()) ||
-    i.description?.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = items.filter(i => !search || i.title.toLowerCase().includes(search.toLowerCase()) || i.description?.toLowerCase().includes(search.toLowerCase()));
+  const isOwner  = (item) => user && (item.postedBy?._id===user?._id || item.postedBy===user?._id);
 
-  const isOwner = (item) =>
-    user && (item.postedBy?._id === user?._id || item.postedBy === user?._id);
-
-  // ── NO MORE "if (!user) return <Login gate>" — page is always accessible ──
+  const TABS = [{ key:"lost",label:"Lost" },{ key:"found",label:"Found" }, ...(user?[{key:"my-posts",label:"My Posts"}]:[])];
 
   return (
-    <div className="min-h-screen bg-zinc-950">
+    <div style={T.page}>
+      <Toast toast={toast} />
 
-      {/* Toast */}
-      {toast && (
-        <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-xl text-white text-sm font-semibold shadow-xl ${
-          toast.type === "error" ? "bg-red-500" : "bg-emerald-500"
-        }`}>{toast.msg}</div>
-      )}
-
-      {/* ── Detail Modal ── */}
+      {/* Detail Modal */}
       {selected && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-3xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-            <div className="p-5">
-              {/* Header */}
-              <div className="flex items-start justify-between gap-3 mb-4">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 flex-wrap mb-1">
-                    <span className={`text-xs px-2.5 py-1 rounded-full font-bold border ${
-                      selected.type === "lost"
-                        ? "bg-red-500/20 text-red-400 border-red-500/30"
-                        : "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
-                    }`}>
-                      {selected.type === "lost" ? "😢 LOST" : "✅ FOUND"}
-                    </span>
-                    {selected.resolved && (
-                      <span className="bg-zinc-500/20 text-zinc-400 border border-zinc-500/30 text-xs px-2.5 py-1 rounded-full font-bold">
-                        ✓ Resolved
-                      </span>
-                    )}
-                    {selected.reward && (
-                      <span className="bg-amber-500/20 text-amber-400 border border-amber-500/30 text-xs px-2.5 py-1 rounded-full font-bold">
-                        🎁 ₹{selected.reward} Reward
-                      </span>
-                    )}
+        <div style={T.overlay} onClick={() => setSelected(null)}>
+          <div style={T.modal} onClick={e=>e.stopPropagation()}>
+            <div style={{ padding:20 }}>
+              <div style={{ display:"flex", alignItems:"flex-start", gap:10, marginBottom:14 }}>
+                <div style={{ flex:1 }}>
+                  <div style={{ display:"flex", gap:5, flexWrap:"wrap", marginBottom:7 }}>
+                    <span style={T.chip(selected.type==="found")}>{selected.type==="lost"?"LOST":"FOUND"}</span>
+                    {selected.resolved && <span style={T.chip(false)}>Resolved</span>}
+                    {selected.reward   && <span style={T.chip(false)}>₹{selected.reward} reward</span>}
                   </div>
-                  <h2 className="text-white font-black text-xl">{selected.title}</h2>
+                  <div style={{ fontSize:17, fontWeight:800 }}>{selected.title}</div>
                 </div>
-                <button onClick={() => setSelected(null)}
-                  className="w-8 h-8 bg-zinc-800 rounded-lg flex items-center justify-center text-zinc-400 hover:text-white flex-shrink-0">✕</button>
+                <button style={T.closeBtn} onClick={()=>setSelected(null)}>✕</button>
               </div>
 
-              {/* Images */}
-              {selected.images?.length > 0 && (
-                <div className="flex gap-2 mb-4 overflow-x-auto">
-                  {selected.images.map((img, i) => (
-                    <img key={i} src={img} alt="" className="w-32 h-28 object-cover rounded-xl flex-shrink-0" />
-                  ))}
+              {selected.images?.length>0 && (
+                <div style={{ display:"flex", gap:8, marginBottom:14, overflowX:"auto" }}>
+                  {selected.images.map((img,i)=><img key={i} src={img} alt="" style={{ width:108,height:86,objectFit:"cover",borderRadius:9,flexShrink:0 }}/>)}
                 </div>
               )}
 
-              {selected.description && (
-                <p className="text-zinc-400 text-sm mb-4">{selected.description}</p>
-              )}
+              {selected.description && <p style={{ fontSize:13,color:"#6b6860",marginBottom:14,lineHeight:1.65 }}>{selected.description}</p>}
 
-              {/* Details grid */}
-              <div className="grid grid-cols-2 gap-3 mb-4">
-                <div className="bg-zinc-800 rounded-xl p-3">
-                  <p className="text-zinc-500 text-xs mb-1">Category</p>
-                  <p className="text-white text-sm font-semibold">{selected.category}</p>
-                </div>
-                <div className="bg-zinc-800 rounded-xl p-3">
-                  <p className="text-zinc-500 text-xs mb-1">Location</p>
-                  <p className="text-white text-sm font-semibold">📍 {selected.location}</p>
-                </div>
-                {selected.date && (
-                  <div className="bg-zinc-800 rounded-xl p-3">
-                    <p className="text-zinc-500 text-xs mb-1">
-                      {selected.type === "lost" ? "Lost on" : "Found on"}
-                    </p>
-                    <p className="text-white text-sm font-semibold">
-                      {new Date(selected.date).toLocaleDateString()}
-                    </p>
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:14 }}>
+                {[
+                  { l:"Category", v:selected.category },
+                  { l:"Location", v:selected.location },
+                  selected.date?{ l:selected.type==="lost"?"Lost on":"Found on", v:new Date(selected.date).toLocaleDateString() }:null,
+                  { l:"Posted", v:timeAgo(selected.createdAt) },
+                ].filter(Boolean).map(({l,v})=>(
+                  <div key={l} style={{ background:"#f5f4f0",borderRadius:10,padding:"10px 12px" }}>
+                    <div style={{ fontSize:10,color:"#9b9890",fontWeight:700,textTransform:"uppercase",marginBottom:3 }}>{l}</div>
+                    <div style={{ fontSize:13,fontWeight:600 }}>{v}</div>
                   </div>
-                )}
-                <div className="bg-zinc-800 rounded-xl p-3">
-                  <p className="text-zinc-500 text-xs mb-1">Posted</p>
-                  <p className="text-white text-sm font-semibold">{timeAgo(selected.createdAt)}</p>
-                </div>
+                ))}
               </div>
 
-              {/* Contact info */}
               {selected.contactInfo && (
-                <div className="bg-zinc-800 rounded-xl p-3 mb-4">
-                  <p className="text-zinc-500 text-xs mb-1">Contact</p>
-                  <p className="text-white text-sm">{selected.contactInfo}</p>
+                <div style={{ background:"#f5f4f0",borderRadius:10,padding:"10px 12px",marginBottom:14 }}>
+                  <div style={{ fontSize:10,color:"#9b9890",fontWeight:700,textTransform:"uppercase",marginBottom:3 }}>Contact</div>
+                  <div style={{ fontSize:13 }}>{selected.contactInfo}</div>
                 </div>
               )}
 
-              {/* Posted by */}
-              <div className="flex items-center gap-2 pb-4 mb-4 border-b border-zinc-800">
-                <div className="w-7 h-7 rounded-full bg-zinc-700 flex items-center justify-center text-xs font-bold text-zinc-400">
-                  {selected.postedBy?.name?.charAt(0)}
-                </div>
-                <p className="text-zinc-500 text-xs">
-                  Posted by <span className="text-zinc-300 font-semibold">{selected.postedBy?.name}</span>
-                </p>
+              <div style={{ display:"flex",alignItems:"center",gap:8,paddingBottom:14,marginBottom:14,borderBottom:"1px solid #f0ede8" }}>
+                <div style={{ width:26,height:26,borderRadius:"50%",background:"#e5e3dc",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700 }}>{selected.postedBy?.name?.charAt(0)}</div>
+                <span style={{ fontSize:12,color:"#9b9890" }}>by <strong style={{ color:"#1a1a18" }}>{selected.postedBy?.name}</strong></span>
               </div>
 
-              {/* Actions */}
-              <div className="flex flex-col gap-2">
-                {/* Message button — requires login */}
-                {!isOwner(selected) && (
-                  <button
-                    onClick={() => {
-                      if (!requireAuth()) return;
-                      navigate(`/Chat/${selected.postedBy?._id}`);
-                    }}
-                    className="w-full flex items-center justify-center gap-2 bg-rose-500 hover:bg-rose-600 text-white py-3 rounded-xl font-bold text-sm transition-all">
-                    💬 {user ? `Message ${selected.postedBy?.name}` : "Login to Message"}
-                  </button>
-                )}
-
-                {/* Owner actions — only shown if logged in and is owner */}
-                {isOwner(selected) && !selected.resolved && (
-                  <button onClick={() => markResolved(selected._id)}
-                    className="w-full bg-emerald-500 hover:bg-emerald-600 text-white py-3 rounded-xl font-bold text-sm transition-all">
-                    ✅ Mark as Resolved
-                  </button>
-                )}
-                {isOwner(selected) && (
-                  <button onClick={() => handleDelete(selected._id)}
-                    className="w-full bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 py-3 rounded-xl font-bold text-sm transition-all">
-                    🗑 Delete Post
-                  </button>
-                )}
+              <div style={{ display:"flex",flexDirection:"column",gap:8 }}>
+                {!isOwner(selected) && <button style={T.btnFull} onClick={()=>{if(!requireAuth())return; navigate(`/Chat/${selected.postedBy?._id}`);}}>
+                  {user?`Message ${selected.postedBy?.name}`:"Login to Message"}
+                </button>}
+                {isOwner(selected)&&!selected.resolved && <button style={T.btnFull} onClick={()=>markResolved(selected._id)}>Mark as Resolved</button>}
+                {isOwner(selected) && <button style={T.btnDanger} onClick={()=>handleDelete(selected._id)}>Delete Post</button>}
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* ── Post Modal ── */}
+      {/* Post Modal */}
       {showPost && (
-        <div className="fixed inset-0 z-50 bg-black/80 flex items-end sm:items-center justify-center p-4">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-3xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-            <div className="p-5">
-              <h2 className="text-white font-black text-lg mb-4">Post Item</h2>
+        <div style={T.overlay} onClick={()=>{setShowPost(false);setFiles([]);setPreviews([]);}}>
+          <div style={T.modal} onClick={e=>e.stopPropagation()}>
+            <div style={{ padding:20 }}>
+              <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14 }}>
+                <div style={{ fontSize:15,fontWeight:800 }}>Post Item</div>
+                <button style={T.closeBtn} onClick={()=>{setShowPost(false);setFiles([]);setPreviews([]);}} >✕</button>
+              </div>
 
-              {/* Lost / Found toggle */}
-              <div className="flex bg-zinc-800 rounded-xl p-1 mb-4">
-                {["lost", "found"].map(t => (
-                  <button key={t} onClick={() => setForm({ ...form, type: t })}
-                    className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${
-                      form.type === t
-                        ? t === "lost"
-                          ? "bg-red-500 text-white"
-                          : "bg-emerald-500 text-white"
-                        : "text-zinc-400"
-                    }`}>
-                    {t === "lost" ? "😢 I Lost Something" : "✅ I Found Something"}
+              {/* Lost / Found underline toggle */}
+              <div style={{ display:"flex", borderBottom:"1.5px solid #e5e3dc", marginBottom:14 }}>
+                {["lost","found"].map(t=>(
+                  <button key={t} onClick={()=>setForm({...form,type:t})} style={{ padding:"7px 0", marginRight:20, fontSize:12, fontWeight:700, border:"none", background:"transparent", cursor:"pointer", color:form.type===t?"#1a1a18":"#9b9890", borderBottom:form.type===t?"2px solid #1a1a18":"2px solid transparent", marginBottom:"-1.5px" }}>
+                    {t==="lost"?"I Lost Something":"I Found Something"}
                   </button>
                 ))}
               </div>
 
-              <form onSubmit={handlePost} className="space-y-3">
-                <input placeholder="Item name *" required value={form.title}
-                  onChange={e => setForm({ ...form, title: e.target.value })}
-                  className="w-full bg-zinc-800 border border-zinc-700 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-rose-500" />
-
-                <textarea placeholder="Description — color, brand, any identifying details..." rows={3}
-                  value={form.description}
-                  onChange={e => setForm({ ...form, description: e.target.value })}
-                  className="w-full bg-zinc-800 border border-zinc-700 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-rose-500 resize-none" />
-
-                <div className="grid grid-cols-2 gap-3">
-                  <select required value={form.category}
-                    onChange={e => setForm({ ...form, category: e.target.value })}
-                    className="w-full bg-zinc-800 border border-zinc-700 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-rose-500">
-                    <option value="">Category *</option>
-                    {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                  <select required value={form.location}
-                    onChange={e => setForm({ ...form, location: e.target.value })}
-                    className="w-full bg-zinc-800 border border-zinc-700 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-rose-500">
-                    <option value="">Location *</option>
-                    {LOCATIONS.map(l => <option key={l} value={l}>{l}</option>)}
-                  </select>
+              <form onSubmit={handlePost} style={{ display:"flex",flexDirection:"column",gap:10 }}>
+                <input style={T.input} placeholder="Item name *" required value={form.title} onChange={e=>setForm({...form,title:e.target.value})} />
+                <textarea style={{...T.textarea,minHeight:70}} placeholder="Description — color, brand, details…" value={form.description} onChange={e=>setForm({...form,description:e.target.value})} rows={3} />
+                <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:8 }}>
+                  <select style={T.select} required value={form.category} onChange={e=>setForm({...form,category:e.target.value})}><option value="">Category *</option>{CATEGORIES.map(c=><option key={c} value={c}>{c}</option>)}</select>
+                  <select style={T.select} required value={form.location}  onChange={e=>setForm({...form,location:e.target.value})}><option value="">Location *</option>{LOCATIONS.map(l=><option key={l} value={l}>{l}</option>)}</select>
                 </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <input type="date" value={form.date}
-                      onChange={e => setForm({ ...form, date: e.target.value })}
-                      className="w-full bg-zinc-800 border border-zinc-700 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-rose-500" />
-                    <p className="text-zinc-600 text-xs mt-0.5">
-                      {form.type === "lost" ? "Date lost" : "Date found"}
-                    </p>
-                  </div>
-                  {form.type === "lost" && (
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 text-sm">₹</span>
-                      <input type="number" placeholder="Reward (optional)" value={form.reward}
-                        onChange={e => setForm({ ...form, reward: e.target.value })}
-                        className="w-full bg-zinc-800 border border-zinc-700 text-white rounded-xl pl-7 pr-4 py-3 text-sm focus:outline-none focus:border-rose-500" />
-                    </div>
-                  )}
+                <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:8 }}>
+                  <input style={T.input} type="date" value={form.date} onChange={e=>setForm({...form,date:e.target.value})} />
+                  {form.type==="lost" && <div style={{ position:"relative" }}><span style={{ position:"absolute",left:11,top:"50%",transform:"translateY(-50%)",color:"#9b9890",fontSize:13 }}>₹</span><input style={{...T.input,paddingLeft:22}} type="number" placeholder="Reward" value={form.reward} onChange={e=>setForm({...form,reward:e.target.value})}/></div>}
                 </div>
-
-                <input placeholder="Contact info (phone/email)" value={form.contactInfo}
-                  onChange={e => setForm({ ...form, contactInfo: e.target.value })}
-                  className="w-full bg-zinc-800 border border-zinc-700 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-rose-500" />
-
-                {/* Image upload */}
-                <label className="block cursor-pointer">
-                  <div className={`border-2 border-dashed rounded-xl p-4 transition-all ${
-                    previews.length > 0 ? "border-rose-500/50 bg-rose-500/5" : "border-zinc-700 hover:border-zinc-600"
-                  }`}>
-                    {previews.length > 0 ? (
-                      <div className="flex gap-2 overflow-x-auto">
-                        {previews.map((src, i) => (
-                          <img key={i} src={src} alt="" className="w-16 h-16 object-cover rounded-lg flex-shrink-0" />
-                        ))}
-                      </div>
-                    ) : (
-                      <>
-                        <p className="text-zinc-500 text-sm text-center">📷 Add photos (optional)</p>
-                        <p className="text-zinc-600 text-xs text-center mt-1">Helps people identify the item</p>
-                      </>
-                    )}
+                <input style={T.input} placeholder="Contact info" value={form.contactInfo} onChange={e=>setForm({...form,contactInfo:e.target.value})} />
+                <label style={{ cursor:"pointer" }}>
+                  <div style={{ border:"1.5px dashed #e5e3dc",borderRadius:10,padding:"12px",textAlign:"center",background:"#fafaf9" }}>
+                    {previews.length>0
+                      ? <div style={{ display:"flex",gap:6,overflowX:"auto" }}>{previews.map((s,i)=><img key={i} src={s} alt="" style={{ width:50,height:50,objectFit:"cover",borderRadius:6,flexShrink:0 }}/>)}</div>
+                      : <span style={{ fontSize:12,color:"#9b9890" }}>📷 Add photos (optional)</span>}
                   </div>
-                  <input type="file" accept="image/*" multiple onChange={handleImageSelect} className="hidden" />
+                  <input type="file" accept="image/*" multiple onChange={handleImageSelect} style={{ display:"none" }} />
                 </label>
-
-                <div className="flex gap-3">
-                  <button type="submit" disabled={uploading}
-                    className={`flex-1 text-white py-3 rounded-xl font-bold text-sm disabled:opacity-50 transition-all ${
-                      form.type === "lost" ? "bg-red-500 hover:bg-red-600" : "bg-emerald-500 hover:bg-emerald-600"
-                    }`}>
-                    {uploading ? "Posting..." : `Post ${form.type === "lost" ? "Lost" : "Found"} Item`}
-                  </button>
-                  <button type="button" onClick={() => { setShowPost(false); setFiles([]); setPreviews([]); }}
-                    className="px-6 py-3 bg-zinc-800 text-white rounded-xl text-sm">Cancel</button>
+                <div style={{ display:"flex",gap:8 }}>
+                  <button type="submit" disabled={uploading} style={{...T.btnFull,opacity:uploading?.6:1}}>{uploading?"Posting…":`Post ${form.type==="lost"?"Lost":"Found"} Item`}</button>
+                  <button type="button" onClick={()=>{setShowPost(false);setFiles([]);setPreviews([]);}} style={{ padding:"11px 16px",borderRadius:11,border:"1px solid #e5e3dc",background:"#f5f4f0",color:"#6b6860",fontSize:13,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap" }}>Cancel</button>
                 </div>
               </form>
             </div>
@@ -390,170 +240,77 @@ export default function LostFound() {
         </div>
       )}
 
-      <div className="max-w-2xl mx-auto px-4 py-6 pb-24">
-
+      <div style={T.wrap}>
         {/* Header */}
-        <div className="flex items-center gap-3 mb-5">
-          <button onClick={() => navigate("/")}
-            className="w-10 h-10 bg-zinc-800 hover:bg-rose-500 text-white rounded-xl flex items-center justify-center font-bold text-lg transition-all flex-shrink-0">
-            ‹
-          </button>
-          <div className="flex-1">
-            <h1 className="text-xl font-black text-white">Lost & Found</h1>
-            <p className="text-zinc-500 text-xs">Help reunite people with their stuff</p>
+        <div style={T.hdr}>
+          <button style={T.backBtn} onClick={()=>navigate("/")}>‹</button>
+          <div style={{ flex:1 }}>
+            <div style={{ fontSize:18,fontWeight:800,letterSpacing:"-.3px" }}>Lost & Found</div>
+            <div style={{ fontSize:11,color:"#9b9890",marginTop:1 }}>Help reunite people with their belongings</div>
           </div>
-          {/* Post button — triggers login redirect if not logged in */}
-          <button
-            onClick={() => {
-              if (!requireAuth()) return;
-              setShowPost(true);
-            }}
-            className="bg-rose-500 hover:bg-rose-600 text-white px-4 py-2 rounded-xl text-sm font-bold transition-all">
-            + Post
-          </button>
+          <button style={T.btn} onClick={()=>{if(!requireAuth())return;setShowPost(true);}}>+ Post</button>
         </div>
 
-        {/* Tabs */}
-        <div className="flex bg-zinc-900 rounded-2xl p-1 mb-4 border border-zinc-800">
-          {[
-            { key: "lost",     label: "😢 Lost",     color: "bg-red-500" },
-            { key: "found",    label: "✅ Found",    color: "bg-emerald-500" },
-            // Only show "My Posts" tab if logged in
-            ...(user ? [{ key: "my-posts", label: "📋 My Posts", color: "bg-zinc-600" }] : []),
-          ].map(t => (
-            <button key={t.key} onClick={() => setTab(t.key)}
-              className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${
-                tab === t.key ? `${t.color} text-white` : "text-zinc-400 hover:text-white"
-              }`}>
-              {t.label}
-            </button>
-          ))}
+        {/* Underline tabs */}
+        <div style={T.tabBar}>
+          {TABS.map(t=><button key={t.key} style={T.tab(tab===t.key)} onClick={()=>setTab(t.key)}>{t.label}</button>)}
         </div>
 
         {/* Search + Filters */}
-        <div className="space-y-2 mb-4">
-          <input placeholder="🔍 Search items..." value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-rose-500" />
-          <div className="flex gap-2">
-            <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)}
-              className="flex-1 bg-zinc-900 border border-zinc-800 text-zinc-400 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-rose-500">
-              <option value="">All Categories</option>
-              {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
-            <select value={filterLocation} onChange={e => setFilterLocation(e.target.value)}
-              className="flex-1 bg-zinc-900 border border-zinc-800 text-zinc-400 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-rose-500">
-              <option value="">All Locations</option>
-              {LOCATIONS.map(l => <option key={l} value={l}>{l}</option>)}
-            </select>
-            {(filterCategory || filterLocation || search) && (
-              <button onClick={() => { setFilterCategory(""); setFilterLocation(""); setSearch(""); }}
-                className="bg-zinc-800 text-zinc-400 hover:text-white px-3 py-2 rounded-xl text-xs transition-all">
-                Clear
-              </button>
-            )}
+        <div style={{ display:"flex",flexDirection:"column",gap:8,marginBottom:14 }}>
+          <input style={T.input} placeholder="Search items…" value={search} onChange={e=>setSearch(e.target.value)} />
+          <div style={{ display:"flex",gap:7 }}>
+            <select style={{...T.select,flex:1}} value={filterCategory} onChange={e=>setFilterCategory(e.target.value)}><option value="">All Categories</option>{CATEGORIES.map(c=><option key={c} value={c}>{c}</option>)}</select>
+            <select style={{...T.select,flex:1}} value={filterLocation}  onChange={e=>setFilterLocation(e.target.value)}><option value="">All Locations</option>{LOCATIONS.map(l=><option key={l} value={l}>{l}</option>)}</select>
+            {(filterCategory||filterLocation||search)&&<button onClick={()=>{setFilterCategory("");setFilterLocation("");setSearch("");}} style={{ padding:"8px 12px",borderRadius:9,border:"none",background:"#f0ede8",color:"#6b6860",fontSize:11,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap" }}>Clear</button>}
           </div>
         </div>
 
-        {/* Stats bar */}
-        {tab !== "my-posts" && (
-          <div className="flex gap-3 mb-4">
-            <div className="flex-1 bg-red-500/10 border border-red-500/20 rounded-xl p-3 text-center">
-              <p className="text-red-400 font-black text-xl">{items.filter(i => i.type === "lost" && !i.resolved).length}</p>
-              <p className="text-red-400/70 text-xs">Still Lost</p>
-            </div>
-            <div className="flex-1 bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3 text-center">
-              <p className="text-emerald-400 font-black text-xl">{items.filter(i => i.type === "found" && !i.resolved).length}</p>
-              <p className="text-emerald-400/70 text-xs">Found Items</p>
-            </div>
-            <div className="flex-1 bg-zinc-800 border border-zinc-700 rounded-xl p-3 text-center">
-              <p className="text-white font-black text-xl">{items.filter(i => i.resolved).length}</p>
-              <p className="text-zinc-500 text-xs">Reunited</p>
-            </div>
+        {/* Stats */}
+        {tab!=="my-posts"&&(
+          <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:14 }}>
+            {[{ v:items.filter(i=>i.type==="lost"&&!i.resolved).length,l:"Still Lost" },{ v:items.filter(i=>i.type==="found"&&!i.resolved).length,l:"Found" },{ v:items.filter(i=>i.resolved).length,l:"Reunited" }].map(({v,l})=>(
+              <div key={l} style={{ background:"#f5f4f0",borderRadius:11,padding:"12px 8px",textAlign:"center" }}>
+                <div style={{ fontSize:22,fontWeight:800,fontFamily:"monospace",lineHeight:1 }}>{v}</div>
+                <div style={{ fontSize:10,fontWeight:600,color:"#9b9890",marginTop:3,textTransform:"uppercase",letterSpacing:".04em" }}>{l}</div>
+              </div>
+            ))}
           </div>
         )}
 
-        {/* Login nudge banner — only shown to guests */}
-        {!user && (
-          <div className="mb-4 bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-3 flex items-center justify-between gap-3">
-            <p className="text-zinc-400 text-xs">Login to post items or contact finders</p>
-            <button onClick={() => navigate("/login")}
-              className="bg-rose-500 text-white text-xs px-3 py-1.5 rounded-lg font-bold flex-shrink-0">
-              Login →
-            </button>
+        {!user&&(
+          <div style={{ background:"#f5f4f0",borderRadius:11,padding:"11px 14px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,marginBottom:14 }}>
+            <span style={{ fontSize:12,color:"#6b6860" }}>Login to post or contact finders</span>
+            <button onClick={()=>navigate("/login")} style={{ padding:"6px 12px",borderRadius:8,border:"none",background:"#1a1a18",color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer" }}>Login →</button>
           </div>
         )}
 
         {/* List */}
-        {loading ? (
-          <div className="text-center py-16">
-            <div className="w-8 h-8 border-4 border-rose-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-            <p className="text-zinc-500 text-sm">Loading...</p>
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="text-center py-16 bg-zinc-900 border border-zinc-800 rounded-2xl">
-            <p className="text-5xl mb-3">{tab === "lost" ? "😢" : tab === "found" ? "✅" : "📋"}</p>
-            <p className="text-white font-bold">
-              {tab === "lost" ? "No lost items posted" : tab === "found" ? "No found items posted" : "You haven't posted anything"}
-            </p>
-            <p className="text-zinc-500 text-sm mt-1">Be the first to post!</p>
+        {loading ? <div style={{ textAlign:"center",padding:"48px 0",color:"#9b9890" }}>Loading…</div>
+        : filtered.length===0 ? (
+          <div style={{ textAlign:"center",padding:"48px 0",background:"#fff",border:"1px solid #e5e3dc",borderRadius:13 }}>
+            <div style={{ fontSize:32,marginBottom:8 }}>{tab==="lost"?"😢":"✅"}</div>
+            <div style={{ fontWeight:700 }}>Nothing here yet</div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-3">
-            {filtered.map(item => (
-              <div key={item._id}
-                onClick={() => setSelected(item)}
-                className={`bg-zinc-900 rounded-2xl overflow-hidden cursor-pointer transition-all active:scale-[0.99] hover:border-zinc-700 ${
-                  item.resolved ? "opacity-50 border border-zinc-800" : "border border-zinc-800"
-                }`}>
-
-                <div className="flex gap-0">
-                  {/* Image */}
-                  {item.images?.[0] ? (
-                    <img src={item.images[0]} alt=""
-                      className="w-24 h-full object-cover flex-shrink-0 min-h-[96px]" />
-                  ) : (
-                    <div className={`w-20 flex-shrink-0 flex items-center justify-center text-3xl ${
-                      item.type === "lost" ? "bg-red-950/50" : "bg-emerald-950/50"
-                    }`}>
-                      {item.category === "Electronics" ? "📱"
-                        : item.category === "Books" ? "📚"
-                        : item.category === "Wallet" ? "👛"
-                        : item.category === "Keys" ? "🔑"
-                        : item.category === "ID Card" ? "🪪"
-                        : item.category === "Bag" ? "🎒"
-                        : item.category === "Bottle" ? "🍶"
-                        : "📦"}
+          <div>
+            {filtered.map(item=>(
+              <div key={item._id} style={{ background:"#fff",border:"1px solid #e5e3dc",borderRadius:13,marginBottom:10,overflow:"hidden",cursor:"pointer",opacity:item.resolved?.55:1 }} onClick={()=>setSelected(item)}>
+                <div style={{ display:"flex" }}>
+                  {item.images?.[0]
+                    ? <img src={item.images[0]} alt="" style={{ width:76,flexShrink:0,objectFit:"cover",minHeight:90 }}/>
+                    : <div style={{ width:66,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,background:"#f5f4f0" }}>{item.category==="Electronics"?"📱":item.category==="Books"?"📚":item.category==="Wallet"?"👛":item.category==="Keys"?"🔑":item.category==="Bag"?"🎒":"📦"}</div>
+                  }
+                  <div style={{ flex:1,padding:"11px 13px",minWidth:0 }}>
+                    <div style={{ display:"flex",gap:5,flexWrap:"wrap",marginBottom:5 }}>
+                      <span style={T.chip(item.type==="found")}>{item.type==="lost"?"LOST":"FOUND"}</span>
+                      {item.reward&&<span style={T.chip(false)}>₹{item.reward}</span>}
+                      {item.resolved&&<span style={T.chip(false)}>Resolved</span>}
                     </div>
-                  )}
-
-                  <div className="flex-1 p-3 min-w-0">
-                    {/* Badges */}
-                    <div className="flex items-center gap-1.5 flex-wrap mb-1">
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-bold border ${
-                        item.type === "lost"
-                          ? "bg-red-500/20 text-red-400 border-red-500/30"
-                          : "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
-                      }`}>
-                        {item.type === "lost" ? "LOST" : "FOUND"}
-                      </span>
-                      {item.reward && (
-                        <span className="bg-amber-500/20 text-amber-400 text-xs px-2 py-0.5 rounded-full border border-amber-500/30 font-semibold">
-                          🎁 ₹{item.reward}
-                        </span>
-                      )}
-                      {item.resolved && (
-                        <span className="bg-zinc-600/20 text-zinc-400 text-xs px-2 py-0.5 rounded-full">✓ Resolved</span>
-                      )}
-                    </div>
-
-                    <p className="text-white font-bold text-sm line-clamp-1">{item.title}</p>
-                    <p className="text-zinc-500 text-xs line-clamp-1 mt-0.5">{item.description}</p>
-
-                    <div className="flex items-center gap-3 mt-2">
-                      <span className="text-zinc-600 text-xs">📍 {item.location}</span>
-                      <span className="text-zinc-600 text-xs">{item.category}</span>
-                      <span className="text-zinc-700 text-xs ml-auto">{timeAgo(item.createdAt)}</span>
+                    <div style={{ fontSize:13,fontWeight:700,marginBottom:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{item.title}</div>
+                    <div style={{ fontSize:12,color:"#9b9890",marginBottom:6,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{item.description}</div>
+                    <div style={{ display:"flex",gap:10,fontSize:11,color:"#b5b3ac" }}>
+                      <span>{item.location}</span><span>{item.category}</span><span style={{ marginLeft:"auto" }}>{timeAgo(item.createdAt)}</span>
                     </div>
                   </div>
                 </div>
