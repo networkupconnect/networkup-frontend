@@ -575,7 +575,7 @@ const DashboardHome = () => {
         {user && (
           <div className="compose">
             <textarea ref={taRef} className="compose-ta"
-              placeholder="What is on your mind?"
+              placeholder="What's on your mind?"
               value={caption}
               onChange={e => { setCaption(e.target.value); resize(); }}
               onKeyDown={e => e.key === "Enter" && e.ctrlKey && handleCreatePost()}
