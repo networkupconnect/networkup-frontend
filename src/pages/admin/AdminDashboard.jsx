@@ -24,6 +24,46 @@ const ROOM_FACILITIES = [
   "Kitchen", "Mess", "Gym", "Power Backup",
 ];
 
+// ─── Tag extraction (mirrors server-side logic) ───────────────────────────────
+const TAG_RULES = [
+  { tags: ["Web Development", "Frontend"],   keywords: ["react","vue","angular","html","css","javascript","typescript","frontend","web dev","next.js","gatsby","svelte"] },
+  { tags: ["Backend"],                        keywords: ["node.js","express","django","flask","spring","backend","api","rest","graphql","php","ruby on rails","laravel"] },
+  { tags: ["Full Stack"],                     keywords: ["full stack","fullstack","mern","mean","lamp"] },
+  { tags: ["Mobile Development"],             keywords: ["android","ios","flutter","react native","swift","kotlin","mobile app","xamarin"] },
+  { tags: ["Machine Learning", "AI"],         keywords: ["machine learning","deep learning","nlp","natural language","neural network","tensorflow","pytorch","llm","generative ai","computer vision","ai/ml","artificial intelligence"] },
+  { tags: ["Data Science"],                   keywords: ["data science","data scientist","data analyst","pandas","numpy","jupyter","statistics","r programming","tableau","power bi","excel","data mining"] },
+  { tags: ["DevOps", "Cloud"],                keywords: ["devops","docker","kubernetes","aws","azure","gcp","ci/cd","terraform","linux","cloud","infrastructure","ansible","jenkins"] },
+  { tags: ["Graphic Design"],                 keywords: ["graphic design","illustrator","photoshop","figma","canva","adobe","brand design","visual design","corel","print design"] },
+  { tags: ["UI/UX Design"],                   keywords: ["ui/ux","ui design","ux design","user experience","user interface","wireframe","prototype","interaction design","sketch","invision"] },
+  { tags: ["Cybersecurity"],                  keywords: ["cybersecurity","security","penetration testing","ethical hacking","soc","vulnerability","ctf","network security","infosec"] },
+  { tags: ["Blockchain"],                     keywords: ["blockchain","web3","solidity","ethereum","smart contract","crypto","nft","defi","dapp"] },
+  { tags: ["Marketing"],                      keywords: ["marketing","seo","sem","social media","content marketing","email marketing","growth hacking","ppc","digital marketing","influencer","brand"] },
+  { tags: ["Video Editing", "Media"],         keywords: ["video editing","premiere pro","after effects","motion graphics","videography","youtube","content creator","photography","lightroom"] },
+  { tags: ["Finance"],                        keywords: ["finance","accounting","fintech","investment","banking","equity research","ca","chartered accountant","financial","audit","taxation"] },
+  { tags: ["Business Development", "Sales"],  keywords: ["business development","sales","crm","b2b","lead generation","business analyst","business strategy","account management"] },
+  { tags: ["Product Management"],             keywords: ["product manager","product management","roadmap","agile","scrum","jira","product owner","sprint"] },
+  { tags: ["Research"],                       keywords: ["research","publication","thesis","academia","lab","scientific","r&d","research analyst"] },
+  { tags: ["HR", "Operations"],               keywords: ["human resources","hr","talent acquisition","recruitment","operations","people operations","payroll"] },
+  { tags: ["Game Development"],               keywords: ["game dev","unity","unreal","game design","godot"] },
+  { tags: ["Embedded Systems", "IoT"],        keywords: ["embedded","iot","arduino","raspberry pi","firmware","rtos","microcontroller","vhdl","fpga"] },
+  { tags: ["Python"],                         keywords: ["python"] },
+  { tags: ["Java"],                           keywords: ["java"] },
+  { tags: ["C++"],                            keywords: ["c++","cpp"] },
+  { tags: ["Internship"],                     keywords: ["intern","internship","trainee","apprentice"] },
+  { tags: ["Remote"],                         keywords: ["remote","work from home","wfh"] },
+];
+
+function extractTags(title = "", description = "") {
+  const haystack = `${title} ${description}`.toLowerCase();
+  const found = new Set();
+  for (const rule of TAG_RULES) {
+    if (rule.keywords.some(kw => haystack.includes(kw))) {
+      rule.tags.forEach(t => found.add(t));
+    }
+  }
+  return [...found];
+}
+
 // ─── Shared Field ─────────────────────────────────────────────────────────────
 function Field({ label, children }) {
   return (
@@ -250,7 +290,7 @@ function InternshipImportModal({ onClose, onSuccess, showToast }) {
   const [error, setError]           = useState("");
   const fileRef                     = useRef(null);
 
-  // Normalise one LinkedIn-scraped job object → our schema
+  // Normalise one LinkedIn-scraped job object → our schema (with auto-extracted tags)
   function normaliseLinkedIn(j, index) {
     const loc      = j["Location"] || j.location || "";
     const isRemote = loc.toLowerCase().includes("remote") ||
@@ -263,21 +303,24 @@ function InternshipImportModal({ onClose, onSuccess, showToast }) {
       empRaw.includes("full")     ? "Full-time"  :
       j["Employment type"] || j.type || "";
 
-    const postLink  = j["Post Link"] || j.url || j.job_url || "";
-    const cleanLink = postLink.split("?")[0];
+    const postLink   = j["Post Link"] || j.url || j.job_url || "";
+    const cleanLink  = postLink.split("?")[0];
     const externalId = `li_${cleanLink.split("/").filter(Boolean).pop() || `import-${Date.now()}-${index}`}`;
+    const title      = j["Title"]   || j.title   || "";
+    const description = ((j["Description"] || j.description || "").replace(/Show more\s*$/, "").trim()).slice(0, 1000);
 
     return {
       externalId,
-      title:       j["Title"]       || j.title       || "",
+      title,
       company:     j["Company"]     || j.company      || j.organization || "",
       location:    loc,
       type,
-      url:         cleanLink        || j.apply_url    || "",
-      description: ((j["Description"] || j.description || "").replace(/Show more\s*$/, "").trim()).slice(0, 1000),
-      logo:        j["Logo"]        || j.logo         || j.company_logo || "",
+      url:         cleanLink        || j.apply_url     || "",
+      description,
+      logo:        j["Logo"]        || j.logo          || j.company_logo || "",
       remote:      isRemote,
       source:      "LinkedIn",
+      tags:        extractTags(title, description),   // ← auto-extracted role/skill tags
       postedAt:    null,
       fetchedAt:   new Date().toISOString(),
     };
@@ -327,6 +370,10 @@ function InternshipImportModal({ onClose, onSuccess, showToast }) {
     }
   };
 
+  const previewCount = (() => {
+    try { const p = JSON.parse(jsonText.trim()); return Array.isArray(p) ? p.length : 0; } catch { return 0; }
+  })();
+
   return (
     <div className="adm-modal-backdrop" onClick={onClose}>
       <div className="adm-modal" style={{ maxWidth: 640 }} onClick={(e) => e.stopPropagation()}>
@@ -336,14 +383,13 @@ function InternshipImportModal({ onClose, onSuccess, showToast }) {
         </div>
         <div className="adm-modal-body">
 
-          {/* Instructions */}
           <div style={{ background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: "var(--r-lg)", padding: "12px 14px", fontSize: 12, color: "var(--text-2)", lineHeight: 1.7 }}>
             <strong style={{ color: "var(--text)", display: "block", marginBottom: 4 }}>Supported formats:</strong>
             LinkedIn scraper JSON (fields: Title, Company, Location, Post Link, Description, Logo, Employment type)<br />
-            OR any array with fields: title, company, location, url, description, logo, type
+            OR any array with fields: title, company, location, url, description, logo, type<br />
+            <span style={{ color: "var(--green)", fontWeight: 600 }}>✦ Role tags are auto-extracted from title &amp; description</span>
           </div>
 
-          {/* File upload */}
           <Field label="Upload JSON File">
             <div
               style={{ border: "1.5px dashed var(--border-2)", borderRadius: "var(--r-lg)", padding: "20px", textAlign: "center", cursor: "pointer", transition: "all 0.15s" }}
@@ -352,14 +398,15 @@ function InternshipImportModal({ onClose, onSuccess, showToast }) {
               onDrop={(e) => { e.preventDefault(); handleFile(e.dataTransfer.files[0]); }}
             >
               <div style={{ fontSize: 13, color: "var(--text-3)" }}>
-                {jsonText ? <span style={{ color: "var(--green)", fontWeight: 600 }}>✓ File loaded — {jsonText.length.toLocaleString()} chars</span> : "Click or drag a .json file here"}
+                {jsonText
+                  ? <span style={{ color: "var(--green)", fontWeight: 600 }}>✓ File loaded — {jsonText.length.toLocaleString()} chars</span>
+                  : "Click or drag a .json file here"}
               </div>
             </div>
             <input ref={fileRef} type="file" accept=".json,application/json" style={{ display: "none" }}
               onChange={(e) => handleFile(e.target.files[0])} />
           </Field>
 
-          {/* OR paste */}
           <Field label="Or Paste JSON directly">
             <textarea
               className="adm-textarea"
@@ -371,14 +418,12 @@ function InternshipImportModal({ onClose, onSuccess, showToast }) {
             />
           </Field>
 
-          {/* Error */}
           {error && (
             <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: "var(--r-md)", padding: "10px 14px", fontSize: 12, color: "var(--red)" }}>
               {error}
             </div>
           )}
 
-          {/* Result */}
           {result && (
             <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: "var(--r-md)", padding: "12px 14px", fontSize: 13 }}>
               <strong style={{ color: "var(--green)" }}>✓ Import complete</strong>
@@ -392,7 +437,7 @@ function InternshipImportModal({ onClose, onSuccess, showToast }) {
 
           <div className="adm-modal-actions">
             <button onClick={handleImport} disabled={importing || !jsonText.trim()} className="adm-btn-primary">
-              {importing ? "Importing…" : `Import ${(() => { try { const p = JSON.parse(jsonText.trim()); return Array.isArray(p) ? p.length + " jobs" : ""; } catch { return ""; } })()}`}
+              {importing ? "Importing…" : previewCount > 0 ? `Import ${previewCount} jobs` : "Import"}
             </button>
             <button onClick={onClose} className="adm-btn-ghost">Close</button>
           </div>
@@ -450,7 +495,7 @@ function TableSkeleton({ cols = 5 }) {
   );
 }
 
-// ─── Branch Student Card (for By Branch view) ─────────────────────────────────
+// ─── Branch Student Card ──────────────────────────────────────────────────────
 function BranchStudentRow({ u }) {
   return (
     <div className="branch-student-row">
@@ -930,7 +975,6 @@ export default function AdminDashboard() {
     !personaFilter || p.name.toLowerCase().includes(personaFilter.toLowerCase())
   );
 
-  // Unique sources from current page
   const internshipSources = [...new Set(internships.map(i => i.source).filter(Boolean))];
 
   // ─── Render ────────────────────────────────────────────────────────────────
@@ -1130,13 +1174,13 @@ export default function AdminDashboard() {
         .prod-img { width: 38px; height: 38px; border-radius: var(--r-sm); object-fit: cover; border: 1px solid var(--border); flex-shrink: 0; }
         .prod-img-fallback { width: 38px; height: 38px; border-radius: var(--r-sm); background: var(--surface-2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
         .mt-2 { margin-top: 8px; }
-        /* Internship source badges */
+        .intern-tag { display: inline-flex; align-items: center; padding: 2px 7px; border-radius: 999px; font-size: 10px; font-weight: 600; background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; font-family: var(--mono); white-space: nowrap; }
+        .intern-tags-cell { display: flex; flex-wrap: wrap; gap: 3px; max-width: 200px; }
         .badge-google { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
         .badge-linkedin { background: #f0f9ff; color: #0369a1; border-color: #bae6fd; }
         .badge-remotive { background: #faf5ff; color: #7c3aed; border-color: #ddd6fe; }
         .badge-himalayas { background: #f0fdf4; color: #15803d; border-color: #bbf7d0; }
         .badge-other { background: var(--surface-2); color: var(--text-2); border-color: var(--border); }
-        /* Source breakdown strip */
         .source-strip { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; align-items: center; }
         .source-pill { display: flex; align-items: center; gap: 5px; padding: 4px 12px; border-radius: 999px; font-size: 11px; font-weight: 600; border: 1px solid var(--border); background: var(--surface); color: var(--text-2); cursor: pointer; transition: all 0.15s; }
         .source-pill:hover { background: var(--surface-2); }
@@ -1157,7 +1201,6 @@ export default function AdminDashboard() {
 
       <div className="adm-wrap">
 
-        {/* Modals */}
         {roomModal !== null && (
           <RoomModal room={roomModal?._id ? roomModal : null} onClose={() => setRoomModal(null)} onSave={saveRoom} />
         )}
@@ -1172,10 +1215,8 @@ export default function AdminDashboard() {
           />
         )}
 
-        {/* Toast */}
         {toast && <div className={`adm-toast ${toast.type}`}>{toast.msg}</div>}
 
-        {/* Header */}
         <header className="adm-header">
           <div className="adm-header-left">
             <span className="adm-logo">Campusly<span className="adm-logo-dot">.</span></span>
@@ -1185,7 +1226,6 @@ export default function AdminDashboard() {
           <span className="adm-badge-admin">Admin</span>
         </header>
 
-        {/* Tabs */}
         <nav className="adm-tabs">
           {TABS.map((tab) => (
             <button key={tab} className={`adm-tab ${activeTab === tab ? "active" : ""}`} onClick={() => setActiveTab(tab)}>
@@ -1480,9 +1520,7 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          {/* ══════════════════════════════════════════════════════════════════
-              ── INTERNSHIPS ──
-          ══════════════════════════════════════════════════════════════════ */}
+          {/* ── INTERNSHIPS ── */}
           {activeTab === "Internships" && (
             <div>
               <div className="adm-section-header">
@@ -1507,7 +1545,6 @@ export default function AdminDashboard() {
                 </button>
               </div>
 
-              {/* Source breakdown — bulk delete by source */}
               {internshipSources.length > 0 && (
                 <div className="source-strip">
                   <span style={{ fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.07em", color: "var(--text-3)", fontFamily: "var(--mono)", marginRight: 4 }}>Sources:</span>
@@ -1521,7 +1558,7 @@ export default function AdminDashboard() {
                 </div>
               )}
 
-              {internshipLoading ? <TableSkeleton cols={6} /> : (
+              {internshipLoading ? <TableSkeleton cols={7} /> : (
                 <div className="adm-table-wrap">
                   <table className="adm-table">
                     <thead className="adm-thead">
@@ -1529,6 +1566,7 @@ export default function AdminDashboard() {
                         <th className="adm-th">Job</th>
                         <th className="adm-th">Company</th>
                         <th className="adm-th">Location</th>
+                        <th className="adm-th">Tags</th>
                         <th className="adm-th">Type</th>
                         <th className="adm-th">Source</th>
                         <th className="adm-th right">Actions</th>
@@ -1537,7 +1575,7 @@ export default function AdminDashboard() {
                     <tbody className="adm-tbody">
                       {internships.length === 0 && (
                         <tr className="adm-empty-row">
-                          <td colSpan={6}>
+                          <td colSpan={7}>
                             No internships yet — click <strong>↑ Import JSON</strong> to add scraped data
                           </td>
                         </tr>
@@ -1557,7 +1595,7 @@ export default function AdminDashboard() {
                                 {j.logo
                                   ? <img src={j.logo} alt="" className="prod-img" style={{ borderRadius: 8 }} onError={(e) => e.target.style.display="none"} />
                                   : <div className="prod-img-fallback" style={{ borderRadius: 8 }}>💼</div>}
-                                <span style={{ fontWeight: 500, fontSize: 13, maxWidth: 220, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                <span style={{ fontWeight: 500, fontSize: 13, maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                                   {j.title}
                                 </span>
                               </div>
@@ -1565,6 +1603,19 @@ export default function AdminDashboard() {
                             <td className="adm-td" style={{ fontSize: 13, fontWeight: 500 }}>{j.company || "—"}</td>
                             <td className="adm-td" style={{ color: "var(--text-2)", fontSize: 12, maxWidth: 130, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                               {j.location || "—"}
+                            </td>
+                            {/* ── Tags column ── */}
+                            <td className="adm-td">
+                              <div className="intern-tags-cell">
+                                {(j.tags || []).slice(0, 3).map(tag => (
+                                  <span key={tag} className="intern-tag">{tag}</span>
+                                ))}
+                                {(j.tags || []).length > 3 && (
+                                  <span className="intern-tag" style={{ background: "var(--surface-2)", color: "var(--text-3)", borderColor: "var(--border)" }}>
+                                    +{j.tags.length - 3}
+                                  </span>
+                                )}
+                              </div>
                             </td>
                             <td className="adm-td">
                               <span className="badge badge-other">{j.type || "—"}</span>
