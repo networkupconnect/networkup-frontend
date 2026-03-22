@@ -9,7 +9,7 @@ export default function Navbar() {
   return (
     <nav className="border-gray-100 border-b-1" aria-label="Main navigation">
       <div className="flex justify-between p-2 items-center text-black">
-        <div className="logo font-bold text-3xl">NetworkUp.in</div>
+        <div className="logo font-bold text-3xl">NetworkUp</div>
 
         <ul className="flex text-xl gap-3 items-center">
           {user ? (
