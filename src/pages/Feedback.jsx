@@ -52,7 +52,7 @@ export default function Feedback() {
           🎉
         </div>
         <h2 className="text-2xl font-black text-white mb-2">Thanks!</h2>
-        <p className="text-zinc-400 text-sm mb-6">Your feedback has been sent to the admin. We appreciate you helping make JMIConnect better!</p>
+        <p className="text-zinc-400 text-sm mb-6">Your feedback has been sent to the admin. We appreciate you helping make NetworkUp better!</p>
         <div className="flex gap-3">
           <button onClick={() => { setSubmitted(false); setTitle(""); setDesc(""); setType("bug"); }}
             className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-white py-3 rounded-xl font-bold text-sm transition-all">
@@ -79,7 +79,7 @@ export default function Feedback() {
           </button>
           <div>
             <h1 className="text-xl font-black text-white">Feedback</h1>
-            <p className="text-zinc-500 text-xs">Help us improve JMIConnect</p>
+            <p className="text-zinc-500 text-xs">Help us improve NetworkUp</p>
           </div>
         </div>
 
