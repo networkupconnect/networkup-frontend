@@ -382,20 +382,20 @@ const PostCard = memo(({ post, user, onLike, onDelete, onToggleComments, showCom
       )}
 
       {/* ✅ FIX 2: Show video if post has a video URL (YouTube embed or direct) */}
-      {post.videoUrl.includes("youtube.com") || post.videoUrl.includes("youtu.be") ? (
-  <iframe
-    width="100%"
-    height="220"
-    src={post.videoUrl.replace("watch?v=", "embed/").replace("youtu.be/", "youtube.com/embed/")}
-    title="video"
-    frameBorder="0"
-    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-    allowFullScreen
-    style={{ borderRadius: 10, display: "block" }}
-  />
-) : (
-  <video className="fc-video" controls src={post.videoUrl} />
-)}
+          {post.videoUrl.includes("youtube.com") || post.videoUrl.includes("youtu.be") ? (
+            <iframe
+              width="100%"
+              height="220"
+              src={post.videoUrl.replace("watch?v=", "embed/").replace("youtu.be/", "youtube.com/embed/")}
+              title="video"
+              frameBorder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              style={{ borderRadius: 10, display: "block" }}
+            />
+          ) : (
+            <video className="fc-video" controls src={post.videoUrl} />
+          )}
 
       <div className="fc-body">
         {post.caption && <p className="fc-caption">{post.caption}</p>}
