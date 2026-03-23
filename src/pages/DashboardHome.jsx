@@ -125,24 +125,24 @@ const STYLES = `
   }
   .lightbox-close:hover { background:rgba(255,255,255,0.22); }
 
-  /* ── Video: full card width, fixed 16:9 aspect ratio, no black side bars ── */
-  /* FIX 1: removed padding-left:52px so video spans the full card width      */
+  /* ── Video: full card width, dynamic height ─────────────────────────────── */
   .fc-video-wrap { margin-bottom:8px; }
+
+  /* Native <video>: width fills card, height follows natural aspect ratio    */
+  .fc-video-native {
+    width:100%; height:auto; display:block;
+    border-radius:10px; background:#000;
+  }
+
+  /* YouTube iframe wrapper: aspect-ratio set via inline style from oEmbed    */
   .fc-video-box {
     position:relative; width:100%;
-    aspect-ratio:16/9;
     border-radius:10px; overflow:hidden; background:#000;
   }
   .fc-video-box iframe {
     position:absolute; inset:0;
     width:100%; height:100%;
     border:none; display:block;
-  }
-  /* FIX 1: object-fit:cover fills the box — no black vertical bars           */
-  .fc-video-box video {
-    position:absolute; inset:0;
-    width:100%; height:100%;
-    object-fit:cover; display:block;
   }
   /* processing / not-ready state card */
   .fc-video-box .yt-proc-card {
@@ -220,27 +220,18 @@ const Stars = memo(({ ratings, itemId, type, onRate, userId }) => {
 
 // ── Video Block ───────────────────────────────────────────────────────────────
 //
-// FIX 1 — Full width: .fc-video-wrap has no padding-left, video spans the
-//          full card width. object-fit:cover fills the 16:9 box with no
-//          black bars on either side.
-//
-// FIX 2 — Not muted: native <video> has no muted attribute.
-//          YouTube embed uses mute=0. Note: browsers block programmatic
-//          autoplay of unmuted media until the user first interacts with
-//          the page — after one tap/click anywhere, scroll autoplay works.
-//
-// FIX 3 — Scroll autoplay: IntersectionObserver plays the in-view video
-//          and pauses all others. YouTube iframes are controlled via
-//          postMessage (enablejsapi=1 in the embed URL).
-//
-// FIX 4 — No layout shift: every render state lives inside .fc-video-box
-//          which holds a fixed 16:9 aspect-ratio container.
+// Dynamic height: native <video> uses width:100%;height:auto — the browser
+// preserves the video's real aspect ratio (portrait videos are tall, landscape
+// are wide). YouTube iframes fetch the real dimensions from the oEmbed API and
+// apply them as an inline aspect-ratio style, so the container always matches
+// the video's actual proportions with no black bars.
 //
 const VideoBlock = memo(({ videoUrl }) => {
-  // Optimistic true → show iframe immediately; only downgrade if probe fails.
-  const [ytReady, setYtReady] = useState(true);
+  const [ytReady,      setYtReady]      = useState(true);
+  // oEmbed-derived ratio (w/h). Default 16/9 renders immediately; updated once
+  // the lightweight oEmbed fetch returns — typically before the user interacts.
+  const [ytRatio,      setYtRatio]      = useState(16 / 9);
 
-  // Refs for IntersectionObserver targets
   const nativeRef = useRef(null);
   const iframeRef = useRef(null);
 
@@ -254,25 +245,39 @@ const VideoBlock = memo(({ videoUrl }) => {
     return m ? m[1] : null;
   }, [videoUrl, isYouTube]);
 
-  // Probe YouTube thumbnail to detect if video is still transcoding
+  // ── Probe + oEmbed (YouTube only) ─────────────────────────────────────────
   useEffect(() => {
     if (!videoId) return;
     setYtReady(true);
+
+    // 1. Thumbnail probe — detect transcoding
     const img = new Image();
     img.onload  = () => setYtReady(true);
     img.onerror = () => setYtReady(false);
     img.src = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+
+    // 2. oEmbed fetch — get real video dimensions for dynamic aspect ratio
+    let cancelled = false;
+    fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`)
+      .then(r => r.json())
+      .then(data => {
+        if (!cancelled && data.width && data.height) {
+          setYtRatio(data.width / data.height);
+        }
+      })
+      .catch(() => { /* keep default 16/9 on network error */ });
+
+    return () => { cancelled = true; };
   }, [videoId]);
 
-  // ── FIX 3: IntersectionObserver for native <video> ────────────────────────
-  // Plays when ≥50% visible, pauses when scrolled away.
+  // ── IntersectionObserver — native <video> ─────────────────────────────────
   useEffect(() => {
     const el = nativeRef.current;
     if (!el) return;
     const obs = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
-          el.play().catch(() => {/* browser blocked — user hasn't interacted yet */});
+          el.play().catch(() => {});
         } else {
           el.pause();
         }
@@ -281,19 +286,17 @@ const VideoBlock = memo(({ videoUrl }) => {
     );
     obs.observe(el);
     return () => obs.disconnect();
-  // Re-attach whenever the native video element is (re-)mounted
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [videoUrl, isYouTube]);
 
-  // ── FIX 3: IntersectionObserver for YouTube iframe via postMessage ─────────
-  // enablejsapi=1 in the embed URL allows these commands.
+  // ── IntersectionObserver — YouTube iframe via postMessage ──────────────────
   const sendYTCmd = useCallback((iframe, cmd) => {
     try {
       iframe.contentWindow?.postMessage(
         JSON.stringify({ event: "command", func: cmd, args: [] }),
         "*"
       );
-    } catch { /* cross-origin errors are non-fatal */ }
+    } catch { /* cross-origin — non-fatal */ }
   }, []);
 
   useEffect(() => {
@@ -302,7 +305,6 @@ const VideoBlock = memo(({ videoUrl }) => {
     const obs = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
-          // FIX 2: unmute then play — postMessage order matters
           sendYTCmd(el, "unMute");
           sendYTCmd(el, "playVideo");
         } else {
@@ -313,26 +315,24 @@ const VideoBlock = memo(({ videoUrl }) => {
     );
     obs.observe(el);
     return () => obs.disconnect();
-  // Re-attach when the iframe mounts (ytReady flip) or videoId changes
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ytReady, videoId, sendYTCmd]);
 
   if (!videoUrl) return null;
 
-  // ── Native (non-YouTube) video ─────────────────────────────────────────────
+  // ── Native (non-YouTube) video — natural dimensions ───────────────────────
+  // width:100% + height:auto lets the browser respect the video's own ratio.
   if (!isYouTube) {
     return (
       <div className="fc-video-wrap">
-        <div className="fc-video-box">
-          {/* FIX 2: no muted / no autoPlay — IntersectionObserver drives play() */}
-          <video
-            ref={nativeRef}
-            loop
-            playsInline
-            controls
-            src={videoUrl}
-          />
-        </div>
+        <video
+          ref={nativeRef}
+          className="fc-video-native"
+          loop
+          playsInline
+          controls
+          src={videoUrl}
+        />
       </div>
     );
   }
@@ -341,13 +341,9 @@ const VideoBlock = memo(({ videoUrl }) => {
   if (!ytReady) {
     return (
       <div className="fc-video-wrap">
-        <div className="fc-video-box">
-          <a
-            href={videoUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="yt-proc-card"
-          >
+        {/* Use real ratio if already fetched, otherwise 16/9 default */}
+        <div className="fc-video-box" style={{ aspectRatio: ytRatio }}>
+          <a href={videoUrl} target="_blank" rel="noreferrer" className="yt-proc-card">
             {YT_ICON}
             <div className="yt-proc-card-text">
               <p className="yt-proc-title">Video processing on YouTube…</p>
@@ -359,16 +355,15 @@ const VideoBlock = memo(({ videoUrl }) => {
     );
   }
 
-  // ── YouTube: ready ─────────────────────────────────────────────────────────
-  // FIX 2: mute=0 (unmuted). FIX 3: no autoplay=1 in URL — IntersectionObserver
-  // drives playVideo/pauseVideo via postMessage. enablejsapi=1 is required.
+  // ── YouTube: ready — iframe with real aspect ratio ─────────────────────────
   const embedUrl =
     `https://www.youtube.com/embed/${videoId}` +
     `?enablejsapi=1&mute=0&rel=0&modestbranding=1&iv_load_policy=3&playsinline=1&controls=1`;
 
   return (
     <div className="fc-video-wrap">
-      <div className="fc-video-box">
+      {/* aspectRatio inline style = real video width÷height from oEmbed */}
+      <div className="fc-video-box" style={{ aspectRatio: ytRatio }}>
         <iframe
           ref={iframeRef}
           src={embedUrl}
