@@ -125,8 +125,9 @@ const STYLES = `
   }
   .lightbox-close:hover { background:rgba(255,255,255,0.22); }
 
-  /* ── Video: all states share a fixed 16:9 wrapper so card never resizes ── */
-  .fc-video-wrap { padding-left:52px; margin-bottom:8px; }
+  /* ── Video: full card width, fixed 16:9 aspect ratio, no black side bars ── */
+  /* FIX 1: removed padding-left:52px so video spans the full card width      */
+  .fc-video-wrap { margin-bottom:8px; }
   .fc-video-box {
     position:relative; width:100%;
     aspect-ratio:16/9;
@@ -137,6 +138,7 @@ const STYLES = `
     width:100%; height:100%;
     border:none; display:block;
   }
+  /* FIX 1: object-fit:cover fills the box — no black vertical bars           */
   .fc-video-box video {
     position:absolute; inset:0;
     width:100%; height:100%;
@@ -218,26 +220,29 @@ const Stars = memo(({ ratings, itemId, type, onRate, userId }) => {
 
 // ── Video Block ───────────────────────────────────────────────────────────────
 //
-// FIX 2 — Card never changes size: every render state (iframe / processing
-//          card / native video) lives inside `.fc-video-box` which is a fixed
-//          16:9 aspect-ratio container. No layout shift at all.
+// FIX 1 — Full width: .fc-video-wrap has no padding-left, video spans the
+//          full card width. object-fit:cover fills the 16:9 box with no
+//          black bars on either side.
 //
-// FIX 3 — No "Checking…" flash on refresh: `ytReady` starts as `true`
-//          (optimistic). The hqdefault.jpg probe runs silently in the background.
-//          Existing, already-processed videos show the iframe instantly.
-//          Only fresh uploads that are still transcoding will flip to the
-//          processing card *after* the probe resolves to false.
+// FIX 2 — Not muted: native <video> has no muted attribute.
+//          YouTube embed uses mute=0. Note: browsers block programmatic
+//          autoplay of unmuted media until the user first interacts with
+//          the page — after one tap/click anywhere, scroll autoplay works.
 //
-// FIX 4 — Cleaner iframe: modestbranding=1, rel=0, iv_load_policy=3 strip
-//          most YouTube chrome. Channel name/logo can't be fully removed by
-//          the embed API, but modestbranding reduces it significantly.
+// FIX 3 — Scroll autoplay: IntersectionObserver plays the in-view video
+//          and pauses all others. YouTube iframes are controlled via
+//          postMessage (enablejsapi=1 in the embed URL).
 //
-// FIX 6 — Autoplay + loop: autoplay=1 + mute=1 (browsers require muted for
-//          autoplay), loop=1, playlist=VIDEO_ID (YouTube needs the playlist
-//          param to actually loop a single video).
+// FIX 4 — No layout shift: every render state lives inside .fc-video-box
+//          which holds a fixed 16:9 aspect-ratio container.
+//
 const VideoBlock = memo(({ videoUrl }) => {
   // Optimistic true → show iframe immediately; only downgrade if probe fails.
   const [ytReady, setYtReady] = useState(true);
+
+  // Refs for IntersectionObserver targets
+  const nativeRef = useRef(null);
+  const iframeRef = useRef(null);
 
   const isYouTube = Boolean(
     videoUrl && (videoUrl.includes("youtube.com") || videoUrl.includes("youtu.be"))
@@ -249,15 +254,68 @@ const VideoBlock = memo(({ videoUrl }) => {
     return m ? m[1] : null;
   }, [videoUrl, isYouTube]);
 
+  // Probe YouTube thumbnail to detect if video is still transcoding
   useEffect(() => {
     if (!videoId) return;
-    setYtReady(true); // reset to optimistic whenever videoId changes
+    setYtReady(true);
     const img = new Image();
     img.onload  = () => setYtReady(true);
     img.onerror = () => setYtReady(false);
-    // hqdefault.jpg 404s while YouTube is still transcoding; 200 means ready.
     img.src = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
   }, [videoId]);
+
+  // ── FIX 3: IntersectionObserver for native <video> ────────────────────────
+  // Plays when ≥50% visible, pauses when scrolled away.
+  useEffect(() => {
+    const el = nativeRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          el.play().catch(() => {/* browser blocked — user hasn't interacted yet */});
+        } else {
+          el.pause();
+        }
+      },
+      { threshold: 0.5 }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  // Re-attach whenever the native video element is (re-)mounted
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [videoUrl, isYouTube]);
+
+  // ── FIX 3: IntersectionObserver for YouTube iframe via postMessage ─────────
+  // enablejsapi=1 in the embed URL allows these commands.
+  const sendYTCmd = useCallback((iframe, cmd) => {
+    try {
+      iframe.contentWindow?.postMessage(
+        JSON.stringify({ event: "command", func: cmd, args: [] }),
+        "*"
+      );
+    } catch { /* cross-origin errors are non-fatal */ }
+  }, []);
+
+  useEffect(() => {
+    const el = iframeRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          // FIX 2: unmute then play — postMessage order matters
+          sendYTCmd(el, "unMute");
+          sendYTCmd(el, "playVideo");
+        } else {
+          sendYTCmd(el, "pauseVideo");
+        }
+      },
+      { threshold: 0.5 }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  // Re-attach when the iframe mounts (ytReady flip) or videoId changes
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ytReady, videoId, sendYTCmd]);
 
   if (!videoUrl) return null;
 
@@ -266,10 +324,10 @@ const VideoBlock = memo(({ videoUrl }) => {
     return (
       <div className="fc-video-wrap">
         <div className="fc-video-box">
+          {/* FIX 2: no muted / no autoPlay — IntersectionObserver drives play() */}
           <video
-            autoPlay
+            ref={nativeRef}
             loop
-            muted
             playsInline
             controls
             src={videoUrl}
@@ -279,7 +337,7 @@ const VideoBlock = memo(({ videoUrl }) => {
     );
   }
 
-  // ── YouTube: still transcoding ────────────────────────────────────────────
+  // ── YouTube: still transcoding ─────────────────────────────────────────────
   if (!ytReady) {
     return (
       <div className="fc-video-wrap">
@@ -301,16 +359,18 @@ const VideoBlock = memo(({ videoUrl }) => {
     );
   }
 
-  // ── YouTube: ready — embed with autoplay / loop / clean chrome ───────────
+  // ── YouTube: ready ─────────────────────────────────────────────────────────
+  // FIX 2: mute=0 (unmuted). FIX 3: no autoplay=1 in URL — IntersectionObserver
+  // drives playVideo/pauseVideo via postMessage. enablejsapi=1 is required.
   const embedUrl =
     `https://www.youtube.com/embed/${videoId}` +
-    `?autoplay=1&mute=1&loop=1&playlist=${videoId}` +
-    `&rel=0&modestbranding=1&iv_load_policy=3&playsinline=1&controls=1`;
+    `?enablejsapi=1&mute=0&rel=0&modestbranding=1&iv_load_policy=3&playsinline=1&controls=1`;
 
   return (
     <div className="fc-video-wrap">
       <div className="fc-video-box">
         <iframe
+          ref={iframeRef}
           src={embedUrl}
           title="video"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
