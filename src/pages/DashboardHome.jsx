@@ -24,7 +24,6 @@ const STYLES = `
   .compose-preview-rm { font-size:12px; color:#dc2626; background:none; border:none; cursor:pointer; }
   .compose-actions { display:flex; justify-content:flex-end; gap:8px; margin-top:8px; }
   .compose-img-btn { width:34px; height:34px; border-radius:50%; background:#e5e7eb; display:flex; align-items:center; justify-content:center; cursor:pointer; }
-  /* ✅ FIX 1: Send button now blue */
   .compose-send { width:34px; height:34px; border-radius:50%; background:#2563eb; border:none; display:flex; align-items:center; justify-content:center; cursor:pointer; }
   .compose-send:disabled { opacity:0.35; cursor:not-allowed; }
   .compose-spinner { width:13px; height:13px; border:2px solid rgba(255,255,255,0.3); border-top-color:#fff; border-radius:50%; animation:spin 0.6s linear infinite; }
@@ -39,7 +38,6 @@ const STYLES = `
   .fc-name { font-size:13px; font-weight:600; color:#111110; line-height:1.2; }
   .fc-sub  { font-size:11px; color:#9ca3af; margin-top:1px; }
 
-  /* ✅ FIX 3: Images are constrained but clickable for full view */
   .fc-img  { max-width:100%; max-height:300px; object-fit:contain; border-radius:10px; display:block; cursor:zoom-in; background:#f3f4f6; }
   .fc-body { padding-left:52px; }
   .fc-img-wrap { padding-left:52px; margin-bottom:8px; }
@@ -103,11 +101,9 @@ const STYLES = `
   .dh-sidebar { display:none; }
   @media(min-width:640px){ .dh-sidebar{ display:block; flex:1; background:#f3f4f6; border-radius:24px; height:100vh; position:sticky; top:0; } }
 
-  /* ✅ FIX 2: Video upload button */
   .compose-vid-btn { width:34px; height:34px; border-radius:50%; background:#e5e7eb; display:flex; align-items:center; justify-content:center; cursor:pointer; }
   .compose-vid-badge { font-size:9px; font-weight:600; color:#fff; background:#dc2626; border-radius:3px; padding:1px 3px; font-family:monospace; }
 
-  /* ✅ FIX 3: Lightbox */
   .lightbox-overlay {
     position:fixed; inset:0; z-index:9999;
     background:rgba(0,0,0,0.92);
@@ -131,7 +127,6 @@ const STYLES = `
   }
   .lightbox-close:hover { background:rgba(255,255,255,0.22); }
 
-  /* Feed video player */
   .fc-video { max-width:100%; max-height:300px; border-radius:10px; display:block; background:#000; }
   .fc-video-wrap { padding-left:52px; margin-bottom:8px; }
 `;
@@ -153,7 +148,7 @@ const fmtDate = (d) => {
 const badgeClass = (s) => `badge ${s === "completed" ? "badge-completed" : s === "in-progress" ? "badge-in-progress" : "badge-idea"}`;
 const badgeLabel = (s) => s === "in-progress" ? "In Progress" : s === "completed" ? "Completed" : "Idea";
 
-// ✅ Lightbox component
+// ── Lightbox ──────────────────────────────────────────────────────────────────
 const Lightbox = memo(({ src, onClose }) => {
   useEffect(() => {
     const handler = (e) => e.key === "Escape" && onClose();
@@ -174,12 +169,14 @@ const Lightbox = memo(({ src, onClose }) => {
   );
 });
 
+// ── Avatar ────────────────────────────────────────────────────────────────────
 const Av = memo(({ src, name, onClick }) =>
   src
     ? <img src={src} alt={name || ""} className="fc-av" onClick={onClick} decoding="async" width={40} height={40} style={onClick ? { cursor: "pointer" } : undefined} />
     : <div className="fc-av-fb" onClick={onClick} style={onClick ? { cursor: "pointer" } : undefined}><span>{(name || "?").charAt(0).toUpperCase()}</span></div>
 );
 
+// ── Stars ─────────────────────────────────────────────────────────────────────
 const Stars = memo(({ ratings, itemId, type, onRate, userId }) => {
   const mine = userId ? (ratings.find(r => r.userId?.toString() === userId)?.stars || 0) : 0;
   const avg = ratings.length ? (ratings.reduce((s, r) => s + r.stars, 0) / ratings.length).toFixed(1) : null;
@@ -195,6 +192,72 @@ const Stars = memo(({ ratings, itemId, type, onRate, userId }) => {
   );
 });
 
+// ── Video block — handles YouTube processing delay + missing videoUrl ─────────
+// ✅ FIX: Guard against null/empty videoUrl, show processing card for fresh uploads
+const VideoBlock = memo(({ videoUrl, createdAt }) => {
+  if (!videoUrl) return null;
+
+  const isYouTube = videoUrl.includes("youtube.com") || videoUrl.includes("youtu.be");
+
+  if (!isYouTube) {
+    return (
+      <div className="fc-video-wrap">
+        <video className="fc-video" controls src={videoUrl} />
+      </div>
+    );
+  }
+
+  const ageMinutes = (Date.now() - new Date(createdAt)) / 60000;
+  const isProcessing = ageMinutes < 10;
+
+  if (isProcessing) {
+    return (
+      <div className="fc-video-wrap">
+        <a
+          href={videoUrl}
+          target="_blank"
+          rel="noreferrer"
+          style={{
+            display: "flex", alignItems: "center", gap: 10,
+            padding: "12px 14px", background: "#000",
+            borderRadius: 10, textDecoration: "none", color: "#fff",
+          }}
+        >
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="#ff0000">
+            <path d="M23.5 6.2s-.3-2-1.2-2.8c-1.1-1.2-2.4-1.2-3-1.3C16.6 2 12 2 12 2s-4.6 0-7.3.1c-.6.1-1.9.1-3 1.3C.8 4.2.5 6.2.5 6.2S.2 8.5.2 10.8v2.1c0 2.3.3 4.6.3 4.6s.3 2 1.2 2.8c1.1 1.2 2.6 1.1 3.3 1.2C7 21.7 12 21.8 12 21.8s4.6 0 7.3-.2c.6-.1 1.9-.1 3-1.3.9-.8 1.2-2.8 1.2-2.8s.3-2.3.3-4.6v-2.1C23.8 8.5 23.5 6.2 23.5 6.2zM9.7 15.5V8.4l8.1 3.6-8.1 3.5z"/>
+          </svg>
+          <div>
+            <p style={{ margin: 0, fontSize: 13, fontWeight: 600 }}>Video processing on YouTube…</p>
+            <p style={{ margin: "2px 0 0", fontSize: 11, color: "#aaa" }}>
+              Usually ready in 2–5 min. Click to watch when ready ↗
+            </p>
+          </div>
+        </a>
+      </div>
+    );
+  }
+
+  const embedUrl = videoUrl
+    .replace("watch?v=", "embed/")
+    .replace("youtu.be/", "youtube.com/embed/");
+
+  return (
+    <div className="fc-video-wrap">
+      <iframe
+        width="100%"
+        height="220"
+        src={embedUrl}
+        title="video"
+        frameBorder="0"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        allowFullScreen
+        style={{ borderRadius: 10, display: "block" }}
+      />
+    </div>
+  );
+});
+
+// ── Project Card ──────────────────────────────────────────────────────────────
 const ProjectCard = memo(({ project, onRate, onNav, userId, onOpenImage }) => {
   const cover = project.coverImages?.[0] || project.coverImage;
   const tags = project.tags?.length ? project.tags : (project.techStack || []);
@@ -212,7 +275,6 @@ const ProjectCard = memo(({ project, onRate, onNav, userId, onOpenImage }) => {
         <span className={badgeClass(project.status)}>{badgeLabel(project.status)}</span>
       </div>
       <div className="fc-body">
-        {/* ✅ FIX 3: cover image opens lightbox */}
         {cover && (
           <img
             src={cover}
@@ -242,6 +304,7 @@ const ProjectCard = memo(({ project, onRate, onNav, userId, onOpenImage }) => {
   );
 });
 
+// ── Target Card ───────────────────────────────────────────────────────────────
 const TargetCard = memo(({ target, onRate, onNav, userId, onOpenImage }) => {
   const [open, setOpen] = useState(false);
   const a = target.author;
@@ -267,7 +330,6 @@ const TargetCard = memo(({ target, onRate, onNav, userId, onOpenImage }) => {
             {latest.isCompletion && <span className="tc-complete-tag">✓ COMPLETION</span>}
             {latest.text && <p className="tc-p-text">{latest.text}</p>}
             {latest.link && <a href={latest.link} target="_blank" rel="noreferrer" className="tc-p-link">{latest.link}</a>}
-            {/* ✅ FIX 3: progress images open lightbox */}
             {latest.image && (
               <img
                 src={latest.image}
@@ -312,6 +374,7 @@ const TargetCard = memo(({ target, onRate, onNav, userId, onOpenImage }) => {
   );
 });
 
+// ── Comment Section ───────────────────────────────────────────────────────────
 const CommentSection = memo(({ post, commentText, onChangeComment, onAddComment, user }) => (
   <div className="cmt-wrap">
     <div className="cmt-list">
@@ -346,6 +409,7 @@ const CommentSection = memo(({ post, commentText, onChangeComment, onAddComment,
   </div>
 ));
 
+// ── Post Card ─────────────────────────────────────────────────────────────────
 const PostCard = memo(({ post, user, onLike, onDelete, onToggleComments, showComments, commentText, onChangeComment, onAddComment, onProfileClick, onOpenImage }) => {
   const pImg = typeof post.userId === "object" && post.userId?.profileImage ? post.userId.profileImage
     : (user && (post.userId?._id || post.userId)?.toString() === user._id?.toString() ? user.profileImage : null);
@@ -365,7 +429,7 @@ const PostCard = memo(({ post, user, onLike, onDelete, onToggleComments, showCom
         {isOwn && <button className="del-btn" onClick={() => onDelete(post._id)}>Delete</button>}
       </div>
 
-      {/* ✅ FIX 3: Post image opens lightbox */}
+      {/* Image */}
       {post.image && (
         <div className="fc-img-wrap">
           <img
@@ -381,21 +445,8 @@ const PostCard = memo(({ post, user, onLike, onDelete, onToggleComments, showCom
         </div>
       )}
 
-      {/* ✅ FIX 2: Show video if post has a video URL (YouTube embed or direct) */}
-          {post.videoUrl.includes("youtube.com") || post.videoUrl.includes("youtu.be") ? (
-            <iframe
-              width="100%"
-              height="220"
-              src={post.videoUrl.replace("watch?v=", "embed/").replace("youtu.be/", "youtube.com/embed/")}
-              title="video"
-              frameBorder="0"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-              style={{ borderRadius: 10, display: "block" }}
-            />
-          ) : (
-            <video className="fc-video" controls src={post.videoUrl} />
-          )}
+      {/* ✅ FIX: VideoBlock handles null check + YouTube processing delay internally */}
+      <VideoBlock videoUrl={post.videoUrl} createdAt={post.createdAt} />
 
       <div className="fc-body">
         {post.caption && <p className="fc-caption">{post.caption}</p>}
@@ -419,6 +470,7 @@ const PostCard = memo(({ post, user, onLike, onDelete, onToggleComments, showCom
   );
 });
 
+// ── Dashboard Home ────────────────────────────────────────────────────────────
 const DashboardHome = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -426,15 +478,15 @@ const DashboardHome = () => {
 
   const [caption, setCaption] = useState("");
   const [imgFile, setImgFile] = useState(null);
-  const [vidFile, setVidFile] = useState(null);           // ✅ FIX 2: video file state
+  const [vidFile, setVidFile] = useState(null);
   const [preview, setPreview] = useState(null);
-  const [vidPreview, setVidPreview] = useState(null);     // ✅ FIX 2: video preview URL
+  const [vidPreview, setVidPreview] = useState(null);
   const [creating, setCreating] = useState(false);
   const [comments, setComments] = useState({});
   const [openCmts, setOpenCmts] = useState({});
   const [projects, setProjects] = useState([]);
   const [targets, setTargets] = useState([]);
-  const [lightboxSrc, setLightboxSrc] = useState(null);  // ✅ FIX 3: lightbox state
+  const [lightboxSrc, setLightboxSrc] = useState(null);
   const taRef = useRef(null);
 
   const resize = useCallback(() => {
@@ -483,12 +535,11 @@ const DashboardHome = () => {
     else navigate(`/user/${pid}`);
   }, [user, navigate]);
 
-  // ✅ FIX 2: handleCreatePost now also handles video file
   const handleCreatePost = useCallback(async () => {
     if (!caption.trim() && !imgFile && !vidFile) { alert("Add a photo, video or write something"); return; }
     const fd = new FormData();
     if (imgFile) fd.append("image", imgFile);
-    if (vidFile) fd.append("video", vidFile);   // backend will handle YouTube upload
+    if (vidFile) fd.append("video", vidFile);
     if (caption.trim()) fd.append("caption", caption);
     try {
       setCreating(true);
@@ -519,7 +570,7 @@ const DashboardHome = () => {
   }, [user, setPosts]);
 
   const handleToggleComments = useCallback((id) => setOpenCmts(c => ({ ...c, [id]: !c[id] })), []);
-  const handleChangeComment = useCallback((id, val) => setComments(c => ({ ...c, [id]: val })), []);
+  const handleChangeComment  = useCallback((id, val) => setComments(c => ({ ...c, [id]: val })), []);
 
   const handleAddComment = useCallback(async (id) => {
     const text = comments[id]?.trim();
@@ -531,12 +582,12 @@ const DashboardHome = () => {
     } catch { alert("Failed to comment"); }
   }, [comments, user, setPosts]);
 
-  // ✅ FIX 3: open / close lightbox
-  const handleOpenImage = useCallback((src) => setLightboxSrc(src), []);
+  const handleOpenImage    = useCallback((src) => setLightboxSrc(src), []);
   const handleCloseLightbox = useCallback(() => setLightboxSrc(null), []);
 
   const userId = user?._id?.toString();
 
+  // ── Loading skeleton ──────────────────────────────────────────────────────
   if (loading && posts.length === 0) return (
     <div className="dh-wrap">
       <div className="dh-feed">
@@ -564,7 +615,6 @@ const DashboardHome = () => {
 
   return (
     <div className="dh-wrap">
-      {/* ✅ FIX 3: Lightbox rendered at top level */}
       {lightboxSrc && <Lightbox src={lightboxSrc} onClose={handleCloseLightbox} />}
 
       <div className="dh-feed">
@@ -577,7 +627,6 @@ const DashboardHome = () => {
               onKeyDown={e => e.key === "Enter" && e.ctrlKey && handleCreatePost()}
               rows={1} />
 
-            {/* Image preview */}
             {preview && (
               <div className="compose-preview">
                 <img src={preview} alt="" decoding="async" />
@@ -585,7 +634,6 @@ const DashboardHome = () => {
               </div>
             )}
 
-            {/* ✅ FIX 2: Video preview */}
             {vidPreview && (
               <div className="compose-preview">
                 <video src={vidPreview} style={{ width:56, height:56, objectFit:"cover", borderRadius:7 }} muted />
@@ -607,13 +655,13 @@ const DashboardHome = () => {
                     if (f) {
                       setImgFile(f);
                       setPreview(URL.createObjectURL(f));
-                      setVidFile(null); setVidPreview(null); // clear video if switching
+                      setVidFile(null); setVidPreview(null);
                     }
                     e.target.value = "";
                   }} />
               </label>
 
-              {/* ✅ FIX 2: Video upload button */}
+              {/* Video upload */}
               <label className="compose-vid-btn" title="Add video (uploaded to YouTube Unlisted)">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#374151" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <polygon points="23 7 16 12 23 17 23 7"/>
@@ -625,13 +673,13 @@ const DashboardHome = () => {
                     if (f) {
                       setVidFile(f);
                       setVidPreview(URL.createObjectURL(f));
-                      setImgFile(null); setPreview(null); // clear image if switching
+                      setImgFile(null); setPreview(null);
                     }
                     e.target.value = "";
                   }} />
               </label>
 
-              {/* ✅ FIX 1: Send button is now blue */}
+              {/* Send */}
               <button className="compose-send" onClick={handleCreatePost} disabled={creating || (!caption.trim() && !imgFile && !vidFile)}>
                 {creating
                   ? <div className="compose-spinner" />
