@@ -102,7 +102,6 @@ const STYLES = `
   @media(min-width:640px){ .dh-sidebar{ display:block; flex:1; background:#f3f4f6; border-radius:24px; height:100vh; position:sticky; top:0; } }
 
   .compose-vid-btn { width:34px; height:34px; border-radius:50%; background:#e5e7eb; display:flex; align-items:center; justify-content:center; cursor:pointer; }
-  .compose-vid-badge { font-size:9px; font-weight:600; color:#fff; background:#dc2626; border-radius:3px; padding:1px 3px; font-family:monospace; }
 
   .lightbox-overlay {
     position:fixed; inset:0; z-index:9999;
@@ -113,8 +112,7 @@ const STYLES = `
   }
   .lightbox-img {
     max-width:94vw; max-height:92vh;
-    object-fit:contain;
-    border-radius:8px;
+    object-fit:contain; border-radius:8px;
     box-shadow:0 8px 40px rgba(0,0,0,0.5);
     cursor:default;
   }
@@ -148,6 +146,13 @@ const fmtDate = (d) => {
 const badgeClass = (s) => `badge ${s === "completed" ? "badge-completed" : s === "in-progress" ? "badge-in-progress" : "badge-idea"}`;
 const badgeLabel = (s) => s === "in-progress" ? "In Progress" : s === "completed" ? "Completed" : "Idea";
 
+// Shared YouTube SVG icon
+const YT_ICON = (
+  <svg width="32" height="32" viewBox="0 0 24 24" fill="#ff0000">
+    <path d="M23.5 6.2s-.3-2-1.2-2.8c-1.1-1.2-2.4-1.2-3-1.3C16.6 2 12 2 12 2s-4.6 0-7.3.1c-.6.1-1.9.1-3 1.3C.8 4.2.5 6.2.5 6.2S.2 8.5.2 10.8v2.1c0 2.3.3 4.6.3 4.6s.3 2 1.2 2.8c1.1 1.2 2.6 1.1 3.3 1.2C7 21.7 12 21.8 12 21.8s4.6 0 7.3-.2c.6-.1 1.9-.1 3-1.3.9-.8 1.2-2.8 1.2-2.8s.3-2.3.3-4.6v-2.1C23.8 8.5 23.5 6.2 23.5 6.2zM9.7 15.5V8.4l8.1 3.6-8.1 3.5z"/>
+  </svg>
+);
+
 // ── Lightbox ──────────────────────────────────────────────────────────────────
 const Lightbox = memo(({ src, onClose }) => {
   useEffect(() => {
@@ -155,16 +160,10 @@ const Lightbox = memo(({ src, onClose }) => {
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
   }, [onClose]);
-
   return (
     <div className="lightbox-overlay" onClick={onClose}>
       <button className="lightbox-close" onClick={onClose}>✕</button>
-      <img
-        className="lightbox-img"
-        src={src}
-        alt="Full view"
-        onClick={(e) => e.stopPropagation()}
-      />
+      <img className="lightbox-img" src={src} alt="Full view" onClick={(e) => e.stopPropagation()} />
     </div>
   );
 });
@@ -179,7 +178,7 @@ const Av = memo(({ src, name, onClick }) =>
 // ── Stars ─────────────────────────────────────────────────────────────────────
 const Stars = memo(({ ratings, itemId, type, onRate, userId }) => {
   const mine = userId ? (ratings.find(r => r.userId?.toString() === userId)?.stars || 0) : 0;
-  const avg = ratings.length ? (ratings.reduce((s, r) => s + r.stars, 0) / ratings.length).toFixed(1) : null;
+  const avg  = ratings.length ? (ratings.reduce((s, r) => s + r.stars, 0) / ratings.length).toFixed(1) : null;
   return (
     <div className="stars">
       {[1,2,3,4,5].map(s => (
@@ -192,13 +191,36 @@ const Stars = memo(({ ratings, itemId, type, onRate, userId }) => {
   );
 });
 
-// ── Video block — handles YouTube processing delay + missing videoUrl ─────────
-// ✅ FIX: Guard against null/empty videoUrl, show processing card for fresh uploads
-const VideoBlock = memo(({ videoUrl, createdAt }) => {
+// ── Video Block ───────────────────────────────────────────────────────────────
+// Probes the YouTube thumbnail image to know for certain whether the video has
+// finished processing. hqdefault.jpg returns 404 while YouTube is still
+// transcoding — once it returns 200 the video is embeddable. No time guessing.
+const VideoBlock = memo(({ videoUrl }) => {
+  // null = probing, true = ready, false = still processing
+  const [ytReady, setYtReady] = useState(null);
+
+  const isYouTube = videoUrl && (videoUrl.includes("youtube.com") || videoUrl.includes("youtu.be"));
+
+  const videoId = useMemo(() => {
+    if (!isYouTube) return null;
+    const m = videoUrl.match(/(?:v=|youtu\.be\/)([^&?/]+)/);
+    return m ? m[1] : null;
+  }, [videoUrl, isYouTube]);
+
+  useEffect(() => {
+    if (!videoId) return;
+    setYtReady(null); // reset whenever videoId changes
+    const img = new Image();
+    img.onload  = () => setYtReady(true);
+    img.onerror = () => setYtReady(false);
+    // YouTube only serves hqdefault.jpg after processing is fully complete
+    img.src = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+  }, [videoId]);
+
+  // No video URL at all — render nothing
   if (!videoUrl) return null;
 
-  const isYouTube = videoUrl.includes("youtube.com") || videoUrl.includes("youtu.be");
-
+  // Non-YouTube direct video
   if (!isYouTube) {
     return (
       <div className="fc-video-wrap">
@@ -207,25 +229,32 @@ const VideoBlock = memo(({ videoUrl, createdAt }) => {
     );
   }
 
-  const ageMinutes = (Date.now() - new Date(createdAt)) / 60000;
-  const isProcessing = ageMinutes < 10;
-
-  if (isProcessing) {
+  // Still probing thumbnail
+  if (ytReady === null) {
     return (
       <div className="fc-video-wrap">
-        <a
-          href={videoUrl}
-          target="_blank"
-          rel="noreferrer"
-          style={{
-            display: "flex", alignItems: "center", gap: 10,
-            padding: "12px 14px", background: "#000",
-            borderRadius: 10, textDecoration: "none", color: "#fff",
-          }}
-        >
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="#ff0000">
-            <path d="M23.5 6.2s-.3-2-1.2-2.8c-1.1-1.2-2.4-1.2-3-1.3C16.6 2 12 2 12 2s-4.6 0-7.3.1c-.6.1-1.9.1-3 1.3C.8 4.2.5 6.2.5 6.2S.2 8.5.2 10.8v2.1c0 2.3.3 4.6.3 4.6s.3 2 1.2 2.8c1.1 1.2 2.6 1.1 3.3 1.2C7 21.7 12 21.8 12 21.8s4.6 0 7.3-.2c.6-.1 1.9-.1 3-1.3.9-.8 1.2-2.8 1.2-2.8s.3-2.3.3-4.6v-2.1C23.8 8.5 23.5 6.2 23.5 6.2zM9.7 15.5V8.4l8.1 3.6-8.1 3.5z"/>
-          </svg>
+        <div style={{
+          display: "flex", alignItems: "center", gap: 10,
+          padding: "12px 14px", background: "#111",
+          borderRadius: 10, color: "#aaa",
+        }}>
+          {YT_ICON}
+          <span style={{ fontSize: 12 }}>Checking video…</span>
+        </div>
+      </div>
+    );
+  }
+
+  // YouTube confirmed NOT ready — show processing card with direct link
+  if (!ytReady) {
+    return (
+      <div className="fc-video-wrap">
+        <a href={videoUrl} target="_blank" rel="noreferrer" style={{
+          display: "flex", alignItems: "center", gap: 10,
+          padding: "12px 14px", background: "#000",
+          borderRadius: 10, textDecoration: "none", color: "#fff",
+        }}>
+          {YT_ICON}
           <div>
             <p style={{ margin: 0, fontSize: 13, fontWeight: 600 }}>Video processing on YouTube…</p>
             <p style={{ margin: "2px 0 0", fontSize: 11, color: "#aaa" }}>
@@ -237,6 +266,7 @@ const VideoBlock = memo(({ videoUrl, createdAt }) => {
     );
   }
 
+  // ✅ Thumbnail loaded — video is confirmed ready, show embed
   const embedUrl = videoUrl
     .replace("watch?v=", "embed/")
     .replace("youtu.be/", "youtube.com/embed/");
@@ -260,8 +290,8 @@ const VideoBlock = memo(({ videoUrl, createdAt }) => {
 // ── Project Card ──────────────────────────────────────────────────────────────
 const ProjectCard = memo(({ project, onRate, onNav, userId, onOpenImage }) => {
   const cover = project.coverImages?.[0] || project.coverImage;
-  const tags = project.tags?.length ? project.tags : (project.techStack || []);
-  const a = project.author;
+  const tags  = project.tags?.length ? project.tags : (project.techStack || []);
+  const a     = project.author;
   const goProfile = () => onNav(`/user/${a?._id}`);
   return (
     <article className="fc">
@@ -276,26 +306,19 @@ const ProjectCard = memo(({ project, onRate, onNav, userId, onOpenImage }) => {
       </div>
       <div className="fc-body">
         {cover && (
-          <img
-            src={cover}
-            alt={project.title}
-            className="fc-cover"
-            loading="lazy"
-            decoding="async"
-            width={480}
-            height={200}
-            onClick={() => onOpenImage(cover)}
-          />
+          <img src={cover} alt={project.title} className="fc-cover"
+            loading="lazy" decoding="async" width={480} height={200}
+            onClick={() => onOpenImage(cover)} />
         )}
         <p className="fc-proj-title">{project.title}</p>
-        {project.tagline && <p className="fc-proj-tline">{project.tagline}</p>}
+        {project.tagline    && <p className="fc-proj-tline">{project.tagline}</p>}
         {project.description && <p className="fc-proj-desc">{project.description}</p>}
         {tags.length > 0 && <div className="fc-tags">{tags.map((t, i) => <span key={i} className="fc-tag">{t}</span>)}</div>}
         {(project.liveUrl || project.repoUrl || project.ytUrl) && (
           <div className="fc-links">
             {project.liveUrl && <a href={project.liveUrl} target="_blank" rel="noreferrer" className="fc-link primary">Live ↗</a>}
             {project.repoUrl && <a href={project.repoUrl} target="_blank" rel="noreferrer" className="fc-link">Repo ↗</a>}
-            {project.ytUrl && <a href={project.ytUrl} target="_blank" rel="noreferrer" className="fc-link">▶ Video</a>}
+            {project.ytUrl   && <a href={project.ytUrl}   target="_blank" rel="noreferrer" className="fc-link">▶ Video</a>}
           </div>
         )}
         <Stars ratings={project.ratings || []} itemId={project._id} type="project" onRate={onRate} userId={userId} />
@@ -307,7 +330,7 @@ const ProjectCard = memo(({ project, onRate, onNav, userId, onOpenImage }) => {
 // ── Target Card ───────────────────────────────────────────────────────────────
 const TargetCard = memo(({ target, onRate, onNav, userId, onOpenImage }) => {
   const [open, setOpen] = useState(false);
-  const a = target.author;
+  const a    = target.author;
   const prog = target.progress || [];
   const latest = prog[prog.length - 1];
   const goProfile = () => onNav(`/user/${a?._id}`);
@@ -328,18 +351,9 @@ const TargetCard = memo(({ target, onRate, onNav, userId, onOpenImage }) => {
         {latest && (
           <div className="tc-tl-body" style={{ marginBottom: 6 }}>
             {latest.isCompletion && <span className="tc-complete-tag">✓ COMPLETION</span>}
-            {latest.text && <p className="tc-p-text">{latest.text}</p>}
-            {latest.link && <a href={latest.link} target="_blank" rel="noreferrer" className="tc-p-link">{latest.link}</a>}
-            {latest.image && (
-              <img
-                src={latest.image}
-                alt=""
-                className="tc-p-img"
-                loading="lazy"
-                decoding="async"
-                onClick={() => onOpenImage(latest.image)}
-              />
-            )}
+            {latest.text  && <p className="tc-p-text">{latest.text}</p>}
+            {latest.link  && <a href={latest.link} target="_blank" rel="noreferrer" className="tc-p-link">{latest.link}</a>}
+            {latest.image && <img src={latest.image} alt="" className="tc-p-img" loading="lazy" decoding="async" onClick={() => onOpenImage(latest.image)} />}
           </div>
         )}
         {prog.length > 1 && (
@@ -352,18 +366,9 @@ const TargetCard = memo(({ target, onRate, onNav, userId, onOpenImage }) => {
             {prog.slice(0, -1).reverse().map(p => (
               <div key={p._id} className="tc-tl-body">
                 {p.isCompletion && <span className="tc-complete-tag">✓ COMPLETION</span>}
-                {p.text && <p className="tc-p-text">{p.text}</p>}
-                {p.link && <a href={p.link} target="_blank" rel="noreferrer" className="tc-p-link">{p.link}</a>}
-                {p.image && (
-                  <img
-                    src={p.image}
-                    alt=""
-                    className="tc-p-img"
-                    loading="lazy"
-                    decoding="async"
-                    onClick={() => onOpenImage(p.image)}
-                  />
-                )}
+                {p.text  && <p className="tc-p-text">{p.text}</p>}
+                {p.link  && <a href={p.link} target="_blank" rel="noreferrer" className="tc-p-link">{p.link}</a>}
+                {p.image && <img src={p.image} alt="" className="tc-p-img" loading="lazy" decoding="async" onClick={() => onOpenImage(p.image)} />}
               </div>
             ))}
           </div>
@@ -411,7 +416,7 @@ const CommentSection = memo(({ post, commentText, onChangeComment, onAddComment,
 
 // ── Post Card ─────────────────────────────────────────────────────────────────
 const PostCard = memo(({ post, user, onLike, onDelete, onToggleComments, showComments, commentText, onChangeComment, onAddComment, onProfileClick, onOpenImage }) => {
-  const pImg = typeof post.userId === "object" && post.userId?.profileImage ? post.userId.profileImage
+  const pImg  = typeof post.userId === "object" && post.userId?.profileImage ? post.userId.profileImage
     : (user && (post.userId?._id || post.userId)?.toString() === user._id?.toString() ? user.profileImage : null);
   const pName = typeof post.userId === "object" && post.userId?.name ? post.userId.name : post.userName || "Unknown";
   const isOwn = user && (post.userId?._id || post.userId)?.toString() === user._id?.toString();
@@ -429,24 +434,16 @@ const PostCard = memo(({ post, user, onLike, onDelete, onToggleComments, showCom
         {isOwn && <button className="del-btn" onClick={() => onDelete(post._id)}>Delete</button>}
       </div>
 
-      {/* Image */}
       {post.image && (
         <div className="fc-img-wrap">
-          <img
-            src={post.image}
-            alt={post.caption || "post"}
-            className="fc-img"
-            loading="lazy"
-            decoding="async"
-            width={468}
-            height={300}
-            onClick={() => onOpenImage(post.image)}
-          />
+          <img src={post.image} alt={post.caption || "post"} className="fc-img"
+            loading="lazy" decoding="async" width={468} height={300}
+            onClick={() => onOpenImage(post.image)} />
         </div>
       )}
 
-      {/* ✅ FIX: VideoBlock handles null check + YouTube processing delay internally */}
-      <VideoBlock videoUrl={post.videoUrl} createdAt={post.createdAt} />
+      {/* VideoBlock is always safe to call — handles null/empty internally */}
+      <VideoBlock videoUrl={post.videoUrl} />
 
       <div className="fc-body">
         {post.caption && <p className="fc-caption">{post.caption}</p>}
@@ -472,20 +469,20 @@ const PostCard = memo(({ post, user, onLike, onDelete, onToggleComments, showCom
 
 // ── Dashboard Home ────────────────────────────────────────────────────────────
 const DashboardHome = () => {
-  const { user } = useAuth();
-  const navigate = useNavigate();
+  const { user }   = useAuth();
+  const navigate   = useNavigate();
   const { posts, setPosts, loading, fetchPosts } = usePosts();
 
-  const [caption, setCaption] = useState("");
-  const [imgFile, setImgFile] = useState(null);
-  const [vidFile, setVidFile] = useState(null);
-  const [preview, setPreview] = useState(null);
-  const [vidPreview, setVidPreview] = useState(null);
-  const [creating, setCreating] = useState(false);
-  const [comments, setComments] = useState({});
-  const [openCmts, setOpenCmts] = useState({});
-  const [projects, setProjects] = useState([]);
-  const [targets, setTargets] = useState([]);
+  const [caption,     setCaption]     = useState("");
+  const [imgFile,     setImgFile]     = useState(null);
+  const [vidFile,     setVidFile]     = useState(null);
+  const [preview,     setPreview]     = useState(null);
+  const [vidPreview,  setVidPreview]  = useState(null);
+  const [creating,    setCreating]    = useState(false);
+  const [comments,    setComments]    = useState({});
+  const [openCmts,    setOpenCmts]    = useState({});
+  const [projects,    setProjects]    = useState([]);
+  const [targets,     setTargets]     = useState([]);
   const [lightboxSrc, setLightboxSrc] = useState(null);
   const taRef = useRef(null);
 
@@ -582,7 +579,7 @@ const DashboardHome = () => {
     } catch { alert("Failed to comment"); }
   }, [comments, user, setPosts]);
 
-  const handleOpenImage    = useCallback((src) => setLightboxSrc(src), []);
+  const handleOpenImage     = useCallback((src) => setLightboxSrc(src), []);
   const handleCloseLightbox = useCallback(() => setLightboxSrc(null), []);
 
   const userId = user?._id?.toString();
@@ -646,22 +643,16 @@ const DashboardHome = () => {
             )}
 
             <div className="compose-actions">
-              {/* Image upload */}
               <label className="compose-img-btn" title="Add photo">
                 <img src="/images/image.svg" alt="photo" style={{ width:17, height:17 }} />
                 <input type="file" accept="image/*" style={{ display:"none" }}
                   onChange={e => {
                     const f = e.target.files?.[0];
-                    if (f) {
-                      setImgFile(f);
-                      setPreview(URL.createObjectURL(f));
-                      setVidFile(null); setVidPreview(null);
-                    }
+                    if (f) { setImgFile(f); setPreview(URL.createObjectURL(f)); setVidFile(null); setVidPreview(null); }
                     e.target.value = "";
                   }} />
               </label>
 
-              {/* Video upload */}
               <label className="compose-vid-btn" title="Add video (uploaded to YouTube Unlisted)">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#374151" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <polygon points="23 7 16 12 23 17 23 7"/>
@@ -670,16 +661,11 @@ const DashboardHome = () => {
                 <input type="file" accept="video/*" style={{ display:"none" }}
                   onChange={e => {
                     const f = e.target.files?.[0];
-                    if (f) {
-                      setVidFile(f);
-                      setVidPreview(URL.createObjectURL(f));
-                      setImgFile(null); setPreview(null);
-                    }
+                    if (f) { setVidFile(f); setVidPreview(URL.createObjectURL(f)); setImgFile(null); setPreview(null); }
                     e.target.value = "";
                   }} />
               </label>
 
-              {/* Send */}
               <button className="compose-send" onClick={handleCreatePost} disabled={creating || (!caption.trim() && !imgFile && !vidFile)}>
                 {creating
                   ? <div className="compose-spinner" />
