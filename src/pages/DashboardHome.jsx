@@ -125,8 +125,34 @@ const STYLES = `
   }
   .lightbox-close:hover { background:rgba(255,255,255,0.22); }
 
-  .fc-video { max-width:100%; max-height:300px; border-radius:10px; display:block; background:#000; }
+  /* ── Video: all states share a fixed 16:9 wrapper so card never resizes ── */
   .fc-video-wrap { padding-left:52px; margin-bottom:8px; }
+  .fc-video-box {
+    position:relative; width:100%;
+    aspect-ratio:16/9;
+    border-radius:10px; overflow:hidden; background:#000;
+  }
+  .fc-video-box iframe {
+    position:absolute; inset:0;
+    width:100%; height:100%;
+    border:none; display:block;
+  }
+  .fc-video-box video {
+    position:absolute; inset:0;
+    width:100%; height:100%;
+    object-fit:cover; display:block;
+  }
+  /* processing / not-ready state card */
+  .fc-video-box .yt-proc-card {
+    position:absolute; inset:0;
+    display:flex; align-items:center; gap:12px;
+    padding:14px 16px;
+    background:#0a0a0a;
+    text-decoration:none;
+  }
+  .yt-proc-card-text p { margin:0; }
+  .yt-proc-title { font-size:13px; font-weight:600; color:#fff; }
+  .yt-proc-sub   { font-size:11px; color:#aaa; margin-top:3px !important; }
 `;
 
 if (typeof document !== "undefined" && !document.getElementById("dh-styles")) {
@@ -146,9 +172,8 @@ const fmtDate = (d) => {
 const badgeClass = (s) => `badge ${s === "completed" ? "badge-completed" : s === "in-progress" ? "badge-in-progress" : "badge-idea"}`;
 const badgeLabel = (s) => s === "in-progress" ? "In Progress" : s === "completed" ? "Completed" : "Idea";
 
-// Shared YouTube SVG icon
 const YT_ICON = (
-  <svg width="32" height="32" viewBox="0 0 24 24" fill="#ff0000">
+  <svg width="32" height="32" viewBox="0 0 24 24" fill="#ff0000" style={{ flexShrink: 0 }}>
     <path d="M23.5 6.2s-.3-2-1.2-2.8c-1.1-1.2-2.4-1.2-3-1.3C16.6 2 12 2 12 2s-4.6 0-7.3.1c-.6.1-1.9.1-3 1.3C.8 4.2.5 6.2.5 6.2S.2 8.5.2 10.8v2.1c0 2.3.3 4.6.3 4.6s.3 2 1.2 2.8c1.1 1.2 2.6 1.1 3.3 1.2C7 21.7 12 21.8 12 21.8s4.6 0 7.3-.2c.6-.1 1.9-.1 3-1.3.9-.8 1.2-2.8 1.2-2.8s.3-2.3.3-4.6v-2.1C23.8 8.5 23.5 6.2 23.5 6.2zM9.7 15.5V8.4l8.1 3.6-8.1 3.5z"/>
   </svg>
 );
@@ -192,14 +217,31 @@ const Stars = memo(({ ratings, itemId, type, onRate, userId }) => {
 });
 
 // ── Video Block ───────────────────────────────────────────────────────────────
-// Probes the YouTube thumbnail image to know for certain whether the video has
-// finished processing. hqdefault.jpg returns 404 while YouTube is still
-// transcoding — once it returns 200 the video is embeddable. No time guessing.
+//
+// FIX 2 — Card never changes size: every render state (iframe / processing
+//          card / native video) lives inside `.fc-video-box` which is a fixed
+//          16:9 aspect-ratio container. No layout shift at all.
+//
+// FIX 3 — No "Checking…" flash on refresh: `ytReady` starts as `true`
+//          (optimistic). The hqdefault.jpg probe runs silently in the background.
+//          Existing, already-processed videos show the iframe instantly.
+//          Only fresh uploads that are still transcoding will flip to the
+//          processing card *after* the probe resolves to false.
+//
+// FIX 4 — Cleaner iframe: modestbranding=1, rel=0, iv_load_policy=3 strip
+//          most YouTube chrome. Channel name/logo can't be fully removed by
+//          the embed API, but modestbranding reduces it significantly.
+//
+// FIX 6 — Autoplay + loop: autoplay=1 + mute=1 (browsers require muted for
+//          autoplay), loop=1, playlist=VIDEO_ID (YouTube needs the playlist
+//          param to actually loop a single video).
 const VideoBlock = memo(({ videoUrl }) => {
-  // null = probing, true = ready, false = still processing
-  const [ytReady, setYtReady] = useState(null);
+  // Optimistic true → show iframe immediately; only downgrade if probe fails.
+  const [ytReady, setYtReady] = useState(true);
 
-  const isYouTube = videoUrl && (videoUrl.includes("youtube.com") || videoUrl.includes("youtu.be"));
+  const isYouTube = Boolean(
+    videoUrl && (videoUrl.includes("youtube.com") || videoUrl.includes("youtu.be"))
+  );
 
   const videoId = useMemo(() => {
     if (!isYouTube) return null;
@@ -209,80 +251,72 @@ const VideoBlock = memo(({ videoUrl }) => {
 
   useEffect(() => {
     if (!videoId) return;
-    setYtReady(null); // reset whenever videoId changes
+    setYtReady(true); // reset to optimistic whenever videoId changes
     const img = new Image();
     img.onload  = () => setYtReady(true);
     img.onerror = () => setYtReady(false);
-    // YouTube only serves hqdefault.jpg after processing is fully complete
+    // hqdefault.jpg 404s while YouTube is still transcoding; 200 means ready.
     img.src = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
   }, [videoId]);
 
-  // No video URL at all — render nothing
   if (!videoUrl) return null;
 
-  // Non-YouTube direct video
+  // ── Native (non-YouTube) video ─────────────────────────────────────────────
   if (!isYouTube) {
     return (
       <div className="fc-video-wrap">
-        <video className="fc-video" controls src={videoUrl} />
-      </div>
-    );
-  }
-
-  // Still probing thumbnail
-  if (ytReady === null) {
-    return (
-      <div className="fc-video-wrap">
-        <div style={{
-          display: "flex", alignItems: "center", gap: 10,
-          padding: "12px 14px", background: "#111",
-          borderRadius: 10, color: "#aaa",
-        }}>
-          {YT_ICON}
-          <span style={{ fontSize: 12 }}>Checking video…</span>
+        <div className="fc-video-box">
+          <video
+            autoPlay
+            loop
+            muted
+            playsInline
+            controls
+            src={videoUrl}
+          />
         </div>
       </div>
     );
   }
 
-  // YouTube confirmed NOT ready — show processing card with direct link
+  // ── YouTube: still transcoding ────────────────────────────────────────────
   if (!ytReady) {
     return (
       <div className="fc-video-wrap">
-        <a href={videoUrl} target="_blank" rel="noreferrer" style={{
-          display: "flex", alignItems: "center", gap: 10,
-          padding: "12px 14px", background: "#000",
-          borderRadius: 10, textDecoration: "none", color: "#fff",
-        }}>
-          {YT_ICON}
-          <div>
-            <p style={{ margin: 0, fontSize: 13, fontWeight: 600 }}>Video processing on YouTube…</p>
-            <p style={{ margin: "2px 0 0", fontSize: 11, color: "#aaa" }}>
-              Usually ready in 2–5 min. Click to watch when ready ↗
-            </p>
-          </div>
-        </a>
+        <div className="fc-video-box">
+          <a
+            href={videoUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="yt-proc-card"
+          >
+            {YT_ICON}
+            <div className="yt-proc-card-text">
+              <p className="yt-proc-title">Video processing on YouTube…</p>
+              <p className="yt-proc-sub">Usually ready in 2–5 min · tap to watch when ready ↗</p>
+            </div>
+          </a>
+        </div>
       </div>
     );
   }
 
-  // ✅ Thumbnail loaded — video is confirmed ready, show embed
-  const embedUrl = videoUrl
-    .replace("watch?v=", "embed/")
-    .replace("youtu.be/", "youtube.com/embed/");
+  // ── YouTube: ready — embed with autoplay / loop / clean chrome ───────────
+  const embedUrl =
+    `https://www.youtube.com/embed/${videoId}` +
+    `?autoplay=1&mute=1&loop=1&playlist=${videoId}` +
+    `&rel=0&modestbranding=1&iv_load_policy=3&playsinline=1&controls=1`;
 
   return (
     <div className="fc-video-wrap">
-      <iframe
-        width="100%"
-        height="220"
-        src={embedUrl}
-        title="video"
-        frameBorder="0"
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-        allowFullScreen
-        style={{ borderRadius: 10, display: "block" }}
-      />
+      <div className="fc-video-box">
+        <iframe
+          src={embedUrl}
+          title="video"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+        />
+      </div>
     </div>
   );
 });
@@ -442,7 +476,7 @@ const PostCard = memo(({ post, user, onLike, onDelete, onToggleComments, showCom
         </div>
       )}
 
-      {/* VideoBlock is always safe to call — handles null/empty internally */}
+      {/* VideoBlock handles null/empty videoUrl safely — renders nothing */}
       <VideoBlock videoUrl={post.videoUrl} />
 
       <div className="fc-body">
