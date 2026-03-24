@@ -87,7 +87,7 @@ export default function LoginPopup() {
 
         {/* Header */}
         <h2 style={{ fontSize: "20px", fontWeight: 600, marginBottom: "6px", color: "#1a1a1a" }}>
-          Welcome to NetworkUp 👋
+          Welcome to NetworkUp 
         </h2>
         <p style={{ fontSize: "14px", color: "#737373", marginBottom: "24px" }}>
           Sign in to get the full experience
