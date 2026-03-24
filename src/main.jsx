@@ -34,6 +34,7 @@ import LostFound from "./context/LostFound.jsx";
 import RoomFinder from "./pages/RoomFinder.jsx";
 import Attendance from "./pages/Attendance.jsx";
 import OnboardingFlow from "./pages/OnboardingFlow.jsx";
+import LoginPopup from "./components/Loginpopup.jsx"; 
 
 // ✅ FIX: Use lazy import so a missing/broken ExplorePage does NOT crash the
 // entire app at startup — it will only error when that route is visited.
@@ -162,6 +163,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
     <AuthProvider>
       <PostsProvider>
         <RouterProvider router={router} />
+        <LoginPopup />
       </PostsProvider>
     </AuthProvider>
   </React.StrictMode>,

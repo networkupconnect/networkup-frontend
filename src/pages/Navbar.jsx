@@ -21,7 +21,7 @@ export default function Navbar() {
                 <img src="/images/chat.svg" alt="Chat" className="w-6 h-6" />
               </NavLink>
 
-              {/* Profile avatar — hidden on mobile, visible on desktop */}
+          
               <NavLink to="/profile" className="hidden sm:block">
                 <img
                   src={user?.profileImage || "/images/profile.svg"}
