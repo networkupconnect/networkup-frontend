@@ -219,17 +219,8 @@ const Stars = memo(({ ratings, itemId, type, onRate, userId }) => {
 });
 
 // ── Video Block ───────────────────────────────────────────────────────────────
-//
-// Dynamic height: native <video> uses width:100%;height:auto — the browser
-// preserves the video's real aspect ratio (portrait videos are tall, landscape
-// are wide). YouTube iframes fetch the real dimensions from the oEmbed API and
-// apply them as an inline aspect-ratio style, so the container always matches
-// the video's actual proportions with no black bars.
-//
 const VideoBlock = memo(({ videoUrl }) => {
   const [ytReady,      setYtReady]      = useState(true);
-  // oEmbed-derived ratio (w/h). Default 16/9 renders immediately; updated once
-  // the lightweight oEmbed fetch returns — typically before the user interacts.
   const [ytRatio,      setYtRatio]      = useState(16 / 9);
 
   const nativeRef = useRef(null);
@@ -245,18 +236,15 @@ const VideoBlock = memo(({ videoUrl }) => {
     return m ? m[1] : null;
   }, [videoUrl, isYouTube]);
 
-  // ── Probe + oEmbed (YouTube only) ─────────────────────────────────────────
   useEffect(() => {
     if (!videoId) return;
     setYtReady(true);
 
-    // 1. Thumbnail probe — detect transcoding
     const img = new Image();
     img.onload  = () => setYtReady(true);
     img.onerror = () => setYtReady(false);
     img.src = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
 
-    // 2. oEmbed fetch — get real video dimensions for dynamic aspect ratio
     let cancelled = false;
     fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`)
       .then(r => r.json())
@@ -265,22 +253,18 @@ const VideoBlock = memo(({ videoUrl }) => {
           setYtRatio(data.width / data.height);
         }
       })
-      .catch(() => { /* keep default 16/9 on network error */ });
+      .catch(() => {});
 
     return () => { cancelled = true; };
   }, [videoId]);
 
-  // ── IntersectionObserver — native <video> ─────────────────────────────────
   useEffect(() => {
     const el = nativeRef.current;
     if (!el) return;
     const obs = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) {
-          el.play().catch(() => {});
-        } else {
-          el.pause();
-        }
+        if (entry.isIntersecting) { el.play().catch(() => {}); }
+        else { el.pause(); }
       },
       { threshold: 0.5 }
     );
@@ -289,14 +273,13 @@ const VideoBlock = memo(({ videoUrl }) => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [videoUrl, isYouTube]);
 
-  // ── IntersectionObserver — YouTube iframe via postMessage ──────────────────
   const sendYTCmd = useCallback((iframe, cmd) => {
     try {
       iframe.contentWindow?.postMessage(
         JSON.stringify({ event: "command", func: cmd, args: [] }),
         "*"
       );
-    } catch { /* cross-origin — non-fatal */ }
+    } catch {}
   }, []);
 
   useEffect(() => {
@@ -320,8 +303,6 @@ const VideoBlock = memo(({ videoUrl }) => {
 
   if (!videoUrl) return null;
 
-  // ── Native (non-YouTube) video — natural dimensions ───────────────────────
-  // width:100% + height:auto lets the browser respect the video's own ratio.
   if (!isYouTube) {
     return (
       <div className="fc-video-wrap">
@@ -337,11 +318,9 @@ const VideoBlock = memo(({ videoUrl }) => {
     );
   }
 
-  // ── YouTube: still transcoding ─────────────────────────────────────────────
   if (!ytReady) {
     return (
       <div className="fc-video-wrap">
-        {/* Use real ratio if already fetched, otherwise 16/9 default */}
         <div className="fc-video-box" style={{ aspectRatio: ytRatio }}>
           <a href={videoUrl} target="_blank" rel="noreferrer" className="yt-proc-card">
             {YT_ICON}
@@ -355,14 +334,12 @@ const VideoBlock = memo(({ videoUrl }) => {
     );
   }
 
-  // ── YouTube: ready — iframe with real aspect ratio ─────────────────────────
   const embedUrl =
     `https://www.youtube.com/embed/${videoId}` +
     `?enablejsapi=1&mute=0&rel=0&modestbranding=1&iv_load_policy=3&playsinline=1&controls=1`;
 
   return (
     <div className="fc-video-wrap">
-      {/* aspectRatio inline style = real video width÷height from oEmbed */}
       <div className="fc-video-box" style={{ aspectRatio: ytRatio }}>
         <iframe
           ref={iframeRef}
@@ -512,43 +489,48 @@ const PostCard = memo(({ post, user, onLike, onDelete, onToggleComments, showCom
   const liked = user && (post.likes || []).includes(user._id);
 
   return (
-    <article className="fc">
+    <article className="fc" style={post._isTemp ? { opacity: 0.65, pointerEvents: "none" } : undefined}>
       <div className="fc-hd">
         <div className="fc-who">
-          <div className="fc-clk" onClick={() => onProfileClick(post)}>
+          <div className="fc-clk" onClick={() => !post._isTemp && onProfileClick(post)}>
             <Av src={pImg} name={pName} />
-            <div><p className="fc-name">{pName}</p><p className="fc-sub">{fmtDate(post.createdAt)}</p></div>
+            <div>
+              <p className="fc-name">{pName}</p>
+              <p className="fc-sub">{post._isTemp ? "Posting…" : fmtDate(post.createdAt)}</p>
+            </div>
           </div>
         </div>
-        {isOwn && <button className="del-btn" onClick={() => onDelete(post._id)}>Delete</button>}
+        {!post._isTemp && isOwn && <button className="del-btn" onClick={() => onDelete(post._id)}>Delete</button>}
       </div>
 
       {post.image && (
         <div className="fc-img-wrap">
           <img src={post.image} alt={post.caption || "post"} className="fc-img"
             loading="lazy" decoding="async" width={468} height={300}
-            onClick={() => onOpenImage(post.image)} />
+            onClick={() => !post._isTemp && onOpenImage(post.image)} />
         </div>
       )}
 
       {/* VideoBlock handles null/empty videoUrl safely — renders nothing */}
-      <VideoBlock videoUrl={post.videoUrl} />
+      {!post._isTemp && <VideoBlock videoUrl={post.videoUrl} />}
 
       <div className="fc-body">
         {post.caption && <p className="fc-caption">{post.caption}</p>}
-        <div className="fc-actions" style={{ marginBottom: showComments ? 10 : 0 }}>
-          <button className="fc-act-btn" onClick={() => onLike(post._id)} disabled={!user}>
-            {liked
-              ? <img width={15} height={15} src="/images/lheart.svg" alt="" />
-              : <img width={15} height={15} src="/images/ulheart.svg" alt="" />}
-            <span className={`fc-act-count ${liked ? "liked" : ""}`}>{(post.likes || []).length}</span>
-          </button>
-          <button className="fc-act-btn" onClick={() => onToggleComments(post._id)}>
-            <img width={15} height={15} src="/images/comment.svg" alt="" />
-            <span className="fc-act-count">{(post.comments || []).length}</span>
-          </button>
-        </div>
-        {showComments && (
+        {!post._isTemp && (
+          <div className="fc-actions" style={{ marginBottom: showComments ? 10 : 0 }}>
+            <button className="fc-act-btn" onClick={() => onLike(post._id)} disabled={!user}>
+              {liked
+                ? <img width={15} height={15} src="/images/lheart.svg" alt="" />
+                : <img width={15} height={15} src="/images/ulheart.svg" alt="" />}
+              <span className={`fc-act-count ${liked ? "liked" : ""}`}>{(post.likes || []).length}</span>
+            </button>
+            <button className="fc-act-btn" onClick={() => onToggleComments(post._id)}>
+              <img width={15} height={15} src="/images/comment.svg" alt="" />
+              <span className="fc-act-count">{(post.comments || []).length}</span>
+            </button>
+          </div>
+        )}
+        {showComments && !post._isTemp && (
           <CommentSection post={post} commentText={commentText} onChangeComment={onChangeComment} onAddComment={onAddComment} user={user} />
         )}
       </div>
@@ -621,22 +603,67 @@ const DashboardHome = () => {
     else navigate(`/user/${pid}`);
   }, [user, navigate]);
 
+  // ── ✅ FIXED: Optimistic post creation ──────────────────────────────────────
+  // The form clears and a dimmed preview card appears instantly.
+  // On success it is swapped for the real server post.
+  // On failure the temp card is removed and the form state is restored.
   const handleCreatePost = useCallback(async () => {
-    if (!caption.trim() && !imgFile && !vidFile) { alert("Add a photo, video or write something"); return; }
+    if (!caption.trim() && !imgFile && !vidFile) {
+      alert("Add a photo, video or write something");
+      return;
+    }
+
+    // Snapshot current form values before clearing
+    const savedCaption    = caption.trim();
+    const savedImgFile    = imgFile;
+    const savedVidFile    = vidFile;
+    const savedPreview    = preview;
+    const savedVidPreview = vidPreview;
+
+    // Build a temporary post that matches PostCard's expected shape
+    const tempId   = `temp_${Date.now()}`;
+    const tempPost = {
+      _id:       tempId,
+      _ft:       "post",
+      _isTemp:   true,
+      userId:    { _id: user._id, name: user.name, profileImage: user.profileImage },
+      userName:  user.name,
+      caption:   savedCaption,
+      image:     savedPreview    || "",
+      videoUrl:  savedVidPreview || "",
+      likes:     [],
+      comments:  [],
+      createdAt: new Date().toISOString(),
+    };
+
+    // Show it immediately & clear the form
+    setPosts(p => [tempPost, ...p]);
+    setCaption(""); setImgFile(null); setVidFile(null);
+    setPreview(null); setVidPreview(null);
+    if (taRef.current) taRef.current.style.height = "36px";
+
     const fd = new FormData();
-    if (imgFile) fd.append("image", imgFile);
-    if (vidFile) fd.append("video", vidFile);
-    if (caption.trim()) fd.append("caption", caption);
+    if (savedImgFile) fd.append("image", savedImgFile);
+    if (savedVidFile) fd.append("video", savedVidFile);
+    if (savedCaption) fd.append("caption", savedCaption);
+
     try {
       setCreating(true);
       const res = await api.post("/api/feed/post", fd);
-      setPosts(p => [res.data, ...p]);
-      setImgFile(null); setVidFile(null);
-      setCaption(""); setPreview(null); setVidPreview(null);
-      if (taRef.current) taRef.current.style.height = "36px";
-    } catch (e) { alert(e.response?.data?.message || "Failed"); }
-    finally { setCreating(false); }
-  }, [caption, imgFile, vidFile, setPosts]);
+      // Swap temp post with the real one from the server
+      setPosts(p => p.map(x => x._id === tempId ? { ...res.data, _ft: "post" } : x));
+    } catch (e) {
+      // Roll back: remove the temp post and restore the form
+      setPosts(p => p.filter(x => x._id !== tempId));
+      setCaption(savedCaption);
+      setImgFile(savedImgFile);    setVidFile(savedVidFile);
+      setPreview(savedPreview);    setVidPreview(savedVidPreview);
+      if (taRef.current) { taRef.current.style.height = "auto"; resize(); }
+      alert(e.response?.data?.message || "Failed to post. Please try again.");
+    } finally {
+      setCreating(false);
+    }
+  }, [caption, imgFile, vidFile, preview, vidPreview, user, setPosts, resize]);
 
   const handleDeletePost = useCallback(async (id) => {
     if (!window.confirm("Delete this post?")) return;

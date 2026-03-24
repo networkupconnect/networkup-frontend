@@ -261,6 +261,7 @@ export default function Feed() {
 
                   {/* Actions */}
                   <div className="flex items-center gap-4 px-4 py-3 border-t border-gray-100">
+                    
                     <button
                       onClick={() => !post._isTemp && handleLike(post._id)}
                       disabled={!!post._isTemp}
