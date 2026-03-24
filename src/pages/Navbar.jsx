@@ -24,7 +24,7 @@ export default function Navbar() {
               {/* Profile avatar — hidden on mobile, visible on desktop */}
               <NavLink to="/profile" className="hidden sm:block">
                 <img
-                  src={user?.profileImage || "/images/Profile.svg"}
+                  src={user?.profileImage || "/images/profile.svg"}
                   alt="Profile"
                   className="rounded-full border-2 border-blue-600 w-9 h-9 object-cover"
                 />

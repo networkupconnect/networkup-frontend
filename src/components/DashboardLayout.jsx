@@ -98,7 +98,7 @@ export default function DashboardLayout() {
     { name: "Shop",     path: "/buy-sell", imgsrc: "/images/cart.svg"  },
     { name: "Explore",  path: "/explore",  imgsrc: null                }, // compass icon rendered inline
     { name: "Connect",  path: "/connections", imgsrc: "/images/connections.svg" },
-    { name: "Profile",  path: "/profile",  imgsrc: "/images/Profile.svg" },
+    { name: "Profile",  path: "/profile",  imgsrc: "/images/profile.svg" },
   ];
 
   const handleNavClick = (e, link) => {
