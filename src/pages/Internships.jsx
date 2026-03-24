@@ -65,7 +65,7 @@ const SKILL_TAGS = [
 
 /* ─── Share helper ──────────────────────────────────────────────────────── */
 async function shareJob(job) {
-  const pageUrl = `https://networkup.in/internships?id=${job.id}`;
+  const pageUrl = `https://test.networkup.in/internships?id=${job.id}`;
   const eligibility = job.tags?.filter(
     t => !["Remote", "Internship"].includes(t)
   ).slice(0, 3).join(", ") || null;

@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'https://network.networkup.in',
+  baseURL: 'https://testing.networkup.in',
 });
 
 api.interceptors.request.use((config) => {
