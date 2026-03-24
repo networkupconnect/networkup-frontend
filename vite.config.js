@@ -10,7 +10,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'https://network.networkup.in',
+        target: 'https://testing.networkup.in',
         changeOrigin: true,
         secure: true,
       }
