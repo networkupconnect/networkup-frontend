@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 const EXPLORE_LINKS = [
+  { name: "Attendance",  path: "/attendance",  icon: "/images/attendance.svg",  desc: "Bunk Safe" },
   { name: "Rooms",        path: "/rooms",       icon: "🏠", desc: "Find PGs & roommates" },
   { name: "Internships",  path: "/Internships", icon: "💼", desc: "Browse opportunities"  },
   { name: "Chat",         path: "/messages",    icon: "💬", desc: "Message classmates"    },

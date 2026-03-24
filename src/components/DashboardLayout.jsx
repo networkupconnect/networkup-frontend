@@ -75,6 +75,7 @@ export default function DashboardLayout() {
     { name: "Chat",        path: "/messages",    imgsrc: "/images/chat.svg",        authType: null },
   ];
 
+  
   const allLinks2 = [
     { name: "Rooms",        path: "/rooms",       imgsrc: "/images/room.svg",        authType: null },
     { name: "Internships",  path: "/Internships", imgsrc: "/images/alert.svg",       authType: null },
