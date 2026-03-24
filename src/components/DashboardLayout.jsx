@@ -107,14 +107,14 @@ export default function DashboardLayout() {
       e.preventDefault();
       showAuthToast(
         link.authType === "profile"
-          ? "⚙️ Please setup your profile first — add Branch, Year & Section"
-          : "🔐 Please login first to access this feature"
+          ? " Please setup your profile first — add Branch, Year & Section"
+          : " Please login first to access this feature"
       );
       return;
     }
     if (link.authType === "profile" && (!user.branch || !user.year || !user.section)) {
       e.preventDefault();
-      showAuthToast("⚙️ Please setup your profile first — add Branch, Year & Section");
+      showAuthToast(" Please setup your profile first — add Branch, Year & Section");
     }
   };
 

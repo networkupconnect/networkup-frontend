@@ -36,12 +36,12 @@ export default function ExplorePage() {
     }
     if (link.authType === "profile") {
       if (!user) {
-        setToast("⚙️ Please setup your profile first — add Branch, Year & Section");
+        setToast(" Please setup your profile first — add Branch, Year & Section");
         setTimeout(() => setToast(null), 3000);
         return;
       }
       if (!user.branch || !user.year || !user.section) {
-        setToast("⚙️ Please setup your profile first — add Branch, Year & Section");
+        setToast(" Please setup your profile first — add Branch, Year & Section");
         setTimeout(() => setToast(null), 3000);
         return;
       }
