@@ -15,8 +15,6 @@ export default function LoginPopup() {
 
   useEffect(() => {
     if (user) return;
-    if (sessionStorage.getItem("popupDismissed")) return;
-
     const timer = setTimeout(() => setShow(true), 10000);
     return () => clearTimeout(timer);
   }, [user]);
@@ -25,11 +23,6 @@ export default function LoginPopup() {
   useEffect(() => {
     if (user) setShow(false);
   }, [user]);
-
-  const handleClose = () => {
-    setShow(false);
-    sessionStorage.setItem("popupDismissed", "true");
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -44,7 +37,6 @@ export default function LoginPopup() {
         password,
       });
       login({ token: res.data.token, user: res.data.user });
-      handleClose(); // ✅ just close popup, no redirect
     } catch (err) {
       setError(err?.response?.data?.message || "Invalid email or password");
     } finally {
@@ -60,7 +52,6 @@ export default function LoginPopup() {
 
   return (
     <div
-      onClick={handleClose}
       style={{
         position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)",
         zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center",
@@ -68,26 +59,15 @@ export default function LoginPopup() {
       }}
     >
       <div
-        onClick={(e) => e.stopPropagation()}
         style={{
           background: "#fff", borderRadius: "16px", padding: "36px",
           width: "100%", maxWidth: "400px", position: "relative",
           boxShadow: "0 8px 40px rgba(0,0,0,0.15)",
         }}
       >
-        {/* Close button */}
-        <button
-          onClick={handleClose}
-          style={{
-            position: "absolute", top: "14px", right: "16px",
-            background: "none", border: "none", fontSize: "20px",
-            cursor: "pointer", color: "#737373", lineHeight: 1,
-          }}
-        >✕</button>
-
         {/* Header */}
         <h2 style={{ fontSize: "20px", fontWeight: 600, marginBottom: "6px", color: "#1a1a1a" }}>
-          Welcome to NetworkUp 
+          Welcome to NetworkUp
         </h2>
         <p style={{ fontSize: "14px", color: "#737373", marginBottom: "24px" }}>
           Sign in to get the full experience
