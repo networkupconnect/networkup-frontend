@@ -160,7 +160,7 @@ function CourseCard({ course, onEnroll, enrolled }) {
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
-        background: "#fbfafa",
+        background: "#0f0f0f",
         border: `1px solid ${hovered ? course.color + "55" : "#1e1e1e"}`,
         borderRadius: "14px", overflow: "hidden",
         display: "flex", flexDirection: "column",
