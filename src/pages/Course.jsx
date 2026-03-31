@@ -13,7 +13,7 @@ const ALL_COURSES = [
     link: "https://udemy.com",
   },
   {
-    id: 2, title: "Machine Learning A–Z", instructor: "Andrew Ng",
+    id: 2, title: "Machine Learning", instructor: "Andrew Ng",
     category: "AI & ML", level: "Intermediate", rating: 4.9, reviews: 98200,
     price: 999, originalPrice: 4999, duration: "44h", students: 340000,
     tags: ["Python", "TensorFlow", "Scikit-learn", "Deep Learning"],
