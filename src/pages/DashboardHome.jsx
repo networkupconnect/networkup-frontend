@@ -136,7 +136,7 @@ const STYLES = `
 
   /* YouTube iframe wrapper: aspect-ratio set via inline style from oEmbed    */
   .fc-video-box {
-    position:relative; width:100%;
+    position:relative; width:100%; height:64vh;
     border-radius:10px; overflow:hidden; background:#000;
   }
   .fc-video-box iframe {
