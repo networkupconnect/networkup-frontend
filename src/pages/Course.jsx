@@ -1,4 +1,4 @@
-import courses from "../data/courses";
+import courses from '../models/course.json';
 
 function Courses() {
   return (
