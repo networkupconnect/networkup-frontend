@@ -183,7 +183,7 @@ function CourseCard({ course, onEnroll, enrolled }) {
             {course.platform}
           </div>
           <div style={{
-            background: "#eeecec", border: `1px solid ${course.color}44`, borderRadius: "6px",
+            background: "#111", border: `1px solid ${course.color}44`, borderRadius: "6px",
             padding: "2px 8px", color: "#aaa", fontSize: "11px",
           }}>
             {course.duration} • {course.level}
