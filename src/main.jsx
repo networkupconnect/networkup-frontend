@@ -35,6 +35,7 @@ import RoomFinder from "./pages/RoomFinder.jsx";
 import Attendance from "./pages/Attendance.jsx";
 import OnboardingFlow from "./pages/OnboardingFlow.jsx";
 import LoginPopup from "./components/Loginpopup.jsx"; 
+import Course from "./pages/Course.jsx";
 
 // ✅ FIX: Use lazy import so a missing/broken ExplorePage does NOT crash the
 // entire app at startup — it will only error when that route is visited.
@@ -116,6 +117,7 @@ const router = createBrowserRouter([
       { path: "order-success", element: <OrderSuccess /> },
       { path: "user/:userId", element: <UserProfile /> },
       { path: "attendance",   element: <Attendance /> },
+      { path: "course", element: <Course /> },
 
       {
         path: "feedback",

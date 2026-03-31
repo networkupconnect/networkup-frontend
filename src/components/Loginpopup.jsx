@@ -6,7 +6,7 @@ import api from "../api/axios";
 const BACKEND = "https://network.networkup.in";
 
 export default function LoginPopup() {
-  const { user, login } = useAuth();
+  const { user, login } = useAuth(); 
   const [show, setShow] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
