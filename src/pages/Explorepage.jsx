@@ -9,12 +9,13 @@ const EXPLORE_LINKS = [
   { name: "Internships",  path: "/Internships", icon: "💼", desc: "Browse opportunities"  },
   { name: "Chat",         path: "/messages",    icon: "💬", desc: "Message classmates"    },
   { name: "Confessions",  path: "/confessions", icon: "🤫", desc: "Anonymous board"       },
-  { name: "Lost & Found", path: "/lostfound",   icon: "🔍", desc: "Recover lost items"   },
+  { name: "Course", path: "/course",   icon: "📚", desc: "Explore courses"   },
   { name: "PYQS & Notes", path: "/resources",   icon: "📚", desc: "Study resources",      authType: "profile" },
   { name: "Assignments",  path: "/assignments", icon: "📝", desc: "Track deadlines",       authType: "profile" },
   { name: "Feedback",     path: "/feedback",    icon: "📣", desc: "Share thoughts",        authType: "login"   },
   { name: "Seller Dashboard", path: "/seller",  icon: "🛒", desc: "Manage your shop",     role: ["seller", "admin"] },
   { name: "Admin Dashboard",  path: "/admin",   icon: "⚙️", desc: "Platform controls",   role: ["admin"] },
+
 ];
 
 export default function ExplorePage() {

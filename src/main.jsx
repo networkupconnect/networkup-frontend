@@ -30,7 +30,6 @@ import Confessions from "./pages/Confessions";
 import Internships from "./pages/Internships.jsx";
 import Feedback from "./pages/Feedback.jsx";
 import Assignments from "./pages/Assignments.jsx";
-import LostFound from "./context/LostFound.jsx";
 import RoomFinder from "./pages/RoomFinder.jsx";
 import Attendance from "./pages/Attendance.jsx";
 import OnboardingFlow from "./pages/OnboardingFlow.jsx";
@@ -109,7 +108,6 @@ const router = createBrowserRouter([
       { path: "connections",  element: <Connections /> },
       { path: "Internships",  element: <Internships /> },
       { path: "assignments",  element: <Assignments /> },
-      { path: "lostfound",    element: <LostFound /> },
       { path: "rooms",        element: <RoomFinder /> },
       { path: "buy-sell",     element: <BuySell /> },
       { path: "cart",         element: <Cart /> },
