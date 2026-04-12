@@ -91,7 +91,7 @@ const router = createBrowserRouter([
     children: [
       { index: true, element: <DashboardHome /> },
 
-      // ✅ ExplorePage wrapped in Suspense fallback so lazy load is safe
+  
       {
         path: "explore",
         element: (
