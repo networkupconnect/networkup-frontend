@@ -78,12 +78,13 @@ export default function DashboardLayout() {
   
   const allLinks2 = [
     { name: "Rooms",        path: "/rooms",       imgsrc: "/images/room.svg",        authType: null },
-    { name: "Internships",  path: "/Internships", imgsrc: "/images/alert.svg",       authType: null },
     { name: "Confessions",  path: "/confessions", imgsrc: "/images/inc.svg",         authType: null },
     { name: "PYQS & Notes", path: "/resources",   imgsrc: "/images/book.svg",        authType: "profile" },
     { name: "Assignments",  path: "/assignments", imgsrc: "/images/assignment.svg",  authType: "profile" },
-    { name: "Feedback",     path: "/feedback",    imgsrc: "/images/feedback.svg",    authType: "login" },
     { name: "Course",       path: "/course",      imgsrc: "/images/course.svg",      authType: null },
+    { name: "Internships",  path: "/Internships", imgsrc: "/images/alert.svg",       authType: null },
+    { name: "Feedback",     path: "/feedback",    imgsrc: "/images/feedback.svg",    authType: "login" },
+   
     ...(user && (user.role === "seller" || user.role === "admin")
       ? [{ name: "Seller Dashboard", path: "/seller", imgsrc: "/images/seller-cart.svg", authType: null }]
       : []),
