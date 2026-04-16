@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import api from "../api/axios";
-import notiicon from "../images/noti.svg";
+const notiicon = "/images/noti.svg";
 
 function timeAgo(date) {
   const diff = Date.now() - new Date(date);
