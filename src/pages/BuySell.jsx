@@ -304,7 +304,7 @@ export default function BuySell() {
       <button
         onClick={() => setShowSell(true)}
         aria-label="Sell an item"
-        style={{ transform: "translateY(-42px)" }} 
+        style={{ transform: "translateY(-52px)" }} 
         className={`
           fixed z-30 shadow-xl transition-all duration-200 active:scale-95
           flex items-center justify-center gap-2
