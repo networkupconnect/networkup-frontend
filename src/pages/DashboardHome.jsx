@@ -125,36 +125,11 @@ const STYLES = `
   }
   .lightbox-close:hover { background:rgba(255,255,255,0.22); }
 
-  /* ── Video: full card width, dynamic height ─────────────────────────────── */
   .fc-video-wrap { margin-bottom:8px; }
-
-  /* Native <video>: width fills card, height follows natural aspect ratio    */
   .fc-video-native {
     width:100%; height:auto; display:block;
     border-radius:10px; background:#000;
   }
-
-  /* YouTube iframe wrapper: aspect-ratio set via inline style from oEmbed    */
-  .fc-video-box {
-    position:relative; width:100%; height:64vh;
-    border-radius:10px; overflow:hidden; background:#000;
-  }
-  .fc-video-box iframe {
-    position:absolute; inset:0;
-    width:100%; height:100%;
-    border:none; display:block;
-  }
-  /* processing / not-ready state card */
-  .fc-video-box .yt-proc-card {
-    position:absolute; inset:0;
-    display:flex; align-items:center; gap:12px;
-    padding:14px 16px;
-    background:#0a0a0a;
-    text-decoration:none;
-  }
-  .yt-proc-card-text p { margin:0; }
-  .yt-proc-title { font-size:13px; font-weight:600; color:#fff; }
-  .yt-proc-sub   { font-size:11px; color:#aaa; margin-top:3px !important; }
 `;
 
 if (typeof document !== "undefined" && !document.getElementById("dh-styles")) {
@@ -173,12 +148,6 @@ const fmtDate = (d) => {
 
 const badgeClass = (s) => `badge ${s === "completed" ? "badge-completed" : s === "in-progress" ? "badge-in-progress" : "badge-idea"}`;
 const badgeLabel = (s) => s === "in-progress" ? "In Progress" : s === "completed" ? "Completed" : "Idea";
-
-const YT_ICON = (
-  <svg width="32" height="32" viewBox="0 0 24 24" fill="#ff0000" style={{ flexShrink: 0 }}>
-    <path d="M23.5 6.2s-.3-2-1.2-2.8c-1.1-1.2-2.4-1.2-3-1.3C16.6 2 12 2 12 2s-4.6 0-7.3.1c-.6.1-1.9.1-3 1.3C.8 4.2.5 6.2.5 6.2S.2 8.5.2 10.8v2.1c0 2.3.3 4.6.3 4.6s.3 2 1.2 2.8c1.1 1.2 2.6 1.1 3.3 1.2C7 21.7 12 21.8 12 21.8s4.6 0 7.3-.2c.6-.1 1.9-.1 3-1.3.9-.8 1.2-2.8 1.2-2.8s.3-2.3.3-4.6v-2.1C23.8 8.5 23.5 6.2 23.5 6.2zM9.7 15.5V8.4l8.1 3.6-8.1 3.5z"/>
-  </svg>
-);
 
 // ── Lightbox ──────────────────────────────────────────────────────────────────
 const Lightbox = memo(({ src, onClose }) => {
@@ -218,45 +187,9 @@ const Stars = memo(({ ratings, itemId, type, onRate, userId }) => {
   );
 });
 
-// ── Video Block ───────────────────────────────────────────────────────────────
+// ── Video Block (native only) ─────────────────────────────────────────────────
 const VideoBlock = memo(({ videoUrl }) => {
-  const [ytReady,      setYtReady]      = useState(true);
-  const [ytRatio,      setYtRatio]      = useState(16 / 9);
-
   const nativeRef = useRef(null);
-  const iframeRef = useRef(null);
-
-  const isYouTube = Boolean(
-    videoUrl && (videoUrl.includes("youtube.com") || videoUrl.includes("youtu.be"))
-  );
-
-  const videoId = useMemo(() => {
-    if (!isYouTube) return null;
-    const m = videoUrl.match(/(?:v=|youtu\.be\/)([^&?/]+)/);
-    return m ? m[1] : null;
-  }, [videoUrl, isYouTube]);
-
-  useEffect(() => {
-    if (!videoId) return;
-    setYtReady(true);
-
-    const img = new Image();
-    img.onload  = () => setYtReady(true);
-    img.onerror = () => setYtReady(false);
-    img.src = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
-
-    let cancelled = false;
-    fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`)
-      .then(r => r.json())
-      .then(data => {
-        if (!cancelled && data.width && data.height) {
-          setYtRatio(data.width / data.height);
-        }
-      })
-      .catch(() => {});
-
-    return () => { cancelled = true; };
-  }, [videoId]);
 
   useEffect(() => {
     const el = nativeRef.current;
@@ -270,85 +203,20 @@ const VideoBlock = memo(({ videoUrl }) => {
     );
     obs.observe(el);
     return () => obs.disconnect();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [videoUrl, isYouTube]);
-
-  const sendYTCmd = useCallback((iframe, cmd) => {
-    try {
-      iframe.contentWindow?.postMessage(
-        JSON.stringify({ event: "command", func: cmd, args: [] }),
-        "*"
-      );
-    } catch {}
-  }, []);
-
-  useEffect(() => {
-    const el = iframeRef.current;
-    if (!el) return;
-    const obs = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          sendYTCmd(el, "unMute");
-          sendYTCmd(el, "playVideo");
-        } else {
-          sendYTCmd(el, "pauseVideo");
-        }
-      },
-      { threshold: 0.5 }
-    );
-    obs.observe(el);
-    return () => obs.disconnect();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ytReady, videoId, sendYTCmd]);
+  }, [videoUrl]);
 
   if (!videoUrl) return null;
 
-  if (!isYouTube) {
-    return (
-      <div className="fc-video-wrap">
-        <video
-          ref={nativeRef}
-          className="fc-video-native"
-          loop
-          playsInline
-          controls
-          src={videoUrl}
-        />
-      </div>
-    );
-  }
-
-  if (!ytReady) {
-    return (
-      <div className="fc-video-wrap">
-        <div className="fc-video-box" style={{ aspectRatio: ytRatio }}>
-          <a href={videoUrl} target="_blank" rel="noreferrer" className="yt-proc-card">
-            {YT_ICON}
-            <div className="yt-proc-card-text">
-              <p className="yt-proc-title">Video processing on YouTube…</p>
-              <p className="yt-proc-sub">Usually ready in 2–5 min · tap to watch when ready ↗</p>
-            </div>
-          </a>
-        </div>
-      </div>
-    );
-  }
-
-  const embedUrl =
-    `https://www.youtube.com/embed/${videoId}` +
-    `?enablejsapi=1&mute=0&rel=0&modestbranding=1&iv_load_policy=3&playsinline=1&controls=1`;
-
   return (
     <div className="fc-video-wrap">
-      <div className="fc-video-box" style={{ aspectRatio: ytRatio }}>
-        <iframe
-          ref={iframeRef}
-          src={embedUrl}
-          title="video"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-        />
-      </div>
+      <video
+        ref={nativeRef}
+        className="fc-video-native"
+        loop
+        playsInline
+        controls
+        src={videoUrl}
+      />
     </div>
   );
 });
@@ -380,11 +248,10 @@ const ProjectCard = memo(({ project, onRate, onNav, userId, onOpenImage }) => {
         {project.tagline    && <p className="fc-proj-tline">{project.tagline}</p>}
         {project.description && <p className="fc-proj-desc">{project.description}</p>}
         {tags.length > 0 && <div className="fc-tags">{tags.map((t, i) => <span key={i} className="fc-tag">{t}</span>)}</div>}
-        {(project.liveUrl || project.repoUrl || project.ytUrl) && (
+        {(project.liveUrl || project.repoUrl) && (
           <div className="fc-links">
             {project.liveUrl && <a href={project.liveUrl} target="_blank" rel="noreferrer" className="fc-link primary">Live ↗</a>}
             {project.repoUrl && <a href={project.repoUrl} target="_blank" rel="noreferrer" className="fc-link">Repo ↗</a>}
-            {project.ytUrl   && <a href={project.ytUrl}   target="_blank" rel="noreferrer" className="fc-link">▶ Video</a>}
           </div>
         )}
         <Stars ratings={project.ratings || []} itemId={project._id} type="project" onRate={onRate} userId={userId} />
@@ -511,7 +378,6 @@ const PostCard = memo(({ post, user, onLike, onDelete, onToggleComments, showCom
         </div>
       )}
 
-      {/* VideoBlock handles null/empty videoUrl safely — renders nothing */}
       {!post._isTemp && <VideoBlock videoUrl={post.videoUrl} />}
 
       <div className="fc-body">
@@ -603,24 +469,18 @@ const DashboardHome = () => {
     else navigate(`/user/${pid}`);
   }, [user, navigate]);
 
-  // ── ✅ FIXED: Optimistic post creation ──────────────────────────────────────
-  // The form clears and a dimmed preview card appears instantly.
-  // On success it is swapped for the real server post.
-  // On failure the temp card is removed and the form state is restored.
   const handleCreatePost = useCallback(async () => {
     if (!caption.trim() && !imgFile && !vidFile) {
       alert("Add a photo, video or write something");
       return;
     }
 
-    // Snapshot current form values before clearing
     const savedCaption    = caption.trim();
     const savedImgFile    = imgFile;
     const savedVidFile    = vidFile;
     const savedPreview    = preview;
     const savedVidPreview = vidPreview;
 
-    // Build a temporary post that matches PostCard's expected shape
     const tempId   = `temp_${Date.now()}`;
     const tempPost = {
       _id:       tempId,
@@ -636,7 +496,6 @@ const DashboardHome = () => {
       createdAt: new Date().toISOString(),
     };
 
-    // Show it immediately & clear the form
     setPosts(p => [tempPost, ...p]);
     setCaption(""); setImgFile(null); setVidFile(null);
     setPreview(null); setVidPreview(null);
@@ -650,10 +509,8 @@ const DashboardHome = () => {
     try {
       setCreating(true);
       const res = await api.post("/api/feed/post", fd);
-      // Swap temp post with the real one from the server
       setPosts(p => p.map(x => x._id === tempId ? { ...res.data, _ft: "post" } : x));
     } catch (e) {
-      // Roll back: remove the temp post and restore the form
       setPosts(p => p.filter(x => x._id !== tempId));
       setCaption(savedCaption);
       setImgFile(savedImgFile);    setVidFile(savedVidFile);
@@ -700,7 +557,6 @@ const DashboardHome = () => {
 
   const userId = user?._id?.toString();
 
-  // ── Loading skeleton ──────────────────────────────────────────────────────
   if (loading && posts.length === 0) return (
     <div className="dh-wrap">
       <div className="dh-feed">
@@ -752,7 +608,6 @@ const DashboardHome = () => {
                 <video src={vidPreview} style={{ width:56, height:56, objectFit:"cover", borderRadius:7 }} muted />
                 <div style={{ flex:1 }}>
                   <p style={{ fontSize:11, color:"#374151", margin:0 }}>{vidFile?.name}</p>
-                  <p style={{ fontSize:10, color:"#9ca3af", margin:"2px 0 0" }}>Will be uploaded to YouTube (Unlisted)</p>
                 </div>
                 <button className="compose-preview-rm" onClick={() => { setVidFile(null); setVidPreview(null); }}>✕</button>
               </div>
@@ -769,7 +624,7 @@ const DashboardHome = () => {
                   }} />
               </label>
 
-              <label className="compose-vid-btn" title="Add video (uploaded to YouTube Unlisted)">
+              <label className="compose-vid-btn" title="Add video">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#374151" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <polygon points="23 7 16 12 23 17 23 7"/>
                   <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
