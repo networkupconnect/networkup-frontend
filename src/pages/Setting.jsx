@@ -1,62 +1,20 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api/axios";
 import { useAuth } from "../context/AuthContext";
 
 export default function Setting() {
-  const { user, updateUser, logout } = useAuth();
+  const { logout } = useAuth();
   const navigate = useNavigate();
 
-
-
-  const [isSeller, setIsSeller] = useState(user?.role === "seller");
-  const [loadingRole, setLoadingRole] = useState(false);
-
-  const [pw, setPw] = useState({
-    oldPassword: "",
-    newPassword: "",
-    confirm: "",
-  });
+  const [pw, setPw] = useState({ oldPassword: "", newPassword: "", confirm: "" });
   const [loadingPw, setLoadingPw] = useState(false);
-
   const [message, setMessage] = useState(null);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-
-  useEffect(() => {
-    if (!user) return;
-    setIsSeller(user.role === "seller");
-  }, [user]);
 
   const showMessage = (msg, type = "success") => {
     setMessage({ msg, type });
     setTimeout(() => setMessage(null), 4000);
-  };
-
-  // ================= ROLE TOGGLE =================
-  const toggleRole = async () => {
-    if (loadingRole) return;
-
-    try {
-      setLoadingRole(true);
-      const newRole = isSeller ? "user" : "seller";
-
-      const res = await api.put("/api/user/me/role", { role: newRole });
-
-      if (res.data?.token) {
-        localStorage.setItem("token", res.data.token);
-      }
-
-      updateUser(res.data.user);
-      setIsSeller(res.data.user.role === "seller");
-      showMessage(`Role changed to ${res.data.user.role}`);
-    } catch (err) {
-      showMessage(
-        err?.response?.data?.message || "Failed to change role",
-        "error"
-      );
-    } finally {
-      setLoadingRole(false);
-    }
   };
 
   // ================= CHANGE PASSWORD =================
@@ -75,14 +33,11 @@ export default function Setting() {
 
     try {
       setLoadingPw(true);
-
       await api.put("/api/user/me/password", {
         oldPassword: pw.oldPassword,
         newPassword: pw.newPassword,
       });
-
       showMessage("Password updated. Please login again.");
-
       setTimeout(() => {
         logout();
         navigate("/", { replace: true });
@@ -125,38 +80,6 @@ export default function Setting() {
         </div>
       )}
 
-      {/* ROLE TOGGLE */}
-      <div className="bg-white p-4 rounded shadow mb-6">
-        <h2 className="font-semibold mb-4">Account Role</h2>
-
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm text-gray-500">Current role</p>
-            <p className="font-bold text-lg">{isSeller ? "Seller" : "User"}</p>
-          </div>
-
-          <button
-            onClick={toggleRole}
-            disabled={loadingRole}
-            className={`relative w-14 h-8 rounded-full transition-colors duration-500 ease-in-out
-              ${isSeller ? "bg-blue-600" : "bg-gray-300"}
-              ${loadingRole ? "opacity-50 cursor-not-allowed" : ""}
-            `}
-          >
-            <span
-              className={`absolute top-1 left-1 w-6 h-6 bg-white rounded-full shadow
-                transition-transform duration-500 ease-in-out
-                ${isSeller ? "translate-x-6" : "translate-x-0"}
-              `}
-            />
-          </button>
-        </div>
-
-        <p className="mt-3 text-xs text-gray-500">
-          Toggle to switch between User and Seller mode
-        </p>
-      </div>
-
       {/* CHANGE PASSWORD */}
       <form onSubmit={changePassword} className="bg-white p-4 rounded shadow">
         <h2 className="font-semibold mb-3">Change Password</h2>
@@ -167,14 +90,12 @@ export default function Setting() {
           className="w-full p-2 mb-2 border rounded"
           onChange={(e) => setPw({ ...pw, oldPassword: e.target.value })}
         />
-
         <input
           type="password"
           placeholder="New password"
           className="w-full p-2 mb-2 border rounded"
           onChange={(e) => setPw({ ...pw, newPassword: e.target.value })}
         />
-
         <input
           type="password"
           placeholder="Confirm new password"
