@@ -318,7 +318,7 @@ export default function BuySell() {
         `}
       >
         {/* Plus icon — always visible */}
-        <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 40">
+        <svg className="w-5 h-5 flex-shrink-0" style={{ transform: "translateY(-2px)" }} fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
         </svg>
         {/* Label — only on mobile (hidden on sm+) */}
