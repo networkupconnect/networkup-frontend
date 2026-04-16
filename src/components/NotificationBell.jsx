@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import api from "../api/axios";
-import notiicon from "../images/noti.svg"; 
+import notiicon from "../images/noti.svg";
 
 function timeAgo(date) {
   const diff = Date.now() - new Date(date);
@@ -26,12 +26,10 @@ export default function NotificationBell() {
   useEffect(() => {
     if (!user) return;
     fetchNotifications();
-    // Poll every 30 seconds
     const interval = setInterval(fetchNotifications, 30000);
     return () => clearInterval(interval);
   }, [user]);
 
-  // Close dropdown on outside click
   useEffect(() => {
     const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
     document.addEventListener("mousedown", handler);
@@ -74,10 +72,13 @@ export default function NotificationBell() {
 
   return (
     <div className="relative" ref={ref}>
+
       {/* Bell button */}
-      <button onClick={() => { setOpen(p => !p); if (!open) markAllRead(); }}
-        className="relative w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-100 transition-all">
-        <span className="text-xl"><img src={notiicon} alt="Notifications" /></span>
+      <button
+        onClick={() => { setOpen(p => !p); if (!open) markAllRead(); }}
+        className="relative w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-100 transition-all"
+      >
+        <img src={notiicon} alt="Notifications" width={24} height={24} />
         {unread > 0 && (
           <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
             {unread > 9 ? "9+" : unread}
@@ -88,6 +89,8 @@ export default function NotificationBell() {
       {/* Dropdown */}
       {open && (
         <div className="absolute right-0 top-11 w-80 bg-white border border-gray-200 rounded-2xl shadow-2xl z-50 overflow-hidden">
+          
+          {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
             <p className="font-bold text-gray-800">Notifications</p>
             {notifications.length > 0 && (
@@ -97,18 +100,22 @@ export default function NotificationBell() {
             )}
           </div>
 
+          {/* List */}
           <div className="max-h-80 overflow-y-auto">
             {notifications.length === 0 ? (
-              <div className="text-center py-10">
-                <p className="text-3xl mb-2"><img src={notiicon} alt="Notifications" /></p>
+              <div className="text-center py-10 flex flex-col items-center gap-2">
+                <img src={notiicon} alt="No notifications" width={40} height={40} className="opacity-30" />
                 <p className="text-gray-400 text-sm">No notifications yet</p>
               </div>
             ) : (
               notifications.map(n => (
-                <div key={n._id} onClick={() => handleClick(n)}
+                <div
+                  key={n._id}
+                  onClick={() => handleClick(n)}
                   className={`flex items-start gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50 transition-all border-b border-gray-50 ${
                     !n.read ? "bg-blue-50" : ""
-                  }`}>
+                  }`}
+                >
                   <div className="text-xl flex-shrink-0 mt-0.5">
                     {n.type === "order" ? "🛒" : n.type === "message" ? "💬" : "📢"}
                   </div>
@@ -117,12 +124,15 @@ export default function NotificationBell() {
                     <p className="text-xs text-gray-500 line-clamp-2">{n.message}</p>
                     <p className="text-xs text-gray-400 mt-1">{timeAgo(n.createdAt)}</p>
                   </div>
-                  <button onClick={(e) => deleteNotification(e, n._id)}
-                    className="text-gray-300 hover:text-red-400 text-xs flex-shrink-0 mt-1">✕</button>
+                  <button
+                    onClick={(e) => deleteNotification(e, n._id)}
+                    className="text-gray-300 hover:text-red-400 text-xs flex-shrink-0 mt-1"
+                  >✕</button>
                 </div>
               ))
             )}
           </div>
+
         </div>
       )}
     </div>
