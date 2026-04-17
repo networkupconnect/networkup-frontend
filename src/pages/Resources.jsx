@@ -33,19 +33,11 @@ const pill = (active) => ({
   flexShrink:0, whiteSpace:"nowrap",
 });
 
-/* ─── ResourceForm — shared between Add and Edit modals ─────────────────── */
+/* ─── ResourceForm ───────────────────────────────────────────────────────── */
 function ResourceForm({
-  initial,       // null for new, resource object for edit
-  activeTab,
-  allSubjects,
-  onSave,        // async fn(payload) → throws on error
-  onClose,
-  showToast,
-  onNewSubject,
-  saving,
-  mode,          // "add" | "edit"
+  initial, activeTab, allSubjects, onSave, onClose,
+  showToast, onNewSubject, saving, mode,
 }) {
-  /* Parse existing unit string back into counter + topic */
   function parseUnit(str) {
     if (!str || str === "General") return { num: 1, topic: "" };
     const m = str.match(/^Module\s+(\d+)(?:\s+—\s+(.+))?$/i);
@@ -55,14 +47,14 @@ function ResourceForm({
 
   const parsed = parseUnit(initial?.unit);
 
-  const [title,       setTitle]       = useState(initial?.title       || "");
-  const [description, setDescription] = useState(initial?.description || "");
-  const [lectureLink, setLectureLink] = useState(initial?.lectureLink || "");
-  const [notesLink,   setNotesLink]   = useState(initial?.notesLink   || "");
-  const [unit,        setUnit]        = useState(parsed.num);
-  const [topic,       setTopic]       = useState(parsed.topic);
+  const [title,          setTitle]          = useState(initial?.title          || "");
+  const [description,    setDescription]    = useState(initial?.description    || "");
+  const [lectureLink,    setLectureLink]    = useState(initial?.lectureLink    || "");
+  const [notesLink,      setNotesLink]      = useState(initial?.notesLink      || "");
+  const [assignmentLink, setAssignmentLink] = useState(initial?.assignmentLink || ""); // ← NEW
+  const [unit,           setUnit]           = useState(parsed.num);
+  const [topic,          setTopic]          = useState(parsed.topic);
 
-  /* Subject state */
   const initSubj = initial?.subject || "";
   const isBaseOrExtra = allSubjects.some(s => s.toLowerCase() === initSubj.toLowerCase());
   const [subject,    setSubject]    = useState(isBaseOrExtra ? initSubj : "");
@@ -70,13 +62,14 @@ function ResourceForm({
   const [customSubj, setCustomSubj] = useState(isBaseOrExtra ? "" : initSubj);
 
   const finalSubject = isOther ? customSubj.trim() : subject;
-  const tabLabel = { notes:"Note", pyq:"PYQ", assignment:"Assignment" }[activeTab] || "Resource";
+  const tabLabel = { notes:"Note", pyq:"PYQ" }[activeTab] || "Resource";
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!title.trim())    return showToast("Title is required");
     if (!finalSubject)    return showToast("Select or enter a subject");
-    if (!lectureLink.trim() && !notesLink.trim()) return showToast("Add at least one link");
+    if (!lectureLink.trim() && !notesLink.trim() && !assignmentLink.trim())
+      return showToast("Add at least one link");
 
     if (isOther && customSubj.trim()) onNewSubject(customSubj.trim());
 
@@ -85,12 +78,13 @@ function ResourceForm({
       : `Module ${unit}`;
 
     await onSave({
-      title:       title.trim(),
-      description: description.trim(),
-      subject:     finalSubject,
-      unit:        unitStr,
-      lectureLink: lectureLink.trim(),
-      notesLink:   notesLink.trim(),
+      title:          title.trim(),
+      description:    description.trim(),
+      subject:        finalSubject,
+      unit:           unitStr,
+      lectureLink:    lectureLink.trim(),
+      notesLink:      notesLink.trim(),
+      assignmentLink: assignmentLink.trim(), // ← NEW
     });
   };
 
@@ -129,7 +123,7 @@ function ResourceForm({
         )}
       </div>
 
-      {/* Module counter + optional topic */}
+      {/* Module counter */}
       <div>
         <label style={lbl}>Unit / Module</label>
         <div style={{ display:"flex", alignItems:"center", gap:0, background:"#f5f4f0", borderRadius:10, padding:"3px", width:"fit-content" }}>
@@ -157,7 +151,6 @@ function ResourceForm({
         </div>
       </div>
 
-      {/* Divider */}
       <div style={{ borderTop:"1px solid #f0ede8" }} />
 
       {/* Lecture link */}
@@ -180,6 +173,17 @@ function ResourceForm({
             value={notesLink} onChange={e=>setNotesLink(e.target.value)} type="url" />
         </div>
         <div style={{ fontSize:10, color:"#b5b3ac", marginTop:3 }}>Google Drive, any public URL</div>
+      </div>
+
+      {/* ── Assignment link (NEW) ── */}
+      <div>
+        <label style={lbl}>Assignment Link <span style={{ fontSize:9, color:"#b5b3ac", textTransform:"none", fontWeight:500 }}>(optional)</span></label>
+        <div style={{ position:"relative" }}>
+          <span style={{ position:"absolute", left:11, top:"50%", transform:"translateY(-50%)", fontSize:13, color:"#9b9890", pointerEvents:"none" }}>📋</span>
+          <input style={{...inp, paddingLeft:28}} placeholder="Google Drive, PDF link to assignment…"
+            value={assignmentLink} onChange={e=>setAssignmentLink(e.target.value)} type="url" />
+        </div>
+        <div style={{ fontSize:10, color:"#b5b3ac", marginTop:3 }}>Attach an assignment along with this post</div>
       </div>
 
       {/* Description */}
@@ -223,17 +227,11 @@ function AddModal({ activeTab, onClose, onSuccess, showToast, extraSubjects, onN
   };
 
   return (
-    <ModalShell title={`Add ${({ notes:"Note", pyq:"PYQ", assignment:"Assignment" }[activeTab]||"Resource")}`} onClose={onClose}>
+    <ModalShell title={`Add ${{ notes:"Note", pyq:"PYQ" }[activeTab]||"Resource"}`} onClose={onClose}>
       <ResourceForm
-        initial={null}
-        activeTab={activeTab}
-        allSubjects={allSubjects}
-        onSave={handleSave}
-        onClose={onClose}
-        showToast={showToast}
-        onNewSubject={onNewSubject}
-        saving={saving}
-        mode="add"
+        initial={null} activeTab={activeTab} allSubjects={allSubjects}
+        onSave={handleSave} onClose={onClose} showToast={showToast}
+        onNewSubject={onNewSubject} saving={saving} mode="add"
       />
     </ModalShell>
   );
@@ -243,8 +241,6 @@ function AddModal({ activeTab, onClose, onSuccess, showToast, extraSubjects, onN
 function EditModal({ resource, activeTab, onClose, onSuccess, showToast, extraSubjects, onNewSubject }) {
   const [saving, setSaving] = useState(false);
 
-  // Always include this resource's existing subject in the pill list
-  // so it shows pre-selected even if it's not in base or custom lists yet
   const resourceSubject = resource?.subject || "";
   const baseAndExtra = [...BASE_SUBJECTS, ...extraSubjects];
   const alreadyKnown = baseAndExtra.some(s => s.toLowerCase() === resourceSubject.toLowerCase());
@@ -265,15 +261,9 @@ function EditModal({ resource, activeTab, onClose, onSuccess, showToast, extraSu
   return (
     <ModalShell title="Edit Resource" onClose={onClose}>
       <ResourceForm
-        initial={resource}
-        activeTab={activeTab}
-        allSubjects={allSubjects}
-        onSave={handleSave}
-        onClose={onClose}
-        showToast={showToast}
-        onNewSubject={onNewSubject}
-        saving={saving}
-        mode="edit"
+        initial={resource} activeTab={activeTab} allSubjects={allSubjects}
+        onSave={handleSave} onClose={onClose} showToast={showToast}
+        onNewSubject={onNewSubject} saving={saving} mode="edit"
       />
     </ModalShell>
   );
@@ -300,11 +290,12 @@ function ModalShell({ title, onClose, children }) {
 
 /* ─── Resource Card ─────────────────────────────────────────────────────── */
 function ResourceCard({ resource, user, onDelete, onEdit }) {
-  const hasLecture = !!resource.lectureLink;
-  const hasNotes   = !!resource.notesLink;
-  const isOwner    = user?._id === resource.uploadedBy?._id?.toString();
-  const isAdmin    = user?.role === "admin";
-  const canDelete  = isOwner || isAdmin;
+  const hasLecture    = !!resource.lectureLink;
+  const hasNotes      = !!resource.notesLink;
+  const hasAssignment = !!resource.assignmentLink; // ← NEW
+  const isOwner  = user?._id === resource.uploadedBy?._id?.toString();
+  const isAdmin  = user?.role === "admin";
+  const canDelete = isOwner || isAdmin;
 
   const openLink = (url) => url && window.open(url, "_blank", "noopener,noreferrer");
 
@@ -321,15 +312,11 @@ function ResourceCard({ resource, user, onDelete, onEdit }) {
             </div>
           )}
         </div>
-
-        {/* Action buttons — top-right */}
         <div style={{ display:"flex", gap:6, flexShrink:0, alignItems:"center" }}>
-          {/* Edit — visible to everyone */}
           <button onClick={() => onEdit(resource)}
             style={{ padding:"3px 10px", borderRadius:7, border:"1px solid #e5e3dc", background:"#f5f4f0", color:"#6b6860", fontSize:11, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
             Edit
           </button>
-          {/* Delete — owner or admin only */}
           {canDelete && (
             <button onClick={() => onDelete(resource._id)}
               style={{ background:"none", border:"none", cursor:"pointer", fontSize:13, color:"#d1d0ca", padding:0 }}>
@@ -349,26 +336,38 @@ function ResourceCard({ resource, user, onDelete, onEdit }) {
             {resource.unit}
           </span>
         )}
+        {/* Assignment badge */}
+        {hasAssignment && (
+          <span style={{ fontSize:10, padding:"2px 8px", borderRadius:100, background:"#fff4e0", color:"#b06800", fontWeight:600 }}>
+            📋 Assignment
+          </span>
+        )}
       </div>
 
       {/* Link buttons */}
-      {(hasLecture || hasNotes) && (
-        <div style={{ display:"flex", gap:7 }}>
+      {(hasLecture || hasNotes || hasAssignment) && (
+        <div style={{ display:"flex", gap:7, flexWrap:"wrap" }}>
           {hasLecture && (
             <button onClick={() => openLink(resource.lectureLink)}
-              style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", gap:6, padding:"8px 12px", borderRadius:9, border:"1px solid #e5e3dc", background:"#fafaf9", cursor:"pointer", fontSize:12, fontWeight:600, color:"#1a1a18", fontFamily:"inherit" }}>
+              style={{ flex:1, minWidth:90, display:"flex", alignItems:"center", justifyContent:"center", gap:6, padding:"8px 12px", borderRadius:9, border:"1px solid #e5e3dc", background:"#fafaf9", cursor:"pointer", fontSize:12, fontWeight:600, color:"#1a1a18", fontFamily:"inherit" }}>
               <span style={{ fontSize:12 }}>▶</span> Lecture
             </button>
           )}
           {hasNotes && (
             <button onClick={() => openLink(resource.notesLink)}
-              style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", gap:6, padding:"8px 12px", borderRadius:9, border:"1px solid #e5e3dc", background:"#fafaf9", cursor:"pointer", fontSize:12, fontWeight:600, color:"#1a1a18", fontFamily:"inherit" }}>
+              style={{ flex:1, minWidth:90, display:"flex", alignItems:"center", justifyContent:"center", gap:6, padding:"8px 12px", borderRadius:9, border:"1px solid #e5e3dc", background:"#fafaf9", cursor:"pointer", fontSize:12, fontWeight:600, color:"#1a1a18", fontFamily:"inherit" }}>
               <span style={{ fontSize:12 }}>↗</span> Notes
+            </button>
+          )}
+          {/* Assignment button (NEW) */}
+          {hasAssignment && (
+            <button onClick={() => openLink(resource.assignmentLink)}
+              style={{ flex:1, minWidth:90, display:"flex", alignItems:"center", justifyContent:"center", gap:6, padding:"8px 12px", borderRadius:9, border:"1px solid #ffe0a0", background:"#fff9ee", cursor:"pointer", fontSize:12, fontWeight:600, color:"#b06800", fontFamily:"inherit" }}>
+              <span style={{ fontSize:12 }}>📋</span> Assignment
             </button>
           )}
         </div>
       )}
-
     </div>
   );
 }
@@ -378,13 +377,13 @@ export default function Resources() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const [resources,     setResources]     = useState([]);
-  const [loading,       setLoading]       = useState(true);
-  const [activeTab,     setActiveTab]     = useState("notes");
-  const [activeSubject, setActiveSubject] = useState("all");
-  const [showAdd,       setShowAdd]       = useState(false);
-  const [editTarget,    setEditTarget]    = useState(null);   // resource being edited
-  const [toast,         setToast]         = useState(null);
+  const [resources,      setResources]      = useState([]);
+  const [loading,        setLoading]        = useState(true);
+  const [activeTab,      setActiveTab]      = useState("notes");
+  const [activeSubject,  setActiveSubject]  = useState("all");
+  const [showAdd,        setShowAdd]        = useState(false);
+  const [editTarget,     setEditTarget]     = useState(null);
+  const [toast,          setToast]          = useState(null);
   const [customSubjects, setCustomSubjects] = useState(() => loadCustom());
 
   useEffect(() => { fetchResources(); }, [activeTab]);
@@ -418,14 +417,12 @@ export default function Resources() {
     saveCustom(updated);
   };
 
-  /* Subject deduplication */
-  const dbSubjects   = Array.from(new Set(resources.map(r => r.subject).filter(Boolean)));
-  const knownLower   = new Set([...BASE_SUBJECTS, ...customSubjects].map(s => s.toLowerCase()));
-  const dbOnly       = dbSubjects.filter(s => !knownLower.has(s.toLowerCase()));
+  const dbSubjects    = Array.from(new Set(resources.map(r => r.subject).filter(Boolean)));
+  const knownLower    = new Set([...BASE_SUBJECTS, ...customSubjects].map(s => s.toLowerCase()));
+  const dbOnly        = dbSubjects.filter(s => !knownLower.has(s.toLowerCase()));
   const extraSubjects = [...customSubjects, ...dbOnly];
-
-  const allKnown    = [...BASE_SUBJECTS, ...extraSubjects];
-  const tagSubjects = ["all", ...Array.from(new Set(
+  const allKnown      = [...BASE_SUBJECTS, ...extraSubjects];
+  const tagSubjects   = ["all", ...Array.from(new Set(
     dbSubjects.map(s => allKnown.find(k => k.toLowerCase() === s.toLowerCase()) || s)
   ))];
 
@@ -433,10 +430,10 @@ export default function Resources() {
     ? resources
     : resources.filter(r => r.subject?.toLowerCase() === activeSubject.toLowerCase());
 
+  // ── Removed "assignment" tab ──
   const TABS = [
-    { id:"notes",      label:"Notes"       },
-    { id:"pyq",        label:"PYQs"        },
-    { id:"assignment", label:"Assignments" },
+    { id:"notes", label:"Notes" },
+    { id:"pyq",   label:"PYQs"  },
   ];
 
   const S = {
@@ -455,22 +452,14 @@ export default function Resources() {
   return (
     <div style={S.page}>
 
-      {/* Toast */}
       {toast && (
         <div style={{ position:"fixed", top:16, right:16, zIndex:99, padding:"9px 16px", borderRadius:11, background:"#1a1a18", color:"#fff", fontSize:12, fontWeight:700, boxShadow:"0 4px 20px rgba(0,0,0,.18)" }}>
           {toast}
         </div>
       )}
 
-      {/* Add Modal */}
-      {showAdd && (
-        <AddModal {...modalProps} onClose={() => setShowAdd(false)} />
-      )}
-
-      {/* Edit Modal */}
-      {editTarget && (
-        <EditModal {...modalProps} resource={editTarget} onClose={() => setEditTarget(null)} />
-      )}
+      {showAdd && <AddModal {...modalProps} onClose={() => setShowAdd(false)} />}
+      {editTarget && <EditModal {...modalProps} resource={editTarget} onClose={() => setEditTarget(null)} />}
 
       <div style={S.wrap}>
 
@@ -479,12 +468,12 @@ export default function Resources() {
           <button style={S.backBtn} onClick={() => navigate("/")}>‹</button>
           <div style={{ flex:1 }}>
             <div style={{ fontSize:18, fontWeight:800, letterSpacing:"-.3px" }}>Resources</div>
-            <div style={{ fontSize:11, color:"#9b9890", marginTop:1 }}>Notes · PYQs · Assignments</div>
+            <div style={{ fontSize:11, color:"#9b9890", marginTop:1 }}>Notes · PYQs</div>
           </div>
           <button style={S.btn} onClick={() => setShowAdd(true)}>+ Add</button>
         </div>
 
-        {/* Underline Tabs */}
+        {/* Tabs */}
         <div style={S.tabBar}>
           {TABS.map(t => (
             <button key={t.id} style={S.tab(activeTab===t.id)} onClick={() => setActiveTab(t.id)}>
@@ -493,7 +482,7 @@ export default function Resources() {
           ))}
         </div>
 
-        {/* Subject Tag Filters */}
+        {/* Subject filters */}
         {tagSubjects.length > 1 && (
           <div style={{ display:"flex", gap:6, overflowX:"auto", paddingBottom:4, marginBottom:14 }}>
             {tagSubjects.map(s => (
@@ -517,13 +506,7 @@ export default function Resources() {
         ) : (
           <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
             {filtered.map(resource => (
-              <ResourceCard
-                key={resource._id}
-                resource={resource}
-                user={user}
-                onDelete={handleDelete}
-                onEdit={setEditTarget}
-              />
+              <ResourceCard key={resource._id} resource={resource} user={user} onDelete={handleDelete} onEdit={setEditTarget} />
             ))}
           </div>
         )}
