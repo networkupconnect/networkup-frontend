@@ -43,10 +43,12 @@ function Avatar({ name = "", src }) {
 /* ─── Listing Card ──────────────────────────────────────────────────────────── */
 function ListingCard({ listing, user, onDelete, onImageClick, idx }) {
   const allFacilities = listing.facilities || [];
+  const navigate = useNavigate();
 
   return (
     <div
       className="card-enter"
+      onClick={() => navigate(`/rooms/${listing._id}`)}
       style={{
         background: "#fff",
         border: "1.5px solid #ebebeb",
@@ -54,6 +56,7 @@ function ListingCard({ listing, user, onDelete, onImageClick, idx }) {
         overflow: "hidden",
         transition: "border-color 0.18s, box-shadow 0.18s",
         animationDelay: `${Math.min(idx * 40, 160)}ms`,
+        cursor: "pointer",
       }}
       onMouseEnter={(e) => {
         e.currentTarget.style.borderColor = "#d5d5d5";
@@ -73,7 +76,7 @@ function ListingCard({ listing, user, onDelete, onImageClick, idx }) {
               src={img}
               alt=""
               className="img-thumb"
-              onClick={() => onImageClick(img)}
+              onClick={(e) => { e.stopPropagation(); onImageClick(img); }}
               style={{
                 width: 100, height: 72, objectFit: "cover",
                 borderRadius: 10, flexShrink: 0, border: "1px solid #f0f0f0",
@@ -165,7 +168,7 @@ function ListingCard({ listing, user, onDelete, onImageClick, idx }) {
               user?._id === String(listing.postedBy?._id) ||
               user?.role === "admin") && (
               <button
-                onClick={() => onDelete(listing._id)}
+                onClick={(e) => { e.stopPropagation(); onDelete(listing._id); }}
                 style={{
                   fontSize: 11, fontWeight: 600, color: "#cc3333",
                   background: "#fff5f5", border: "1px solid #fad4d4",
