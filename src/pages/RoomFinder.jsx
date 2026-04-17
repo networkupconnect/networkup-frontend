@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import api from "../api/axios";
 
+
+
 const PRESET_FACILITIES = [
   "WiFi", "AC", "Cooler", "Geyser", "Attached Bathroom",
   "Furnished", "Parking", "24/7 Water", "Security", "CCTV",
@@ -181,6 +183,9 @@ export default function RoomFinder() {
   const hasActiveFilters = filters.facilities.length > 0 || filters.minRent || filters.maxRent;
 
   /* ── render ───────────────────────────────────────────────────────────── */
+
+  function ListingCard({ listing, user, onDelete, onImageClick, idx }) {
+  const allFacilities = listing.facilities || [];
   return (
     <>
       {/* Font */}
@@ -738,4 +743,5 @@ function ListingCard({ listing, user, onDelete, onImageClick, idx }) {
       </div>
     </div>
   );
+}
 }
