@@ -90,7 +90,7 @@ function SellModal({ onClose, onSuccess }) {
                   </svg>
                 </div>
                 <p className="text-xs font-medium text-gray-500">Tap to add photo</p>
-                <p className="text-[10px] text-gray-400 mt-0.5">Optional but recommended</p>
+                <p className="text-[10px] text-gray-400 mt-0.5">Optional but recommended for better visibility</p>
               </>
             )}
             {preview && (
