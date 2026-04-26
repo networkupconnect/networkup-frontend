@@ -3,515 +3,758 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import api from "../api/axios";
 
-/* ─── Predeclared subjects ──────────────────────────────────────────────── */
-const BASE_SUBJECTS = [
-  "Maths","Physics","Chemistry","Biology",
-  "CS","DBMS","OS","Networks","DSA",
-  "Electronics","English","Economics",
-];
-const CUSTOM_KEY = "res_custom_subjects";
-function loadCustom() { try { return JSON.parse(localStorage.getItem(CUSTOM_KEY)||"[]"); } catch { return []; } }
-function saveCustom(arr) { try { localStorage.setItem(CUSTOM_KEY, JSON.stringify(arr)); } catch {} }
+// ─── Toast ────────────────────────────────────────────────────────────────────
+function Toast({ toast }) {
+  if (!toast) return null;
+  return (
+    <div
+      className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-xl shadow-lg text-white text-sm font-medium transition-all ${
+        toast.type === "success" ? "bg-green-500" : "bg-red-500"
+      }`}
+    >
+      {toast.msg}
+    </div>
+  );
+}
 
-/* ─── Shared styles ─────────────────────────────────────────────────────── */
-const inp = {
-  width:"100%", padding:"9px 12px", borderRadius:10,
-  border:"1px solid #e5e3dc", background:"#fff",
-  fontSize:13, fontFamily:"inherit", color:"#1a1a18",
-  outline:"none", boxSizing:"border-box",
-};
-const lbl = {
-  fontSize:10, fontWeight:700, color:"#9b9890",
-  textTransform:"uppercase", letterSpacing:".05em",
-  display:"block", marginBottom:7,
-};
-const pill = (active) => ({
-  padding:"5px 12px", borderRadius:100, fontSize:12, fontWeight:600,
-  border:"none", cursor:"pointer", transition:"all .13s",
-  background: active ? "#1a1a18" : "#f0ede8",
-  color:       active ? "#fff"    : "#6b6860",
-  flexShrink:0, whiteSpace:"nowrap",
-});
-
-/* ─── ResourceForm ───────────────────────────────────────────────────────── */
-function ResourceForm({
-  initial, activeTab, allSubjects, onSave, onClose,
-  showToast, onNewSubject, saving, mode,
-}) {
-  function parseUnit(str) {
-    if (!str || str === "General") return { num: 1, topic: "" };
-    const m = str.match(/^Module\s+(\d+)(?:\s+—\s+(.+))?$/i);
-    if (m) return { num: parseInt(m[1], 10)||1, topic: m[2]||"" };
-    return { num: 1, topic: str };
-  }
-
-  const parsed = parseUnit(initial?.unit);
-
-  const [title,          setTitle]          = useState(initial?.title          || "");
-  const [description,    setDescription]    = useState(initial?.description    || "");
-  const [lectureLink,    setLectureLink]    = useState(initial?.lectureLink    || "");
-  const [notesLink,      setNotesLink]      = useState(initial?.notesLink      || "");
-  const [assignmentLink, setAssignmentLink] = useState(initial?.assignmentLink || ""); // ← NEW
-  const [unit,           setUnit]           = useState(parsed.num);
-  const [topic,          setTopic]          = useState(parsed.topic);
-
-  const initSubj = initial?.subject || "";
-  const isBaseOrExtra = allSubjects.some(s => s.toLowerCase() === initSubj.toLowerCase());
-  const [subject,    setSubject]    = useState(isBaseOrExtra ? initSubj : "");
-  const [isOther,    setIsOther]    = useState(!!initSubj && !isBaseOrExtra);
-  const [customSubj, setCustomSubj] = useState(isBaseOrExtra ? "" : initSubj);
-
-  const finalSubject = isOther ? customSubj.trim() : subject;
-  const tabLabel = { notes:"Note", pyq:"PYQ" }[activeTab] || "Resource";
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!title.trim())    return showToast("Title is required");
-    if (!finalSubject)    return showToast("Select or enter a subject");
-    if (!lectureLink.trim() && !notesLink.trim() && !assignmentLink.trim())
-      return showToast("Add at least one link");
-
-    if (isOther && customSubj.trim()) onNewSubject(customSubj.trim());
-
-    const unitStr = topic.trim()
-      ? `Module ${unit} — ${topic.trim()}`
-      : `Module ${unit}`;
-
-    await onSave({
-      title:          title.trim(),
-      description:    description.trim(),
-      subject:        finalSubject,
-      unit:           unitStr,
-      lectureLink:    lectureLink.trim(),
-      notesLink:      notesLink.trim(),
-      assignmentLink: assignmentLink.trim(), // ← NEW
-    });
-  };
+// ─── File Viewer ──────────────────────────────────────────────────────────────
+function FileViewer({ url, title, ext, onClose, onDownload }) {
+  const isPdf = ext === "pdf";
+  const [imgLoading, setImgLoading] = useState(true);
 
   return (
-    <form onSubmit={handleSubmit} style={{ display:"flex", flexDirection:"column", gap:16 }}>
-
-      {/* Title */}
-      <div>
-        <label style={lbl}>Title *</label>
-        <input style={inp} placeholder="e.g. Fourier Series full lecture" value={title} onChange={e=>setTitle(e.target.value)} required />
-      </div>
-
-      {/* Subject */}
-      <div>
-        <label style={lbl}>Subject *</label>
-        <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
-          {allSubjects.map(s => (
-            <button key={s} type="button" style={pill(!isOther && subject.toLowerCase()===s.toLowerCase())}
-              onClick={() => { setSubject(s); setIsOther(false); }}>
-              {s}
-            </button>
-          ))}
-          <button type="button"
-            style={{ ...pill(isOther), border: isOther ? "none" : "1.5px dashed #c5c2b8" }}
-            onClick={() => { setIsOther(true); setSubject(""); }}>
-            + Other
+    <div className="fixed inset-0 z-50 bg-black flex flex-col">
+      <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-gray-200 flex-shrink-0">
+        <p className="font-semibold text-black text-sm truncate flex-1 mr-3">{title}</p>
+        <div className="flex gap-2 flex-shrink-0">
+          <button
+            onClick={onDownload}
+            className="bg-blue-500 hover:bg-blue-600 text-white text-xs px-3 py-1.5 rounded-lg font-medium"
+          >
+            Download
+          </button>
+          <button
+            onClick={onClose}
+            className="bg-gray-200 hover:bg-gray-300 text-black text-xs px-3 py-1.5 rounded-lg font-medium"
+          >
+            Close
           </button>
         </div>
-        {isOther && (
-          <div style={{ marginTop:8 }}>
-            <input style={{ ...inp, borderColor: customSubj.trim() ? "#1a1a18" : "#e5e3dc" }}
-              placeholder="Type subject name…" value={customSubj}
-              onChange={e=>setCustomSubj(e.target.value)} autoFocus />
-            <div style={{ fontSize:10, color:"#9b9890", marginTop:3 }}>Will be added to the subject list</div>
+      </div>
+      <div className="flex-1 overflow-y-auto bg-gray-800 flex items-center justify-center p-4">
+        {imgLoading && !isPdf && (
+          <div className="absolute flex flex-col items-center gap-3">
+            <div className="w-10 h-10 border-4 border-blue-400 border-t-transparent rounded-full animate-spin" />
+            <p className="text-white text-sm">Loading...</p>
           </div>
         )}
-      </div>
-
-      {/* Module counter */}
-      <div>
-        <label style={lbl}>Unit / Module</label>
-        <div style={{ display:"flex", alignItems:"center", gap:0, background:"#f5f4f0", borderRadius:10, padding:"3px", width:"fit-content" }}>
-          <button type="button" onClick={() => setUnit(u=>Math.max(1,u-1))} disabled={unit<=1}
-            style={{ width:34, height:34, borderRadius:8, border:"none", background:unit<=1?"transparent":"#fff", cursor:unit<=1?"not-allowed":"pointer", fontSize:18, fontWeight:700, color:unit<=1?"#ccc":"#1a1a18", display:"flex", alignItems:"center", justifyContent:"center", boxShadow:unit<=1?"none":"0 1px 3px rgba(0,0,0,.08)", transition:"all .12s" }}>
-            −
-          </button>
-          <span style={{ minWidth:56, textAlign:"center", fontSize:14, fontWeight:700, fontFamily:"monospace", color:"#1a1a18" }}>
-            {unit}
-          </span>
-          <button type="button" onClick={() => setUnit(u=>u+1)}
-            style={{ width:34, height:34, borderRadius:8, border:"none", background:"#fff", cursor:"pointer", fontSize:18, fontWeight:700, color:"#1a1a18", display:"flex", alignItems:"center", justifyContent:"center", boxShadow:"0 1px 3px rgba(0,0,0,.08)", transition:"all .12s" }}>
-            +
-          </button>
-        </div>
-        <div style={{ marginTop:8 }}>
-          <input style={{ ...inp, fontSize:12 }}
-            placeholder="Topic (optional) — e.g. Laplace Transforms, Recursion…"
-            value={topic} onChange={e=>setTopic(e.target.value)} />
-        </div>
-        <div style={{ marginTop:5, fontSize:11, color:"#9b9890" }}>
-          Saved as: <strong style={{ color:"#1a1a18" }}>
-            {topic.trim() ? `Unit ${unit} — ${topic.trim()}` : `Unit ${unit}`}
-          </strong>
-        </div>
-      </div>
-
-      <div style={{ borderTop:"1px solid #f0ede8" }} />
-
-      {/* Lecture link */}
-      <div>
-        <label style={lbl}>Lecture Link</label>
-        <div style={{ position:"relative" }}>
-          <span style={{ position:"absolute", left:11, top:"50%", transform:"translateY(-50%)", fontSize:13, color:"#9b9890", pointerEvents:"none" }}>▶</span>
-          <input style={{...inp, paddingLeft:28}} placeholder="YouTube video or playlist URL"
-            value={lectureLink} onChange={e=>setLectureLink(e.target.value)} type="url" />
-        </div>
-        <div style={{ fontSize:10, color:"#b5b3ac", marginTop:3 }}>YouTube video or playlist</div>
-      </div>
-
-      {/* Notes link */}
-      <div>
-        <label style={lbl}>Notes Link</label>
-        <div style={{ position:"relative" }}>
-          <span style={{ position:"absolute", left:11, top:"50%", transform:"translateY(-50%)", fontSize:13, color:"#9b9890", pointerEvents:"none" }}>↗</span>
-          <input style={{...inp, paddingLeft:28}} placeholder="Google Drive, PDF link…"
-            value={notesLink} onChange={e=>setNotesLink(e.target.value)} type="url" />
-        </div>
-        <div style={{ fontSize:10, color:"#b5b3ac", marginTop:3 }}>Google Drive, any public URL</div>
-      </div>
-
-      {/* ── Assignment link (NEW) ── */}
-      <div>
-        <label style={lbl}>Assignment Link <span style={{ fontSize:9, color:"#b5b3ac", textTransform:"none", fontWeight:500 }}>(optional)</span></label>
-        <div style={{ position:"relative" }}>
-          <span style={{ position:"absolute", left:11, top:"50%", transform:"translateY(-50%)", fontSize:13, color:"#9b9890", pointerEvents:"none" }}>📋</span>
-          <input style={{...inp, paddingLeft:28}} placeholder="Google Drive, PDF link to assignment…"
-            value={assignmentLink} onChange={e=>setAssignmentLink(e.target.value)} type="url" />
-        </div>
-        <div style={{ fontSize:10, color:"#b5b3ac", marginTop:3 }}>Attach an assignment along with this post</div>
-      </div>
-
-      {/* Description */}
-      <div>
-        <label style={lbl}>Description</label>
-        <textarea style={{...inp, resize:"none", minHeight:50, fontSize:12}}
-          placeholder="Optional — any extra context"
-          value={description} onChange={e=>setDescription(e.target.value)} rows={2} />
-      </div>
-
-      {/* Actions */}
-      <div style={{ display:"flex", gap:8, paddingTop:2 }}>
-        <button type="submit" disabled={saving}
-          style={{ flex:1, padding:"11px", borderRadius:11, border:"none", background:"#1a1a18", color:"#fff", fontSize:13, fontWeight:700, cursor:saving?"not-allowed":"pointer", opacity:saving?.6:1, fontFamily:"inherit" }}>
-          {saving ? "Saving…" : mode==="edit" ? "Save Changes" : `Add ${tabLabel}`}
-        </button>
-        <button type="button" onClick={onClose}
-          style={{ padding:"11px 16px", borderRadius:11, border:"1px solid #e5e3dc", background:"#f5f4f0", color:"#6b6860", fontSize:13, cursor:"pointer", fontFamily:"inherit", whiteSpace:"nowrap" }}>
-          Cancel
-        </button>
-      </div>
-    </form>
-  );
-}
-
-/* ─── Add Modal ─────────────────────────────────────────────────────────── */
-function AddModal({ activeTab, onClose, onSuccess, showToast, extraSubjects, onNewSubject }) {
-  const [saving, setSaving] = useState(false);
-  const allSubjects = [...BASE_SUBJECTS, ...extraSubjects];
-
-  const handleSave = async (payload) => {
-    try {
-      setSaving(true);
-      await api.post("/api/resources", { ...payload, type: activeTab });
-      onSuccess();
-      onClose();
-      showToast("Saved!");
-    } catch (err) {
-      showToast(err.response?.data?.message || "Failed to save");
-    } finally { setSaving(false); }
-  };
-
-  return (
-    <ModalShell title={`Add ${{ notes:"Note", pyq:"PYQ" }[activeTab]||"Resource"}`} onClose={onClose}>
-      <ResourceForm
-        initial={null} activeTab={activeTab} allSubjects={allSubjects}
-        onSave={handleSave} onClose={onClose} showToast={showToast}
-        onNewSubject={onNewSubject} saving={saving} mode="add"
-      />
-    </ModalShell>
-  );
-}
-
-/* ─── Edit Modal ─────────────────────────────────────────────────────────── */
-function EditModal({ resource, activeTab, onClose, onSuccess, showToast, extraSubjects, onNewSubject }) {
-  const [saving, setSaving] = useState(false);
-
-  const resourceSubject = resource?.subject || "";
-  const baseAndExtra = [...BASE_SUBJECTS, ...extraSubjects];
-  const alreadyKnown = baseAndExtra.some(s => s.toLowerCase() === resourceSubject.toLowerCase());
-  const allSubjects  = alreadyKnown ? baseAndExtra : [...baseAndExtra, resourceSubject].filter(Boolean);
-
-  const handleSave = async (payload) => {
-    try {
-      setSaving(true);
-      await api.patch(`/api/resources/${resource._id}`, payload);
-      onSuccess();
-      onClose();
-      showToast("Updated!");
-    } catch (err) {
-      showToast(err.response?.data?.message || "Failed to update");
-    } finally { setSaving(false); }
-  };
-
-  return (
-    <ModalShell title="Edit Resource" onClose={onClose}>
-      <ResourceForm
-        initial={resource} activeTab={activeTab} allSubjects={allSubjects}
-        onSave={handleSave} onClose={onClose} showToast={showToast}
-        onNewSubject={onNewSubject} saving={saving} mode="edit"
-      />
-    </ModalShell>
-  );
-}
-
-/* ─── Modal shell ───────────────────────────────────────────────────────── */
-function ModalShell({ title, onClose, children }) {
-  return (
-    <div style={{ position:"fixed", inset:0, zIndex:50, background:"rgba(0,0,0,.2)", backdropFilter:"blur(4px)", display:"flex", alignItems:"flex-end", justifyContent:"center", padding:16 }}
-         onClick={onClose}>
-      <div style={{ background:"#fff", borderRadius:"18px 18px 0 0", width:"100%", maxWidth:520, maxHeight:"93vh", overflowY:"auto", boxShadow:"0 -8px 40px rgba(0,0,0,.1)" }}
-           onClick={e=>e.stopPropagation()}>
-        <div style={{ padding:20 }}>
-          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:18 }}>
-            <div style={{ fontSize:15, fontWeight:800 }}>{title}</div>
-            <button onClick={onClose} style={{ width:28, height:28, borderRadius:7, border:"1px solid #e5e3dc", background:"#f5f4f0", cursor:"pointer", color:"#9b9890", fontSize:13 }}>✕</button>
-          </div>
-          {children}
-        </div>
+        {!isPdf && (
+          <img
+            src={url}
+            alt={title}
+            className="max-w-full max-h-full object-contain rounded-lg"
+            onLoad={() => setImgLoading(false)}
+          />
+        )}
       </div>
     </div>
   );
 }
 
-/* ─── Resource Card ─────────────────────────────────────────────────────── */
-function ResourceCard({ resource, user, onDelete, onEdit }) {
-  const hasLecture    = !!resource.lectureLink;
-  const hasNotes      = !!resource.notesLink;
-  const hasAssignment = !!resource.assignmentLink; // ← NEW
-  const isOwner  = user?._id === resource.uploadedBy?._id?.toString();
-  const isAdmin  = user?.role === "admin";
-  const canDelete = isOwner || isAdmin;
-
-  const openLink = (url) => url && window.open(url, "_blank", "noopener,noreferrer");
+// ─── Unit Selector (1–5 multi-select) ────────────────────────────────────────
+function UnitSelector({ value, onChange }) {
+  const units = ["1", "2", "3", "4", "5"];
+  const toggle = (u) =>
+    onChange(value.includes(u) ? value.filter((x) => x !== u) : [...value, u]);
 
   return (
-    <div style={{ background:"#fff", border:"1px solid #e5e3dc", borderRadius:13, padding:"13px 15px" }}>
+    <div>
+      <label className="text-xs text-gray-500 mb-1.5 block font-medium">Unit</label>
+      <div className="flex gap-2">
+        {units.map((u) => (
+          <button
+            key={u}
+            type="button"
+            onClick={() => toggle(u)}
+            className={`w-10 h-10 rounded-xl text-sm font-bold transition border-2 ${
+              value.includes(u)
+                ? "bg-black text-white border-black"
+                : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"
+            }`}
+          >
+            {u}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
 
-      {/* Title row */}
-      <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", gap:10, marginBottom:7 }}>
-        <div style={{ flex:1, minWidth:0 }}>
-          <div style={{ fontSize:13, fontWeight:700, lineHeight:1.4 }}>{resource.title}</div>
+// ─── Upload Modal ─────────────────────────────────────────────────────────────
+function UploadModal({ activeTab, onClose, onSuccess, showToast, user }) {
+  const [uploading, setUploading] = useState(false);
+  const [form, setForm] = useState({
+    title: "",
+    description: "",
+    subject: "",
+    units: [],
+    notesLink: "",
+    lectureLink: "",
+    assignmentLink: "",
+    pyqLink: "",
+  });
+
+  const handleUpload = async (e) => {
+    e.preventDefault();
+    if (!form.subject) return showToast("Subject name is required", "error");
+    if (activeTab === "notes" && !form.notesLink)
+      return showToast("Notes link is required", "error");
+    if (activeTab === "pyq" && !form.pyqLink)
+      return showToast("PYQ link is required", "error");
+
+    const formData = new FormData();
+    formData.append("title", form.title || form.subject);
+    formData.append("description", form.description);
+    formData.append("type", activeTab);
+    formData.append("subject", form.subject);
+    formData.append("unit", form.units.length > 0 ? form.units.join(",") : "General");
+    formData.append("notesLink", form.notesLink || "");
+    formData.append("lectureLink", form.lectureLink || "");
+    formData.append("assignmentLink", form.assignmentLink || "");
+    formData.append("pyqLink", form.pyqLink || "");
+    formData.append("branch", user?.branch || "General");
+    formData.append("year", user?.year || 1);
+    formData.append("section", "all");
+
+    try {
+      setUploading(true);
+      await api.post("/api/resources", formData);
+      onClose();
+      onSuccess();
+      showToast("Uploaded successfully");
+    } catch (err) {
+      showToast(err.response?.data?.message || "Failed to upload", "error");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-40 bg-black/50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+      <div className="bg-white w-full sm:max-w-lg rounded-t-3xl sm:rounded-2xl shadow-2xl max-h-[92vh] overflow-y-auto">
+        <div className="sticky top-0 bg-white border-b border-gray-100 px-5 py-4 flex items-center justify-between rounded-t-3xl sm:rounded-t-2xl">
+          <h2 className="font-bold text-base text-gray-900">
+            Upload {activeTab === "notes" ? "Note" : "PYQ"}
+          </h2>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 flex items-center justify-center bg-gray-100 rounded-full text-gray-600 hover:bg-gray-200 text-sm font-bold"
+          >
+            x
+          </button>
+        </div>
+
+        <form onSubmit={handleUpload} className="p-5 space-y-3">
+          <input
+            placeholder="Subject Name *"
+            value={form.subject}
+            onChange={(e) => setForm({ ...form, subject: e.target.value })}
+            required
+            className="w-full p-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-400 focus:border-transparent outline-none"
+          />
+
+          <input
+            placeholder="Title (optional)"
+            value={form.title}
+            onChange={(e) => setForm({ ...form, title: e.target.value })}
+            className="w-full p-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-400 focus:border-transparent outline-none"
+          />
+
+          <textarea
+            placeholder="Description (optional)"
+            value={form.description}
+            onChange={(e) => setForm({ ...form, description: e.target.value })}
+            rows={2}
+            className="w-full p-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-400 focus:border-transparent outline-none resize-none"
+          />
+
+          <UnitSelector
+            value={form.units}
+            onChange={(units) => setForm({ ...form, units })}
+          />
+
+          {activeTab === "notes" && (
+            <div className="space-y-2">
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block font-medium">
+                  Notes Link <span className="text-red-400">(required)</span>
+                </label>
+                <input
+                  placeholder="https://drive.google.com/..."
+                  value={form.notesLink}
+                  onChange={(e) => setForm({ ...form, notesLink: e.target.value })}
+                  className={`w-full p-3 border rounded-xl text-sm focus:ring-2 focus:ring-blue-400 outline-none ${
+                    !form.notesLink ? "border-orange-300 bg-orange-50" : "border-gray-200"
+                  }`}
+                />
+              </div>
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block font-medium">
+                  Lecture Link <span className="text-gray-300">(optional)</span>
+                </label>
+                <input
+                  placeholder="https://youtube.com/..."
+                  value={form.lectureLink}
+                  onChange={(e) => setForm({ ...form, lectureLink: e.target.value })}
+                  className="w-full p-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-400 outline-none"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block font-medium">
+                  Assignment Link <span className="text-gray-300">(optional)</span>
+                </label>
+                <input
+                  placeholder="https://..."
+                  value={form.assignmentLink}
+                  onChange={(e) => setForm({ ...form, assignmentLink: e.target.value })}
+                  className="w-full p-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-400 outline-none"
+                />
+              </div>
+            </div>
+          )}
+
+          {activeTab === "pyq" && (
+            <div>
+              <label className="text-xs text-gray-500 mb-1 block font-medium">
+                PYQ Link <span className="text-red-400">(required)</span>
+              </label>
+              <input
+                placeholder="https://drive.google.com/..."
+                value={form.pyqLink}
+                onChange={(e) => setForm({ ...form, pyqLink: e.target.value })}
+                className={`w-full p-3 border rounded-xl text-sm focus:ring-2 focus:ring-blue-400 outline-none ${
+                  !form.pyqLink ? "border-orange-300 bg-orange-50" : "border-gray-200"
+                }`}
+              />
+            </div>
+          )}
+
+          <div className="flex gap-3 pt-1">
+            <button
+              type="submit"
+              disabled={uploading}
+              className="flex-1 bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white py-3.5 rounded-xl text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition"
+            >
+              {uploading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  Uploading...
+                </span>
+              ) : (
+                `Upload ${activeTab === "notes" ? "Note" : "PYQ"}`
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-5 py-3.5 bg-gray-100 hover:bg-gray-200 rounded-xl text-sm font-medium transition"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ─── Resource Card ────────────────────────────────────────────────────────────
+function ResourceCard({ resource, user, onView, onDownload, onDelete, showToast }) {
+  const ext = resource.fileUrl
+    ? resource.fileUrl.split(".").pop().split("?")[0].toLowerCase()
+    : "pdf";
+  const isPdf = !["png", "jpg", "jpeg", "webp", "gif"].includes(ext);
+  const fileExt = isPdf ? "pdf" : ext;
+  const hasFile = !!resource.fileUrl;
+
+  const unitTags =
+    resource.unit && resource.unit !== "General"
+      ? resource.unit.split(",").map((u) => u.trim())
+      : [];
+
+  const handleShare = () => {
+    const url = `${window.location.origin}/resources?id=${resource._id}`;
+    if (navigator.share) {
+      navigator.share({ title: resource.title, url });
+    } else {
+      navigator.clipboard.writeText(url).then(() => showToast("Link copied"));
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+      <div className="flex items-start gap-3 p-3">
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-gray-800 truncate">{resource.title}</p>
+          {resource.subject && (
+            <p className="text-xs text-blue-500 font-medium truncate mt-0.5">{resource.subject}</p>
+          )}
           {resource.description && (
-            <div style={{ fontSize:11, color:"#9b9890", marginTop:2, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
-              {resource.description}
+            <p className="text-xs text-gray-400 truncate mt-0.5">{resource.description}</p>
+          )}
+          {unitTags.length > 0 && (
+            <div className="flex gap-1 mt-1 flex-wrap">
+              {unitTags.map((u) => (
+                <span
+                  key={u}
+                  className="text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-md font-medium"
+                >
+                  Unit {u}
+                </span>
+              ))}
             </div>
           )}
         </div>
-        <div style={{ display:"flex", gap:6, flexShrink:0, alignItems:"center" }}>
-          <button onClick={() => onEdit(resource)}
-            style={{ padding:"3px 10px", borderRadius:7, border:"1px solid #e5e3dc", background:"#f5f4f0", color:"#6b6860", fontSize:11, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
-            Edit
-          </button>
-          {canDelete && (
-            <button onClick={() => onDelete(resource._id)}
-              style={{ background:"none", border:"none", cursor:"pointer", fontSize:13, color:"#d1d0ca", padding:0 }}>
-              🗑
+        <div className="flex gap-1.5 flex-shrink-0">
+          {hasFile && (
+            <>
+              <button
+                onClick={() => onView(resource)}
+                className="text-xs bg-blue-500 text-white px-2.5 py-1.5 rounded-lg hover:bg-blue-600"
+              >
+                View
+              </button>
+              <button
+                onClick={() => onDownload(resource.fileUrl, resource.title, fileExt)}
+                className="text-xs bg-green-500 text-white px-2.5 py-1.5 rounded-lg hover:bg-green-600"
+              >
+                Save
+              </button>
+            </>
+          )}
+          {user && user._id === resource.uploadedBy?._id?.toString() && (
+            <button
+              onClick={() => onDelete(resource._id)}
+              className="text-xs bg-red-50 text-red-500 px-2.5 py-1.5 rounded-lg hover:bg-red-100"
+            >
+              Delete
             </button>
           )}
         </div>
       </div>
 
-      {/* Tags */}
-      <div style={{ display:"flex", gap:5, flexWrap:"wrap", marginBottom:10 }}>
-        <span style={{ fontSize:10, padding:"2px 8px", borderRadius:100, background:"#1a1a18", color:"#fff", fontWeight:700 }}>
-          {resource.subject}
-        </span>
-        {resource.unit && resource.unit !== "General" && (
-          <span style={{ fontSize:10, padding:"2px 8px", borderRadius:100, background:"#f0ede8", color:"#6b6860", fontWeight:600 }}>
-            {resource.unit}
-          </span>
+      {/* Notes link buttons */}
+      {resource.type === "notes" &&
+        (resource.notesLink || resource.lectureLink || resource.assignmentLink) && (
+          <div className="flex gap-2 px-3 pb-3 flex-wrap">
+            {resource.notesLink && (
+              <a
+                href={resource.notesLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 min-w-0 text-center text-xs bg-blue-50 text-blue-600 font-semibold py-2 rounded-xl hover:bg-blue-100 transition"
+              >
+                Notes
+              </a>
+            )}
+            {resource.lectureLink && (
+              <a
+                href={resource.lectureLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 min-w-0 text-center text-xs bg-purple-50 text-purple-600 font-semibold py-2 rounded-xl hover:bg-purple-100 transition"
+              >
+                Lecture
+              </a>
+            )}
+            {resource.assignmentLink && (
+              <a
+                href={resource.assignmentLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 min-w-0 text-center text-xs bg-orange-50 text-orange-600 font-semibold py-2 rounded-xl hover:bg-orange-100 transition"
+              >
+                Assignment
+              </a>
+            )}
+          </div>
         )}
-        {/* Assignment badge */}
-        {hasAssignment && (
-          <span style={{ fontSize:10, padding:"2px 8px", borderRadius:100, background:"#fff4e0", color:"#b06800", fontWeight:600 }}>
-            📋 Assignment
-          </span>
-        )}
-      </div>
 
-      {/* Link buttons */}
-      {(hasLecture || hasNotes || hasAssignment) && (
-        <div style={{ display:"flex", gap:7, flexWrap:"wrap" }}>
-          {hasLecture && (
-            <button onClick={() => openLink(resource.lectureLink)}
-              style={{ flex:1, minWidth:90, display:"flex", alignItems:"center", justifyContent:"center", gap:6, padding:"8px 12px", borderRadius:9, border:"1px solid #e5e3dc", background:"#fafaf9", cursor:"pointer", fontSize:12, fontWeight:600, color:"#1a1a18", fontFamily:"inherit" }}>
-              <span style={{ fontSize:12 }}>▶</span> Lecture
-            </button>
-          )}
-          {hasNotes && (
-            <button onClick={() => openLink(resource.notesLink)}
-              style={{ flex:1, minWidth:90, display:"flex", alignItems:"center", justifyContent:"center", gap:6, padding:"8px 12px", borderRadius:9, border:"1px solid #e5e3dc", background:"#fafaf9", cursor:"pointer", fontSize:12, fontWeight:600, color:"#1a1a18", fontFamily:"inherit" }}>
-              <span style={{ fontSize:12 }}>↗</span> Notes
-            </button>
-          )}
-          {/* Assignment button (NEW) */}
-          {hasAssignment && (
-            <button onClick={() => openLink(resource.assignmentLink)}
-              style={{ flex:1, minWidth:90, display:"flex", alignItems:"center", justifyContent:"center", gap:6, padding:"8px 12px", borderRadius:9, border:"1px solid #ffe0a0", background:"#fff9ee", cursor:"pointer", fontSize:12, fontWeight:600, color:"#b06800", fontFamily:"inherit" }}>
-              <span style={{ fontSize:12 }}>📋</span> Assignment
-            </button>
-          )}
+      {/* PYQ link */}
+      {resource.type === "pyq" && resource.pyqLink && (
+        <div className="px-3 pb-3">
+          <a
+            href={resource.pyqLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block text-center text-xs bg-gray-100 text-gray-700 font-semibold py-2 rounded-xl hover:bg-gray-200 transition"
+          >
+            View PYQ
+          </a>
         </div>
       )}
+
+      {/* Share */}
+      <div className="border-t border-gray-50 px-3 py-2">
+        <button
+          onClick={handleShare}
+          className="w-full text-xs text-gray-400 hover:text-gray-600 font-medium transition"
+        >
+          Share Notes
+        </button>
+      </div>
     </div>
   );
 }
 
-/* ─── Main ──────────────────────────────────────────────────────────────── */
+// ─── Notes View (grouped by subject) ─────────────────────────────────────────
+function NotesView({ resources, user, onView, onDownload, onDelete, showToast }) {
+  const [expandedSubject, setExpandedSubject] = useState(null);
+
+  const bySubject = {};
+  resources.forEach((r) => {
+    if (!bySubject[r.subject]) bySubject[r.subject] = [];
+    bySubject[r.subject].push(r);
+  });
+  const subjects = Object.keys(bySubject);
+
+  if (subjects.length === 0) {
+    return (
+      <div className="text-center py-16 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
+        <p className="text-gray-600 font-semibold">No notes yet</p>
+        <p className="text-gray-400 text-sm mt-1">Be the first to upload</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      {subjects.map((subjectName) => {
+        const items = bySubject[subjectName];
+        const isOpen = expandedSubject === subjectName;
+        const count = items.length;
+
+        return (
+          <div
+            key={subjectName}
+            className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden"
+          >
+            <button
+              onClick={() => setExpandedSubject(isOpen ? null : subjectName)}
+              className="w-full flex items-center gap-3 p-4 text-left hover:bg-gray-50 transition"
+            >
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center flex-shrink-0">
+                <span className="text-white text-xs font-bold">
+                  {subjectName.substring(0, 2).toUpperCase()}
+                </span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-gray-900 truncate">{subjectName}</p>
+                <p className="text-xs text-gray-400">
+                  {count} file{count !== 1 ? "s" : ""}
+                </p>
+              </div>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <span className="bg-blue-100 text-blue-600 text-xs font-bold px-2 py-0.5 rounded-full">
+                  {count}
+                </span>
+                <span
+                  className={`text-gray-400 text-sm transition-transform duration-200 inline-block ${
+                    isOpen ? "rotate-180" : ""
+                  }`}
+                >
+                  v
+                </span>
+              </div>
+            </button>
+
+            {isOpen && (
+              <div className="border-t border-gray-100 p-3 space-y-2 bg-gray-50">
+                {items.map((resource) => (
+                  <ResourceCard
+                    key={resource._id}
+                    resource={resource}
+                    user={user}
+                    onView={onView}
+                    onDownload={onDownload}
+                    onDelete={onDelete}
+                    showToast={showToast}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── PYQ View ─────────────────────────────────────────────────────────────────
+function PYQView({ resources, user, onView, onDownload, onDelete, showToast }) {
+  const [activeUnits, setActiveUnits] = useState([]);
+  const units = ["1", "2", "3", "4", "5"];
+
+  const toggleUnit = (u) =>
+    setActiveUnits((prev) =>
+      prev.includes(u) ? prev.filter((x) => x !== u) : [...prev, u]
+    );
+
+  const filtered =
+    activeUnits.length === 0
+      ? resources
+      : resources.filter((r) => {
+          if (!r.unit || r.unit === "General") return false;
+          const rUnits = r.unit.split(",").map((x) => x.trim());
+          return activeUnits.some((u) => rUnits.includes(u));
+        });
+
+  if (resources.length === 0) {
+    return (
+      <div className="text-center py-16 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
+        <p className="text-gray-600 font-semibold">No PYQs yet</p>
+        <p className="text-gray-400 text-sm mt-1">Be the first to upload</p>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div className="flex items-center gap-2 mb-4">
+        <span className="text-xs text-gray-400 font-medium">Unit</span>
+        <button
+          onClick={() => setActiveUnits([])}
+          className={`px-3 py-1.5 rounded-full text-xs font-semibold transition ${
+            activeUnits.length === 0
+              ? "bg-black text-white"
+              : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+          }`}
+        >
+          All
+        </button>
+        {units.map((u) => (
+          <button
+            key={u}
+            onClick={() => toggleUnit(u)}
+            className={`w-8 h-8 rounded-full text-xs font-bold transition ${
+              activeUnits.includes(u)
+                ? "bg-black text-white"
+                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+            }`}
+          >
+            {u}
+          </button>
+        ))}
+      </div>
+
+      <div className="space-y-3">
+        {filtered.length === 0 ? (
+          <div className="text-center py-10 text-gray-400 text-sm">
+            No PYQs for selected units
+          </div>
+        ) : (
+          filtered.map((resource) => (
+            <ResourceCard
+              key={resource._id}
+              resource={resource}
+              user={user}
+              onView={onView}
+              onDownload={onDownload}
+              onDelete={onDelete}
+              showToast={showToast}
+            />
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Main Component ───────────────────────────────────────────────────────────
 export default function Resources() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [resources, setResources] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("notes");
+  const [showUpload, setShowUpload] = useState(false);
+  const [toast, setToast] = useState(null);
+  const [viewer, setViewer] = useState(null);
 
-  const [resources,      setResources]      = useState([]);
-  const [loading,        setLoading]        = useState(true);
-  const [activeTab,      setActiveTab]      = useState("notes");
-  const [activeSubject,  setActiveSubject]  = useState("all");
-  const [showAdd,        setShowAdd]        = useState(false);
-  const [editTarget,     setEditTarget]     = useState(null);
-  const [toast,          setToast]          = useState(null);
-  const [customSubjects, setCustomSubjects] = useState(() => loadCustom());
-
-  useEffect(() => { fetchResources(); }, [activeTab]);
+  useEffect(() => {
+    fetchResources();
+  }, [activeTab]);
 
   const fetchResources = async () => {
     try {
       setLoading(true);
-      setActiveSubject("all");
       const res = await api.get(`/api/resources/all?type=${activeTab}`);
       setResources(res.data);
-    } catch (err) { console.error(err); }
-    finally { setLoading(false); }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 3000); };
+  const showToast = (msg, type = "success") => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3000);
+  };
 
   const handleDelete = async (id) => {
-    if (!window.confirm("Delete this entry?")) return;
+    if (!window.confirm("Delete this resource?")) return;
     try {
       await api.delete(`/api/resources/${id}`);
-      setResources(r => r.filter(x => x._id !== id));
+      setResources(resources.filter((r) => r._id !== id));
       showToast("Deleted");
-    } catch { showToast("Failed to delete"); }
+    } catch {
+      showToast("Failed to delete", "error");
+    }
   };
 
-  const handleNewSubject = (name) => {
-    const all = [...BASE_SUBJECTS, ...customSubjects];
-    if (all.map(s => s.toLowerCase()).includes(name.toLowerCase())) return;
-    const updated = [...customSubjects, name];
-    setCustomSubjects(updated);
-    saveCustom(updated);
+  const getFileExt = (url) => {
+    if (!url) return "pdf";
+    const rawExt = url.split(".").pop().split("?")[0].toLowerCase();
+    return ["png", "jpg", "jpeg", "webp", "gif"].includes(rawExt) ? rawExt : "pdf";
   };
 
-  const dbSubjects    = Array.from(new Set(resources.map(r => r.subject).filter(Boolean)));
-  const knownLower    = new Set([...BASE_SUBJECTS, ...customSubjects].map(s => s.toLowerCase()));
-  const dbOnly        = dbSubjects.filter(s => !knownLower.has(s.toLowerCase()));
-  const extraSubjects = [...customSubjects, ...dbOnly];
-  const allKnown      = [...BASE_SUBJECTS, ...extraSubjects];
-  const tagSubjects   = ["all", ...Array.from(new Set(
-    dbSubjects.map(s => allKnown.find(k => k.toLowerCase() === s.toLowerCase()) || s)
-  ))];
+  const handleDownload = (url, title, ext) => {
+    let downloadUrl = url;
+    if (url && url.includes("/upload/")) {
+      downloadUrl = url.replace("/upload/", "/upload/fl_attachment/");
+    }
+    const a = document.createElement("a");
+    a.href = downloadUrl;
+    a.download = `${title || "file"}.${ext}`;
+    a.target = "_blank";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  };
 
-  const filtered = activeSubject === "all"
-    ? resources
-    : resources.filter(r => r.subject?.toLowerCase() === activeSubject.toLowerCase());
+  const handleView = (resource) => {
+    const ext = getFileExt(resource.fileUrl);
+    if (ext === "pdf") {
+      let viewUrl = resource.fileUrl || "";
+      if (!viewUrl.split("?")[0].toLowerCase().endsWith(".pdf"))
+        viewUrl = viewUrl + ".pdf";
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      if (isMobile) {
+        window.open(
+          `https://docs.google.com/viewer?url=${encodeURIComponent(viewUrl)}&embedded=true`,
+          "_blank",
+          "noopener,noreferrer"
+        );
+      } else {
+        window.open(viewUrl, "_blank", "noopener,noreferrer");
+      }
+    } else {
+      setViewer({ url: resource.fileUrl, title: resource.title, ext });
+    }
+  };
 
-  // ── Removed "assignment" tab ──
   const TABS = [
-    { id:"notes", label:"Notes" },
-    { id:"pyq",   label:"PYQs"  },
+    { id: "notes", label: "Notes" },
+    { id: "pyq", label: "PYQs" },
   ];
 
-  const S = {
-    page:    { minHeight:"100vh", background:"#fafaf9", fontFamily:"'DM Sans',system-ui,sans-serif", color:"#1a1a18", fontSize:14 },
-    wrap:    { maxWidth:600, margin:"0 auto", padding:"20px 16px 88px" },
-    hdr:     { display:"flex", alignItems:"center", gap:12, marginBottom:22 },
-    backBtn: { width:34, height:34, borderRadius:9, border:"1px solid #e5e3dc", background:"#fff", cursor:"pointer", fontSize:17, color:"#6b6860", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 },
-    btn:     { padding:"8px 14px", borderRadius:10, border:"none", background:"#1a1a18", color:"#fff", fontSize:12, fontWeight:700, cursor:"pointer", fontFamily:"inherit" },
-    tabBar:  { display:"flex", borderBottom:"1.5px solid #e5e3dc", marginBottom:14 },
-    tab:     (a) => ({ padding:"8px 0", marginRight:22, fontSize:13, fontWeight:700, border:"none", background:"transparent", cursor:"pointer", color:a?"#1a1a18":"#9b9890", borderBottom:a?"2px solid #1a1a18":"2px solid transparent", marginBottom:"-1.5px", transition:"color .13s" }),
-    ptag:    (a) => ({ padding:"5px 12px", borderRadius:100, fontSize:11, fontWeight:600, border:"none", cursor:"pointer", background:a?"#1a1a18":"#f0ede8", color:a?"#fff":"#6b6860", transition:"all .13s", whiteSpace:"nowrap", flexShrink:0 }),
-  };
-
-  const modalProps = { activeTab, showToast, extraSubjects, onNewSubject: handleNewSubject, onSuccess: fetchResources };
-
   return (
-    <div style={S.page}>
+    <div className="max-w-2xl mx-auto p-4 pb-28">
+      <Toast toast={toast} />
 
-      {toast && (
-        <div style={{ position:"fixed", top:16, right:16, zIndex:99, padding:"9px 16px", borderRadius:11, background:"#1a1a18", color:"#fff", fontSize:12, fontWeight:700, boxShadow:"0 4px 20px rgba(0,0,0,.18)" }}>
-          {toast}
-        </div>
+      {viewer && (
+        <FileViewer
+          url={viewer.url}
+          title={viewer.title}
+          ext={viewer.ext}
+          onClose={() => setViewer(null)}
+          onDownload={() => handleDownload(viewer.url, viewer.title, viewer.ext)}
+        />
       )}
 
-      {showAdd && <AddModal {...modalProps} onClose={() => setShowAdd(false)} />}
-      {editTarget && <EditModal {...modalProps} resource={editTarget} onClose={() => setEditTarget(null)} />}
+      {showUpload && (
+        <UploadModal
+          user={user}
+          activeTab={activeTab}
+          onClose={() => setShowUpload(false)}
+          onSuccess={() => fetchResources()}
+          showToast={showToast}
+        />
+      )}
 
-      <div style={S.wrap}>
-
-        {/* Header */}
-        <div style={S.hdr}>
-          <button style={S.backBtn} onClick={() => navigate("/")}>‹</button>
-          <div style={{ flex:1 }}>
-            <div style={{ fontSize:18, fontWeight:800, letterSpacing:"-.3px" }}>Resources</div>
-            <div style={{ fontSize:11, color:"#9b9890", marginTop:1 }}>Notes · PYQs</div>
-          </div>
-          <button style={S.btn} onClick={() => setShowAdd(true)}>+ Add</button>
+      {/* Header */}
+      <div className="flex items-center justify-between mb-5">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Resources</h1>
+          <p className="text-xs text-gray-400 mt-0.5">Notes and PYQs</p>
         </div>
-
-        {/* Tabs */}
-        <div style={S.tabBar}>
-          {TABS.map(t => (
-            <button key={t.id} style={S.tab(activeTab===t.id)} onClick={() => setActiveTab(t.id)}>
-              {t.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Subject filters */}
-        {tagSubjects.length > 1 && (
-          <div style={{ display:"flex", gap:6, overflowX:"auto", paddingBottom:4, marginBottom:14 }}>
-            {tagSubjects.map(s => (
-              <button key={s} style={S.ptag(activeSubject===s)} onClick={() => setActiveSubject(s)}>
-                {s === "all" ? "All" : s}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* Content */}
-        {loading ? (
-          <div style={{ textAlign:"center", padding:"48px 0", color:"#9b9890" }}>Loading…</div>
-        ) : filtered.length === 0 ? (
-          <div style={{ textAlign:"center", padding:"48px", background:"#fff", border:"1px solid #e5e3dc", borderRadius:14 }}>
-            <div style={{ fontSize:32, marginBottom:8 }}>📭</div>
-            <div style={{ fontWeight:700, marginBottom:4 }}>Nothing here yet</div>
-            <div style={{ fontSize:12, color:"#9b9890", marginBottom:16 }}>Be the first to add</div>
-            <button style={S.btn} onClick={() => setShowAdd(true)}>+ Add</button>
-          </div>
-        ) : (
-          <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-            {filtered.map(resource => (
-              <ResourceCard key={resource._id} resource={resource} user={user} onDelete={handleDelete} onEdit={setEditTarget} />
-            ))}
-          </div>
-        )}
-
+        <button
+          onClick={() => navigate("/")}
+          className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-xl text-sm transition"
+        >
+          Back
+        </button>
       </div>
+
+      {/* Tabs */}
+      <div className="flex bg-white w-full mb-4">
+        {TABS.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition ${
+              activeTab === tab.id
+                ? "underline text-black decoration-2 decoration-black"
+                : "text-gray-500"
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Content */}
+      {loading ? (
+        <div className="text-center py-10 text-gray-400">
+          <div className="w-8 h-8 border-4 border-blue-400 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          Loading...
+        </div>
+      ) : (
+        <>
+          {activeTab === "notes" && (
+            <NotesView
+              resources={resources}
+              user={user}
+              onView={handleView}
+              onDownload={handleDownload}
+              onDelete={handleDelete}
+              showToast={showToast}
+            />
+          )}
+          {activeTab === "pyq" && (
+            <PYQView
+              resources={resources}
+              user={user}
+              onView={handleView}
+              onDownload={handleDownload}
+              onDelete={handleDelete}
+              showToast={showToast}
+            />
+          )}
+        </>
+      )}
+
+      {/* FAB */}
+      {user && (
+        <button
+          onClick={() => setShowUpload(true)}
+          className="fixed bottom-6 right-6 w-14 h-14 bg-black text-white rounded-2xl text-3xl font-light flex items-center justify-center shadow-lg hover:bg-gray-800 active:scale-95 transition z-30"
+          aria-label="Upload resource"
+        >
+          +
+        </button>
+      )}
     </div>
   );
 }
