@@ -10,6 +10,7 @@ function SellModal({ onClose, onSuccess }) {
   const [error, setError] = useState("");
   const fileRef = useRef();
 
+  
   const handleFile = (e) => {
     const file = e.target.files[0];
     if (!file) return;
