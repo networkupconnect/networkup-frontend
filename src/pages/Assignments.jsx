@@ -9,6 +9,8 @@ const SUBJECTS = [
   "Electronics","Mechanical","Civil","Other"
 ];
 
+
+
 function timeLeft(deadline) {
   const diff = new Date(deadline) - new Date();
   if (diff <= 0) return { text:"Expired", color:"#dc2626", urgent:true };
