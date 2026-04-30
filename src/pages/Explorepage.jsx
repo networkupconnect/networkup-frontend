@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
@@ -23,29 +23,18 @@ const TOP_LINKS = [
   { name: "Chat", path: "/messages", desc: "Message classmates" },
 ];
 
-const MOBILE_TOP_LINKS = [
-  { name: "Resources", path: "/resources", desc: "Study resources" },
-  { name: "Rooms", path: "/rooms", desc: "Find PGs & roommates" },
-  { name: "Attendance", path: "/attendance", desc: "Bunk safe" },
-  { name: "Chat", path: "/messages", desc: "Message classmates" },
-];
-
 export default function ExplorePage() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [isMobile, setIsMobile] = useState(window.innerWidth <= 640);
   const [toast, setToast] = useState(null);
-
-  useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth <= 640);
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
 
   const visible = EXPLORE_LINKS.filter(link => {
     if (link.role) return user && link.role.includes(user.role);
     return true;
   });
+
+  const topLinkPaths = TOP_LINKS.map((link) => link.path);
+  const remainingLinks = visible.filter((link) => !topLinkPaths.includes(link.path));
 
   const handleClick = (link) => {
     if (link.authType === "login" && !user) {
@@ -80,32 +69,23 @@ export default function ExplorePage() {
         Explore
       </p>
 
-      <div className="rounded-[26px] border border-gray-200 bg-gray-50 p-4 mb-6">
+      <div className="rounded-[26px] border border-sky-200 bg-sky-50 p-4 mb-6">
         <div className="grid grid-cols-2 gap-3">
-          {(isMobile ? MOBILE_TOP_LINKS : TOP_LINKS).map((link) => (
+          {TOP_LINKS.map((link) => (
             <button
               key={link.name}
               onClick={() => handleClick(link)}
-              className="group flex flex-col justify-between rounded-3xl border border-transparent bg-white p-4 text-left transition hover:border-gray-200 active:scale-95"
+              className="group flex flex-col justify-between rounded-3xl bg-sky-600 p-4 text-left text-white transition hover:bg-sky-700 active:scale-95"
             >
-              <div className="text-sm font-semibold text-gray-900">{link.name}</div>
-              <p className="text-xs text-gray-500 mt-2">{link.desc}</p>
-              {link.name === "Resources" && (
-                <span className="mt-3 inline-flex h-8 w-8 items-center justify-center rounded-2xl bg-gray-100">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M5 4H19C20.1046 4 21 4.89543 21 6V18C21 19.1046 20.1046 20 19 20H5C3.89543 20 3 19.1046 3 18V6C3 4.89543 3.89543 4 5 4Z" stroke="#374151" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    <path d="M8 10H16" stroke="#374151" strokeWidth="1.5" strokeLinecap="round"/>
-                    <path d="M8 14H14" stroke="#374151" strokeWidth="1.5" strokeLinecap="round"/>
-                  </svg>
-                </span>
-              )}
+              <div className="text-sm font-semibold">{link.name}</div>
+              <p className="text-xs text-sky-100 mt-2">{link.desc}</p>
             </button>
           ))}
         </div>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
-        {visible.map((link) => (
+        {remainingLinks.map((link) => (
           <button
             key={link.name}
             onClick={() => handleClick(link)}

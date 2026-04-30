@@ -95,11 +95,11 @@ export default function DashboardLayout() {
 
   // ── Mobile bottom nav — 5 fixed tabs including Explore ────────────────────
   const mobileNavTabs = [
-    { name: "Home",     path: "/",         imgsrc: "/images/home.svg"  },
-    { name: "Shop",     path: "/buy-sell", imgsrc: "/images/cart.svg"  },
-    { name: "Explore",  path: "/explore",  imgsrc: null                }, // compass icon rendered inline
-    { name: "Connect",  path: "/connections", imgsrc: "/images/connections.svg" },
-    { name: "Profile",  path: "/profile",  imgsrc: "/images/profile.svg" },
+    { name: "Home", path: "/", imgsrc: "/images/home.svg" },
+    { name: "Resources", path: "/resources", imgsrc: null },
+    { name: "Explore", path: "/explore", imgsrc: null },
+    { name: "Connect", path: "/connections", imgsrc: "/images/connections.svg" },
+    { name: "Profile", path: "/profile", imgsrc: "/images/profile.svg" },
   ];
 
   const handleNavClick = (e, link) => {
@@ -159,60 +159,37 @@ export default function DashboardLayout() {
         {/* ── Mobile bottom nav — 5 tabs, no More/drawer ──────────────────── */}
         {/* Replace the existing mobile bottom nav JSX with this: */}
 <div className="sm:hidden fixed bottom-0 left-0 right-0 z-20 bg-white border-t border-gray-200 flex justify-around items-center h-16 px-1">
-  {mobileNavTabs.map((tab) =>
-    tab.name === "Explore" ? (
-      <NavLink
-        key="Explore"
-        to="/explore"
-        className={({ isActive }) =>
-          `flex flex-col items-center justify-center flex-1 py-1 gap-0.5 ${
-            isActive ? "text-blue-600" : "text-gray-500"
-          }`
-        }
-      >
-        {({ isActive }) => (
-          <>
-            <span
-              className={`flex items-center justify-center w-10 h-10 rounded-2xl transition-colors ${
-                isActive ? "bg-blue-100" : "bg-gray-100"
-              }`}
-            >
+  {mobileNavTabs.map((tab) => (
+    <NavLink
+      key={tab.name}
+      to={tab.path}
+      className={({ isActive }) =>
+        `flex flex-col items-center justify-center gap-0.5 flex-1 py-1 transition ${
+          isActive ? "text-blue-600" : "text-gray-500"
+        }`
+      }
+    >
+      {({ isActive }) => (
+        <>
+          <span className={`flex items-center justify-center w-10 h-10 rounded-2xl transition-colors ${isActive ? "bg-blue-100" : "bg-transparent"}`}>
+            {tab.name === "Resources" ? (
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10"/>
-                <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>
+                <path d="M4 19.5C4 18.67 4.67 18 5.5 18H8.5C9.33 18 10 18.67 10 19.5V20.5C10 21.33 9.33 22 8.5 22H5.5C4.67 22 4 21.33 4 20.5V19.5Z" />
+                <path d="M13 19.5C13 18.67 13.67 18 14.5 18H17.5C18.33 18 19 18.67 19 19.5V20.5C19 21.33 18.33 22 17.5 22H14.5C13.67 22 13 21.33 13 20.5V19.5Z" />
+                <path d="M4 4.5C4 3.67 4.67 3 5.5 3H8.5C9.33 3 10 3.67 10 4.5V15.5C10 16.33 9.33 17 8.5 17H5.5C4.67 17 4 16.33 4 15.5V4.5Z" />
+                <path d="M13 4.5C13 3.67 13.67 3 14.5 3H17.5C18.33 3 19 3.67 19 4.5V15.5C19 16.33 18.33 17 17.5 17H14.5C13.67 17 13 16.33 13 15.5V4.5Z" />
               </svg>
-            </span>
-            {/* Active: black text, inactive: gray */}
-            <span className={`text-[10px] leading-tight ${isActive ? "text-black font-semibold" : "text-gray-500"}`}>
-              Explore
-            </span>
-          </>
-        )}
-      </NavLink>
-    ) : (
-      <NavLink
-        key={tab.name}
-        to={tab.path}
-        className={({ isActive }) =>
-          `flex flex-col items-center justify-center gap-0.5 flex-1 py-1 ${
-            isActive ? "text-blue-600" : "text-gray-500"
-          }`
-        }
-      >
-        {({ isActive }) => (
-          <>
-            <img className="w-5 h-5" src={tab.imgsrc} alt="" />
-            {/* Active: black text, inactive: gray */}
-            <span className={`text-[10px] leading-tight text-center truncate w-full px-0.5 ${
-              isActive ? "text-black font-semibold" : "text-gray-500"
-            }`}>
-              {tab.name}
-            </span>
-          </>
-        )}
-      </NavLink>
-    )
-  )}
+            ) : (
+              <img className="w-5 h-5" src={tab.imgsrc} alt="" />
+            )}
+          </span>
+          <span className={`text-[10px] leading-tight text-center truncate w-full px-0.5 ${isActive ? "text-black font-semibold" : "text-gray-500"}`}>
+            {tab.name}
+          </span>
+        </>
+      )}
+    </NavLink>
+  ))}
 </div>
 
         {/* ── Main content ─────────────────────────────────────────────────── */}
