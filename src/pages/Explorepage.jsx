@@ -10,7 +10,7 @@ const EXPLORE_LINKS = [
   { name: "Chat",         path: "/messages",    icon: "💬", desc: "Message classmates"    },
   { name: "Confessions",  path: "/confessions", icon: "🤫", desc: "Anonymous board"       },
   { name: "Course", path: "/course",   icon: "📚", desc: "Explore courses"   },
-  { name: "PYQS & Notes", path: "/resources",   icon: "📚", desc: "Study resources",      authType: "profile" },
+  { name: "PYQS & Notes", path: "/resources",   icon: "📚", desc: "Study resources" },
   { name: "Assignments",  path: "/assignments", icon: "📝", desc: "Track deadlines",       authType: "profile" },
   { name: "Feedback",     path: "/feedback",    icon: "📣", desc: "Share thoughts",        authType: "login"   },
   { name: "Seller Dashboard", path: "/seller",  icon: "🛒", desc: "Manage your shop",     role: ["seller", "admin"] },

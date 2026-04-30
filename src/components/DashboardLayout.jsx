@@ -71,7 +71,7 @@ export default function DashboardLayout() {
     { name: "Home",        path: "/",            imgsrc: "/images/home.svg",        authType: null },
     ...(user ? [{ name: "Connections", path: "/connections", imgsrc: "/images/connections.svg", authType: null }] : []),
     { name: "Shop",        path: "/buy-sell",    imgsrc: "/images/cart.svg",        authType: null },
-    { name: "Attendance",  path: "/attendance",  imgsrc: "/images/attendance.svg",  authType: "profile" },
+    { name: "Attendance",  path: "/attendance",  imgsrc: "/images/attendance.svg",  authType: null },
     { name: "Chat",        path: "/messages",    imgsrc: "/images/chat.svg",        authType: null },
   ];
 
@@ -79,7 +79,7 @@ export default function DashboardLayout() {
   const allLinks2 = [
     { name: "Rooms",        path: "/rooms",       imgsrc: "/images/room.svg",        authType: null },
     { name: "Confessions",  path: "/confessions", imgsrc: "/images/inc.svg",         authType: null },
-    { name: "PYQS & Notes", path: "/resources",   imgsrc: "/images/book.svg",        authType: "profile" },
+    { name: "PYQS & Notes", path: "/resources",   imgsrc: "/images/book.svg",        authType: null },
     { name: "Assignments",  path: "/assignments", imgsrc: "/images/assignment.svg",  authType: "profile" },
     { name: "Course",       path: "/course",      imgsrc: "/images/course.svg",      authType: null },
     { name: "Internships",  path: "/Internships", imgsrc: "/images/alert.svg",       authType: null },
