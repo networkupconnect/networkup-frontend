@@ -14,7 +14,7 @@ function Avatar({ name = "", src }) {
 }
 
 export default function RoomDetail() {
-  const { id } = useParams();
+  const { roomId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
 
@@ -22,25 +22,47 @@ export default function RoomDetail() {
   const [loading, setLoading] = useState(true);
   const [lightbox, setLightbox] = useState(null);
   const [activeImg, setActiveImg] = useState(0);
+  const [editing, setEditing] = useState(false);
+  const [saveLoading, setSaveLoading] = useState(false);
+  const [form, setForm] = useState({
+    title: "",
+    description: "",
+    rent: "",
+    location: "",
+    contactName: "",
+    contactPhone: "",
+    facilities: "",
+    isAvailable: true,
+  });
   const [toast, setToast] = useState(null);
 
   useEffect(() => {
     (async () => {
       try {
-        const res = await api.get(`/api/rooms/${id}`);
+        const res = await api.get(`/api/rooms/${roomId}`);
         setListing(res.data);
+        setForm({
+          title: res.data.title || "",
+          description: res.data.description || "",
+          rent: res.data.rent || "",
+          location: res.data.location || "",
+          contactName: res.data.contactName || "",
+          contactPhone: res.data.contactPhone || "",
+          facilities: (res.data.facilities || []).join(", "),
+          isAvailable: res.data.isAvailable ?? true,
+        });
       } catch {
         setToast("Failed to load listing");
       } finally {
         setLoading(false);
       }
     })();
-  }, [id]);
+  }, [roomId]);
 
   const handleDelete = async () => {
     if (!window.confirm("Delete this listing?")) return;
     try {
-      await api.delete(`/api/rooms/${id}`);
+      await api.delete(`/api/rooms/${roomId}`);
       navigate(-1);
     } catch {
       setToast("Failed to delete");
@@ -51,6 +73,48 @@ export default function RoomDetail() {
     user?._id === listing?.postedBy?._id?.toString() ||
     user?._id === String(listing?.postedBy?._id) ||
     user?.role === "admin";
+
+  const canEdit = canDelete;
+
+  const resetForm = () => {
+    setForm({
+      title: listing?.title || "",
+      description: listing?.description || "",
+      rent: listing?.rent || "",
+      location: listing?.location || "",
+      contactName: listing?.contactName || "",
+      contactPhone: listing?.contactPhone || "",
+      facilities: (listing?.facilities || []).join(", "),
+      isAvailable: listing?.isAvailable ?? true,
+    });
+  };
+
+  const handleSave = async () => {
+    if (!listing) return;
+    setSaveLoading(true);
+
+    try {
+      const body = {
+        title: form.title,
+        description: form.description,
+        rent: Number(form.rent) || 0,
+        location: form.location,
+        contactName: form.contactName,
+        contactPhone: form.contactPhone,
+        facilities: form.facilities,
+        isAvailable: form.isAvailable,
+      };
+
+      const res = await api.put(`/api/rooms/${roomId}`, body);
+      setListing(res.data);
+      setEditing(false);
+      setToast("Listing updated successfully");
+    } catch (err) {
+      setToast(err.response?.data?.message || "Failed to save changes");
+    } finally {
+      setSaveLoading(false);
+    }
+  };
 
   /* ── styles ── */
   const S = {
@@ -254,7 +318,121 @@ export default function RoomDetail() {
                   💬 WhatsApp
                 </a>
               )}
+              {canEdit && !editing && (
+                <button
+                  onClick={() => setEditing(true)}
+                  style={{
+                    flex: 1, minWidth: 120,
+                    padding: "13px 20px", borderRadius: 12,
+                    background: "#eef0ff", border: "1.5px solid #d9e5ff",
+                    color: "#1c3aa9", fontSize: 13, fontWeight: 700,
+                    cursor: "pointer", transition: "background 0.15s",
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = "#e0e9ff"}
+                  onMouseLeave={e => e.currentTarget.style.background = "#eef0ff"}
+                >
+                  Edit listing
+                </button>
+              )}
             </div>
+
+            {editing && (
+              <div style={{ marginTop: 20, padding: 18, borderRadius: 18, background: "#fafbff", border: "1px solid #e7eaff" }}>
+                <p style={{ fontSize: 12, fontWeight: 700, color: "#5d6bff", textTransform: "uppercase", marginBottom: 10 }}>Edit Details</p>
+                <div style={{ display: "grid", gap: 12 }}>
+                  <label style={{ display: "grid", gap: 6, fontSize: 13, color: "#333" }}>
+                    Title
+                    <input
+                      value={form.title}
+                      onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
+                      style={{ width: "100%", padding: 12, borderRadius: 14, border: "1px solid #dbe0ee", fontSize: 13 }}
+                    />
+                  </label>
+                  <label style={{ display: "grid", gap: 6, fontSize: 13, color: "#333" }}>
+                    Location
+                    <input
+                      value={form.location}
+                      onChange={(e) => setForm((p) => ({ ...p, location: e.target.value }))}
+                      style={{ width: "100%", padding: 12, borderRadius: 14, border: "1px solid #dbe0ee", fontSize: 13 }}
+                    />
+                  </label>
+                  <label style={{ display: "grid", gap: 6, fontSize: 13, color: "#333" }}>
+                    Rent
+                    <input
+                      type="number"
+                      value={form.rent}
+                      onChange={(e) => setForm((p) => ({ ...p, rent: e.target.value }))}
+                      style={{ width: "100%", padding: 12, borderRadius: 14, border: "1px solid #dbe0ee", fontSize: 13 }}
+                    />
+                  </label>
+                  <label style={{ display: "grid", gap: 6, fontSize: 13, color: "#333" }}>
+                    Description
+                    <textarea
+                      value={form.description}
+                      rows={3}
+                      onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
+                      style={{ width: "100%", padding: 12, borderRadius: 14, border: "1px solid #dbe0ee", fontSize: 13, resize: "vertical" }}
+                    />
+                  </label>
+                  <label style={{ display: "grid", gap: 6, fontSize: 13, color: "#333" }}>
+                    Contact name
+                    <input
+                      value={form.contactName}
+                      onChange={(e) => setForm((p) => ({ ...p, contactName: e.target.value }))}
+                      style={{ width: "100%", padding: 12, borderRadius: 14, border: "1px solid #dbe0ee", fontSize: 13 }}
+                    />
+                  </label>
+                  <label style={{ display: "grid", gap: 6, fontSize: 13, color: "#333" }}>
+                    Contact phone
+                    <input
+                      value={form.contactPhone}
+                      onChange={(e) => setForm((p) => ({ ...p, contactPhone: e.target.value }))}
+                      style={{ width: "100%", padding: 12, borderRadius: 14, border: "1px solid #dbe0ee", fontSize: 13 }}
+                    />
+                  </label>
+                  <label style={{ display: "grid", gap: 6, fontSize: 13, color: "#333" }}>
+                    Facilities (comma separated)
+                    <input
+                      value={form.facilities}
+                      onChange={(e) => setForm((p) => ({ ...p, facilities: e.target.value }))}
+                      style={{ width: "100%", padding: 12, borderRadius: 14, border: "1px solid #dbe0ee", fontSize: 13 }}
+                    />
+                  </label>
+                  <label style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: "#333" }}>
+                    <input
+                      type="checkbox"
+                      checked={form.isAvailable}
+                      onChange={(e) => setForm((p) => ({ ...p, isAvailable: e.target.checked }))}
+                    />
+                    Mark as available
+                  </label>
+                </div>
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 16 }}>
+                  <button
+                    onClick={handleSave}
+                    disabled={saveLoading}
+                    style={{
+                      flex: 1, minWidth: 120, padding: "13px 20px", borderRadius: 12,
+                      background: "#1f3dc6", border: "1.5px solid #1f3dc6", color: "#fff",
+                      fontSize: 13, fontWeight: 700, cursor: saveLoading ? "not-allowed" : "pointer",
+                    }}
+                  >
+                    {saveLoading ? "Saving..." : "Save changes"}
+                  </button>
+                  <button
+                    onClick={() => { resetForm(); setEditing(false); }}
+                    type="button"
+                    style={{
+                      flex: 1, minWidth: 120, padding: "13px 20px", borderRadius: 12,
+                      background: "#fff", border: "1.5px solid #d1d5e0", color: "#111",
+                      fontSize: 13, fontWeight: 700, cursor: "pointer",
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* ── Delete ── */}
             {canDelete && (

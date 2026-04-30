@@ -44,11 +44,12 @@ function Avatar({ name = "", src }) {
 function ListingCard({ listing, user, onDelete, onImageClick, idx }) {
   const allFacilities = listing.facilities || [];
   const navigate = useNavigate();
+  const detailPath = `/room/${listing._id}`;
 
   return (
     <div
       className="card-enter"
-      onClick={() => navigate(`/rooms/${listing._id}`)}
+      onClick={() => navigate(detailPath)}
       style={{
         background: "#fff",
         border: "1.5px solid #ebebeb",
@@ -144,10 +145,11 @@ function ListingCard({ listing, user, onDelete, onImageClick, idx }) {
               {listing.postedBy?.name || "—"}
             </span>
           </div>
-          <div style={{ display: "flex", gap: 7 }}>
+          <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
             {listing.contactPhone && (
               <a
                 href={`tel:${listing.contactPhone}`}
+                onClick={(e) => e.stopPropagation()}
                 style={{
                   display: "inline-flex", alignItems: "center", gap: 5,
                   fontSize: 11, fontWeight: 600, color: "#1a9e6a",
