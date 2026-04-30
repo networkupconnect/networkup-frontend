@@ -446,7 +446,7 @@ function EditModal({ resource, onClose, onSuccess, showToast }) {
 }
 
 // ─── Resource Card ────────────────────────────────────────────────────────────
-function ResourceCard({ resource, user, onView, onDownload, onDelete, onEdit, showToast }) {
+function ResourceCard({ resource, user, onView, onDownload, onDelete, onEdit, onTagClick, showToast }) {
   const ext = resource.fileUrl
     ? resource.fileUrl.split(".").pop().split("?")[0].toLowerCase()
     : "pdf";
@@ -513,7 +513,19 @@ function ResourceCard({ resource, user, onView, onDownload, onDelete, onEdit, sh
                   <span key={u} style={{ fontSize: 10, fontWeight: 600, background: "#F0F0F0", color: "#666", padding: "2px 7px", borderRadius: 5 }}>U{u}</span>
                 ))}
                 {resourceTags.map((t) => (
-                  <span key={t} style={{ fontSize: 10, fontWeight: 500, background: "#F0F0F0", color: "#666", padding: "2px 7px", borderRadius: 5 }}>{t}</span>
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => onTagClick?.(t)}
+                    style={{
+                      fontSize: 10, fontWeight: 500,
+                      background: "#F0F0F0", color: "#666",
+                      padding: "2px 7px", borderRadius: 5,
+                      border: "none", cursor: onTagClick ? "pointer" : "default",
+                    }}
+                  >
+                    {t}
+                  </button>
                 ))}
               </div>
             )}
@@ -579,7 +591,7 @@ function ResourceCard({ resource, user, onView, onDownload, onDelete, onEdit, sh
 }
 
 // ─── Notes View (flat list) ───────────────────────────────────────────────────
-function NotesView({ resources, user, onView, onDownload, onDelete, onEdit, showToast, activeFilterTags }) {
+function NotesView({ resources, user, onView, onDownload, onDelete, onEdit, onTagClick, showToast, activeFilterTags }) {
   const filtered = activeFilterTags.length === 0
     ? resources
     : resources.filter((r) => {
@@ -606,14 +618,14 @@ function NotesView({ resources, user, onView, onDownload, onDelete, onEdit, show
     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
       {filtered.map((resource) => (
         <ResourceCard key={resource._id} resource={resource} user={user}
-          onView={onView} onDownload={onDownload} onDelete={onDelete} onEdit={onEdit} showToast={showToast} />
+          onView={onView} onDownload={onDownload} onDelete={onDelete} onEdit={onEdit} onTagClick={onTagClick} showToast={showToast} />
       ))}
     </div>
   );
 }
 
 // ─── PYQ View ─────────────────────────────────────────────────────────────────
-function PYQView({ resources, user, onView, onDownload, onDelete, onEdit, showToast, activeFilterTags }) {
+function PYQView({ resources, user, onView, onDownload, onDelete, onEdit, onTagClick, showToast, activeFilterTags }) {
   const [activeUnits, setActiveUnits] = useState([]);
   const units = ["1", "2", "3", "4", "5"];
 
@@ -676,7 +688,7 @@ function PYQView({ resources, user, onView, onDownload, onDelete, onEdit, showTo
         ) : (
           filtered.map((resource) => (
             <ResourceCard key={resource._id} resource={resource} user={user}
-              onView={onView} onDownload={onDownload} onDelete={onDelete} onEdit={onEdit} showToast={showToast} />
+              onView={onView} onDownload={onDownload} onDelete={onDelete} onEdit={onEdit} onTagClick={onTagClick} showToast={showToast} />
           ))
         )}
       </div>
@@ -877,12 +889,12 @@ export default function Resources() {
           {activeTab === "notes" && (
             <NotesView resources={resources} user={user} activeFilterTags={activeFilterTags}
               onView={handleView} onDownload={handleDownload} onDelete={handleDelete}
-              onEdit={(r) => setEditResource(r)} showToast={showToast} />
+              onEdit={(r) => setEditResource(r)} onTagClick={toggleFilterTag} showToast={showToast} />
           )}
           {activeTab === "pyq" && (
             <PYQView resources={resources} user={user} activeFilterTags={activeFilterTags}
               onView={handleView} onDownload={handleDownload} onDelete={handleDelete}
-              onEdit={(r) => setEditResource(r)} showToast={showToast} />
+              onEdit={(r) => setEditResource(r)} onTagClick={toggleFilterTag} showToast={showToast} />
           )}
         </>
       )}
