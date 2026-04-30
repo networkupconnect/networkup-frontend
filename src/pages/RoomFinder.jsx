@@ -146,7 +146,7 @@ function ListingCard({ listing, user, onDelete, onImageClick, idx }) {
             </span>
           </div>
           <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
-            {listing.contactPhone && (
+            {listing.contactPhone && user ? (
               <a
                 href={`tel:${listing.contactPhone}`}
                 onClick={(e) => e.stopPropagation()}
@@ -165,7 +165,11 @@ function ListingCard({ listing, user, onDelete, onImageClick, idx }) {
                 </svg>
                 Call
               </a>
-            )}
+            ) : listing.contactPhone ? (
+              <div style={{ fontSize: 11, color: "#888", padding: "6px 11px", borderRadius: 8, border: "1px solid #E5E7EB", background: "#F9FAFB" }}>
+                Login to get Contact Number
+              </div>
+            ) : null}
             {(user?._id === listing.postedBy?._id?.toString() ||
               user?._id === String(listing.postedBy?._id) ||
               user?.role === "admin") && (

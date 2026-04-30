@@ -283,7 +283,7 @@ export default function RoomDetail() {
 
             {/* ── Contact Actions ── */}
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-              {listing.contactPhone && (
+              {listing.contactPhone && user ? (
                 <a href={`tel:${listing.contactPhone}`} style={{
                   flex: 1, minWidth: 120,
                   display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
@@ -300,7 +300,17 @@ export default function RoomDetail() {
                   </svg>
                   Call {listing.contactPhone}
                 </a>
-              )}
+              ) : listing.contactPhone ? (
+                <div style={{
+                  flex: 1, minWidth: 120,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  padding: "13px 20px", borderRadius: 12,
+                  background: "#F9FAFB", border: "1.5px solid #E5E7EB",
+                  color: "#6B7280", fontSize: 13, fontWeight: 600,
+                }}>
+                  Login to get Contact Number
+                </div>
+              ) : null}
               {listing.contactPhone && (
                 <a href={`https://wa.me/${listing.contactPhone.replace(/\D/g, "")}`}
                   target="_blank" rel="noopener noreferrer"
