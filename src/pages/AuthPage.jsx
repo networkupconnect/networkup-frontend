@@ -44,8 +44,13 @@ export default function AuthPage() {
     const params = new URLSearchParams(location.search);
     const token = params.get("token");
     const err = params.get("error");
+    const reason = params.get("reason");
     if (token || err) window.history.replaceState({}, "", "/login");
-    if (err) { setError("Google sign-in failed. Please try again."); return; }
+    if (err) {
+      setGoogleLoading(false);
+      setError(`Google sign-in failed. Please try again.${reason ? ` (${reason})` : ""}`);
+      return;
+    }
     if (token) {
       setGoogleLoading(true);
       localStorage.setItem("token", token);
