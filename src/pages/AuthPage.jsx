@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import api from "../api/axios";
 import { useAuth } from "../context/AuthContext";
 
-const BACKEND = "https://network.networkup.in";
+const BACKEND = import.meta.env.VITE_API_URL || "https://network.networkup.in";
 
 // After auth, go to onboarding if not complete, else intended path or home
 const redirect = (navigate, user) => {
