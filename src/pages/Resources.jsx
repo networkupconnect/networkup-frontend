@@ -530,6 +530,14 @@ function ResourceCard({ resource, user, onView, onDownload, onDelete, onEdit, on
               </div>
             )}
           </div>
+          <button onClick={handleShare} style={{
+            padding: "6px 10px", borderRadius: 7,
+            border: "1px solid #BFDBFE", background: "#EFF6FF",
+            color: "#2563EB", fontSize: 12, fontWeight: 600,
+            cursor: "pointer", flexShrink: 0,
+          }}>
+            Share
+          </button>
 
           {/* Right action buttons */}
           <div style={{ display: "flex", gap: 5, flexShrink: 0, alignItems: "center" }}>
@@ -577,15 +585,6 @@ function ResourceCard({ resource, user, onView, onDownload, onDelete, onEdit, on
         </div>
       )}
 
-      {/* Footer: share */}
-      <div style={{ borderTop: "1px solid #F3F3F3", padding: "9px 14px" }}>
-        <button onClick={handleShare} style={{
-          width: "100%", padding: "6px 0",
-          border: "1px solid #BFDBFE", borderRadius: 7,
-          background: "#EFF6FF", color: "#2563EB",
-          fontSize: 12, fontWeight: 600, cursor: "pointer",
-        }}>Share</button>
-      </div>
     </div>
   );
 }
