@@ -327,8 +327,126 @@ function UploadModal({ activeTab, onClose, onSuccess, showToast, user }) {
   );
 }
 
+// ─── Edit Modal ───────────────────────────────────────────────────────────────
+function EditModal({ resource, onClose, onSuccess, showToast }) {
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({
+    title: resource.title || "",
+    description: resource.description || "",
+    subject: resource.subject || "",
+    units: resource.unit && resource.unit !== "General" ? resource.unit.split(",").map((u) => u.trim()) : [],
+    tags: resource.tags ? resource.tags.split(",").map((t) => t.trim()).filter(Boolean) : [],
+    notesLink: resource.notesLink || "",
+    lectureLink: resource.lectureLink || "",
+    assignmentLink: resource.assignmentLink || "",
+    pyqLink: resource.pyqLink || "",
+  });
+
+  const handleSave = async (e) => {
+    e.preventDefault();
+    if (!form.subject) return showToast("Subject name is required", "error");
+    const payload = {
+      title: form.title || form.subject,
+      description: form.description,
+      subject: form.subject,
+      unit: form.units.length > 0 ? form.units.join(",") : "General",
+      tags: form.tags.join(","),
+      notesLink: form.notesLink || "",
+      lectureLink: form.lectureLink || "",
+      assignmentLink: form.assignmentLink || "",
+      pyqLink: form.pyqLink || "",
+    };
+    try {
+      setSaving(true);
+      await api.put(`/api/resources/${resource._id}`, payload);
+      onClose(); onSuccess(); showToast("Saved");
+    } catch (err) {
+      showToast(err.response?.data?.message || "Failed to save", "error");
+    } finally { setSaving(false); }
+  };
+
+  const units = ["1", "2", "3", "4", "5"];
+  const toggleUnit = (u) =>
+    setForm((f) => ({ ...f, units: f.units.includes(u) ? f.units.filter((x) => x !== u) : [...f.units, u] }));
+
+  const inputStyle = {
+    width: "100%", padding: "10px 13px", fontSize: 13,
+    border: "1px solid #E0E0E0", borderRadius: 9, outline: "none",
+    background: "#FAFAFA", color: "#111", boxSizing: "border-box",
+  };
+  const labelStyle = { fontSize: 11, color: "#888", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", display: "block", marginBottom: 5 };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 50, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "flex-end" }}>
+      <div style={{ background: "#fff", width: "100%", maxWidth: 520, margin: "0 auto", borderRadius: "18px 18px 0 0", maxHeight: "92vh", overflowY: "auto" }}>
+        <div style={{ position: "sticky", top: 0, background: "#fff", borderBottom: "1px solid #F0F0F0", padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <span style={{ fontSize: 14, fontWeight: 600, color: "#111" }}>Edit Resource</span>
+          <button onClick={onClose} style={{ width: 28, height: 28, borderRadius: "50%", border: "1px solid #E0E0E0", background: "#F5F5F5", cursor: "pointer", fontSize: 14, color: "#555", display: "flex", alignItems: "center", justifyContent: "center" }}>x</button>
+        </div>
+        <form onSubmit={handleSave} style={{ padding: 20, display: "flex", flexDirection: "column", gap: 14 }}>
+          <div>
+            <label style={labelStyle}>Subject *</label>
+            <input style={inputStyle} value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} required />
+          </div>
+          <div>
+            <label style={labelStyle}>Title</label>
+            <input style={inputStyle} placeholder="Optional" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+          </div>
+          <div>
+            <label style={labelStyle}>Description</label>
+            <textarea style={{ ...inputStyle, resize: "none", height: 60 }} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+          </div>
+          <div>
+            <label style={labelStyle}>Unit</label>
+            <div style={{ display: "flex", gap: 6 }}>
+              {units.map((u) => (
+                <button key={u} type="button" onClick={() => toggleUnit(u)} style={{
+                  width: 38, height: 38, borderRadius: 9, border: "1px solid",
+                  borderColor: form.units.includes(u) ? "#000" : "#D4D4D4",
+                  background: form.units.includes(u) ? "#000" : "#F5F5F5",
+                  color: form.units.includes(u) ? "#fff" : "#555",
+                  fontSize: 13, fontWeight: 600, cursor: "pointer",
+                }}>{u}</button>
+              ))}
+            </div>
+          </div>
+          <TagSelector selected={form.tags} onChange={(tags) => setForm({ ...form, tags })} />
+          {resource.type === "notes" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <div>
+                <label style={labelStyle}>Notes Link</label>
+                <input style={inputStyle} placeholder="https://drive.google.com/..." value={form.notesLink} onChange={(e) => setForm({ ...form, notesLink: e.target.value })} />
+              </div>
+              <div>
+                <label style={labelStyle}>Lecture Link</label>
+                <input style={inputStyle} placeholder="https://youtube.com/..." value={form.lectureLink} onChange={(e) => setForm({ ...form, lectureLink: e.target.value })} />
+              </div>
+              <div>
+                <label style={labelStyle}>Assignment Link</label>
+                <input style={inputStyle} placeholder="https://..." value={form.assignmentLink} onChange={(e) => setForm({ ...form, assignmentLink: e.target.value })} />
+              </div>
+            </div>
+          )}
+          {resource.type === "pyq" && (
+            <div>
+              <label style={labelStyle}>PYQ Link</label>
+              <input style={inputStyle} placeholder="https://drive.google.com/..." value={form.pyqLink} onChange={(e) => setForm({ ...form, pyqLink: e.target.value })} />
+            </div>
+          )}
+          <div style={{ display: "flex", gap: 8, paddingTop: 4 }}>
+            <button type="submit" disabled={saving} style={{ flex: 1, padding: "12px 0", borderRadius: 10, background: "#000", color: "#fff", fontSize: 13, fontWeight: 600, border: "none", cursor: "pointer", opacity: saving ? 0.5 : 1 }}>
+              {saving ? "Saving..." : "Save Changes"}
+            </button>
+            <button type="button" onClick={onClose} style={{ padding: "12px 18px", borderRadius: 10, border: "1px solid #E0E0E0", background: "#F5F5F5", fontSize: 13, fontWeight: 500, cursor: "pointer", color: "#555" }}>Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 // ─── Resource Card ────────────────────────────────────────────────────────────
-function ResourceCard({ resource, user, onView, onDownload, onDelete, showToast }) {
+function ResourceCard({ resource, user, onView, onDownload, onDelete, onEdit, showToast }) {
   const ext = resource.fileUrl
     ? resource.fileUrl.split(".").pop().split("?")[0].toLowerCase()
     : "pdf";
@@ -344,7 +462,9 @@ function ResourceCard({ resource, user, onView, onDownload, onDelete, showToast 
     ? resource.tags.split(",").map((t) => t.trim()).filter(Boolean)
     : [];
 
+  const isAdmin = user?.role === "admin";
   const isOwner = user && user._id === resource.uploadedBy?._id?.toString();
+  const canManage = isAdmin || isOwner;
 
   const handleShare = () => {
     const url = `${window.location.origin}/resources?id=${resource._id}`;
@@ -387,23 +507,13 @@ function ResourceCard({ resource, user, onView, onDownload, onDelete, showToast 
                 {resource.description}
               </p>
             )}
-
-            {/* Unit + resource tags */}
             {(unitTags.length > 0 || resourceTags.length > 0) && (
               <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 7 }}>
                 {unitTags.map((u) => (
-                  <span key={u} style={{
-                    fontSize: 10, fontWeight: 600,
-                    background: "#F0F0F0", color: "#666",
-                    padding: "2px 7px", borderRadius: 5,
-                  }}>U{u}</span>
+                  <span key={u} style={{ fontSize: 10, fontWeight: 600, background: "#F0F0F0", color: "#666", padding: "2px 7px", borderRadius: 5 }}>U{u}</span>
                 ))}
                 {resourceTags.map((t) => (
-                  <span key={t} style={{
-                    fontSize: 10, fontWeight: 500,
-                    background: "#F0F0F0", color: "#666",
-                    padding: "2px 7px", borderRadius: 5,
-                  }}>{t}</span>
+                  <span key={t} style={{ fontSize: 10, fontWeight: 500, background: "#F0F0F0", color: "#666", padding: "2px 7px", borderRadius: 5 }}>{t}</span>
                 ))}
               </div>
             )}
@@ -417,7 +527,12 @@ function ResourceCard({ resource, user, onView, onDownload, onDelete, showToast 
                 <button onClick={() => onDownload(resource.fileUrl, resource.title, fileExt)} style={greyBtnStyle}>Save</button>
               </>
             )}
-            {isOwner && (
+            {isAdmin && (
+              <button onClick={() => onEdit(resource)} style={{ ...greyBtnStyle, color: "#1d4ed8", borderColor: "#bfdbfe", background: "#eff6ff" }}>
+                Edit
+              </button>
+            )}
+            {canManage && (
               <button onClick={() => onDelete(resource._id)} style={{ ...greyBtnStyle, color: "#ef4444", borderColor: "#fecaca", background: "#fff5f5" }}>
                 Del
               </button>
@@ -454,19 +569,17 @@ function ResourceCard({ resource, user, onView, onDownload, onDelete, showToast 
       <div style={{ borderTop: "1px solid #F3F3F3", padding: "9px 14px" }}>
         <button onClick={handleShare} style={{
           width: "100%", padding: "6px 0",
-          border: "1px solid #BFDBFE",
-          borderRadius: 7, background: "#EFF6FF",
-          color: "#2563EB", fontSize: 12, fontWeight: 600, cursor: "pointer",
-        }}>
-          Share
-        </button>
+          border: "1px solid #BFDBFE", borderRadius: 7,
+          background: "#EFF6FF", color: "#2563EB",
+          fontSize: 12, fontWeight: 600, cursor: "pointer",
+        }}>Share</button>
       </div>
     </div>
   );
 }
 
 // ─── Notes View (flat list) ───────────────────────────────────────────────────
-function NotesView({ resources, user, onView, onDownload, onDelete, showToast, activeFilterTags }) {
+function NotesView({ resources, user, onView, onDownload, onDelete, onEdit, showToast, activeFilterTags }) {
   const filtered = activeFilterTags.length === 0
     ? resources
     : resources.filter((r) => {
@@ -493,14 +606,14 @@ function NotesView({ resources, user, onView, onDownload, onDelete, showToast, a
     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
       {filtered.map((resource) => (
         <ResourceCard key={resource._id} resource={resource} user={user}
-          onView={onView} onDownload={onDownload} onDelete={onDelete} showToast={showToast} />
+          onView={onView} onDownload={onDownload} onDelete={onDelete} onEdit={onEdit} showToast={showToast} />
       ))}
     </div>
   );
 }
 
 // ─── PYQ View ─────────────────────────────────────────────────────────────────
-function PYQView({ resources, user, onView, onDownload, onDelete, showToast, activeFilterTags }) {
+function PYQView({ resources, user, onView, onDownload, onDelete, onEdit, showToast, activeFilterTags }) {
   const [activeUnits, setActiveUnits] = useState([]);
   const units = ["1", "2", "3", "4", "5"];
 
@@ -563,7 +676,7 @@ function PYQView({ resources, user, onView, onDownload, onDelete, showToast, act
         ) : (
           filtered.map((resource) => (
             <ResourceCard key={resource._id} resource={resource} user={user}
-              onView={onView} onDownload={onDownload} onDelete={onDelete} showToast={showToast} />
+              onView={onView} onDownload={onDownload} onDelete={onDelete} onEdit={onEdit} showToast={showToast} />
           ))
         )}
       </div>
@@ -621,6 +734,7 @@ export default function Resources() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("notes");
   const [showUpload, setShowUpload] = useState(false);
+  const [editResource, setEditResource] = useState(null);
   const [toast, setToast] = useState(null);
   const [viewer, setViewer] = useState(null);
   const [activeFilterTags, setActiveFilterTags] = useState([]);
@@ -709,17 +823,30 @@ export default function Resources() {
           showToast={showToast} />
       )}
 
+      {editResource && (
+        <EditModal
+          resource={editResource}
+          onClose={() => setEditResource(null)}
+          onSuccess={() => { setEditResource(null); fetchResources(); }}
+          showToast={showToast}
+        />
+      )}
+
       {/* Header */}
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 20 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
+        <button
+          onClick={() => navigate("/")}
+          aria-label="Go back"
+          style={{ background: "none", border: "none", cursor: "pointer", padding: 4, display: "flex", alignItems: "center", color: "#111", flexShrink: 0 }}
+        >
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12.5 15L7.5 10L12.5 5" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </button>
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: "#111", margin: 0, letterSpacing: "-0.4px" }}>Resources</h1>
-          <p style={{ fontSize: 12, color: "#AAA", margin: "3px 0 0" }}>Notes and PYQs</p>
+          <h1 style={{ fontSize: 20, fontWeight: 700, color: "#111", margin: 0, letterSpacing: "-0.4px" }}>Resources</h1>
+          <p style={{ fontSize: 11, color: "#AAA", margin: "2px 0 0" }}>Notes and PYQs</p>
         </div>
-        <button onClick={() => navigate("/")} style={{
-          padding: "8px 14px", borderRadius: 9,
-          border: "1px solid #E0E0E0", background: "#F5F5F5",
-          fontSize: 12, fontWeight: 500, color: "#555", cursor: "pointer",
-        }}>Back</button>
       </div>
 
       {/* Tabs */}
@@ -749,27 +876,35 @@ export default function Resources() {
         <>
           {activeTab === "notes" && (
             <NotesView resources={resources} user={user} activeFilterTags={activeFilterTags}
-              onView={handleView} onDownload={handleDownload} onDelete={handleDelete} showToast={showToast} />
+              onView={handleView} onDownload={handleDownload} onDelete={handleDelete}
+              onEdit={(r) => setEditResource(r)} showToast={showToast} />
           )}
           {activeTab === "pyq" && (
             <PYQView resources={resources} user={user} activeFilterTags={activeFilterTags}
-              onView={handleView} onDownload={handleDownload} onDelete={handleDelete} showToast={showToast} />
+              onView={handleView} onDownload={handleDownload} onDelete={handleDelete}
+              onEdit={(r) => setEditResource(r)} showToast={showToast} />
           )}
         </>
       )}
 
-      {/* FAB */}
+      {/* FAB — raised above bottom nav */}
       {user && (
-        <button onClick={() => setShowUpload(true)} aria-label="Upload resource"
+        <button
+          onClick={() => setShowUpload(true)}
+          aria-label="Upload resource"
           style={{
-            position: "fixed", bottom: 24, right: 20,
+            position: "fixed", bottom: 80, right: 20,
             width: 52, height: 52, borderRadius: 14,
             background: "#111", color: "#fff",
-            fontSize: 28, fontWeight: 300, border: "none",
+            border: "none", cursor: "pointer", zIndex: 30,
             display: "flex", alignItems: "center", justifyContent: "center",
             boxShadow: "0 2px 12px rgba(0,0,0,0.2)",
-            cursor: "pointer", zIndex: 30,
-          }}>+</button>
+          }}
+        >
+          <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M11 4V18M4 11H18" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+          </svg>
+        </button>
       )}
     </div>
   );
