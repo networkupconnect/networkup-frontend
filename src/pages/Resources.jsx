@@ -811,7 +811,10 @@ export default function Resources() {
   const allTagsInResources = Array.from(new Set(
     resources.flatMap((r) => r.tags ? r.tags.split(",").map((t) => t.trim()).filter(Boolean) : [])
   ));
-  const displayableTags = Array.from(new Set([...PRESET_TAGS.filter((t) => allTagsInResources.includes(t)), ...allTagsInResources.filter((t) => !PRESET_TAGS.includes(t))]));
+  const displayableTags = Array.from(new Set([
+    ...PRESET_TAGS,
+    ...allTagsInResources.filter((t) => !PRESET_TAGS.includes(t)),
+  ]));
 
   const toggleFilterTag = (tag) =>
     setActiveFilterTags((prev) => prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]);
