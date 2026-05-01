@@ -12,18 +12,22 @@
         dataLayer.push(arguments);
       }
       gtag("js", new Date());
-
       gtag("config", "G-HB1Q5J0869");
     </script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
     <!-- Relaxed CSP for development -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' blob: data: https: http:; media-src 'self' blob: https: data:; frame-src 'self' https://www.youtube.com; connect-src 'self' http://localhost:* https://localhost:* http://127.0.0.1:* https://network.networkup.in wss://network.networkup.in;"
+      content="default-src 'self';
+               script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com;
+               style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+               font-src 'self' data: https://fonts.gstatic.com;
+               img-src 'self' blob: data: https: http:;
+               media-src 'self' blob: https: data:;
+               frame-src 'self' https://www.youtube.com;
+               connect-src 'self' http://localhost:* https://localhost:* http://127.0.0.1:* https://network.networkup.in wss://network.networkup.in https://www.google-analytics.com https://region1.google-analytics.com https://www.googletagmanager.com;"
     />
-
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     <link rel="icon" type="image/png" href="/favicon-96x96.png" sizes="96x96" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
@@ -31,12 +35,11 @@
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/site.webmanifest" />
     <title>NetworkUp</title>
+    <script type="module" crossorigin src="/assets/index-Bu2E-mV7.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-C90Mu_Gt.css">
   </head>
   <body>
     <div id="root"></div>
-
     
-
-    <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
