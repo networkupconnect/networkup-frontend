@@ -31,6 +31,14 @@ function normaliseJob(j) {
   };
 }
 
+/* ─── Blocked sources (low-quality / stale data) ───────────────────────── */
+const BLOCKED_SOURCES = ["google jobs", "google"];
+
+function isBlockedSource(job) {
+  const src = (job.source || "").toLowerCase().trim();
+  return BLOCKED_SOURCES.some(b => src === b || src.startsWith(b));
+}
+
 /* ─── India filter ──────────────────────────────────────────────────────── */
 const INDIA_REGEX =
   /india|mumbai|delhi|bangalore|bengaluru|hyderabad|pune|chennai|kolkata|noida|gurgaon|gurugram|ahmedabad|jaipur|surat|kochi|trivandrum|chandigarh|bhopal|lucknow|indore|nagpur/i;
@@ -326,6 +334,8 @@ export default function Internships() {
 
   /* ── Client-side filter: India-only + tag + search ── */
   const filtered = jobs.filter(j => {
+
+    if (isBlockedSource(j)) return false;
     // 1. India only — must match INDIA_REGEX
     if (!isIndia(j)) return false;
 
@@ -350,7 +360,7 @@ export default function Internships() {
   };
 
   // Derive which SKILL_TAGS actually have results (so we can show counts or hide empties)
-  const indiaJobs = jobs.filter(isIndia);
+  const indiaJobs = jobs.filter(j => !isBlockedSource(j) && isIndia(j));
   const tagCounts = Object.fromEntries(
     SKILL_TAGS.map(t => [
       t,
