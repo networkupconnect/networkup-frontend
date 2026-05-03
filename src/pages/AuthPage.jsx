@@ -153,6 +153,8 @@ export default function AuthPage() {
             ))}
           </div>
 
+
+
           <h1 className="ap-heading">{mode === "signup" ? "Create account" : "Welcome back"}</h1>
           <p className="ap-sub">{mode === "signup" ? "Takes less than a minute" : "Enter your credentials to continue"}</p>
 

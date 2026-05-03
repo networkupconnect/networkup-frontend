@@ -19,7 +19,7 @@
     <meta name="apple-mobile-web-app-title" content="NetworkUp">
     <meta name="theme-color" content="#1a73e8">
 
-    <!-- CSP with Google Analytics allowed -->
+    <!-- CSP -->
     <meta http-equiv="Content-Security-Policy"
       content="default-src 'self';
                script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com;
@@ -43,77 +43,66 @@
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
 
-    <!-- Add to Home Screen Popup -->
-    <div id="nu-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:9999; align-items:flex-end; justify-content:center;">
-      <div id="nu-popup" style="background:#fff; width:100%; max-width:480px; border-radius:20px 20px 0 0; padding:0; overflow:hidden; box-shadow:0 -4px 30px rgba(0,0,0,0.15);">
+    <!-- ================================================
+         NetworkUp — Download APK Popup
+    ================================================ -->
+    <div id="nu-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:9999; align-items:flex-end; justify-content:center;">
+      <div style="background:#fff; width:100%; max-width:480px; border-radius:24px 24px 0 0; overflow:hidden; box-shadow:0 -8px 40px rgba(0,0,0,0.2);">
 
-        <div style="width:36px;height:4px;background:#e0e0e0;border-radius:2px;margin:12px auto 0;"></div>
+        <div style="width:40px;height:4px;background:#e0e0e0;border-radius:2px;margin:14px auto 0;"></div>
 
-        <div style="padding:20px 24px 32px;">
+        <div style="padding:24px 24px 36px;">
 
-          <div style="display:flex;align-items:center;gap:14px;margin-bottom:18px;">
-            <div style="width:56px;height:56px;border-radius:14px;background:linear-gradient(135deg,#1a73e8,#0d47a1);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-              <span style="font-size:26px;font-weight:700;color:#fff;">N</span>
+          <!-- Header -->
+          <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px;">
+            <div style="width:60px;height:60px;border-radius:16px;background:linear-gradient(135deg,#1a73e8,#0d47a1);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <span style="font-size:28px;font-weight:700;color:#fff;font-family:sans-serif;">N</span>
             </div>
             <div>
-              <p style="font-size:17px;font-weight:600;margin:0 0 2px;color:#111;">NetworkUp</p>
-              <p style="font-size:13px;color:#888;margin:0;">networkup.in</p>
+              <p style="font-size:18px;font-weight:700;margin:0 0 2px;color:#111;font-family:sans-serif;">NetworkUp</p>
+              <p style="font-size:13px;color:#888;margin:0;font-family:sans-serif;">networkup.in</p>
             </div>
-            <button onclick="nuDismiss()" aria-label="Close" style="margin-left:auto;background:#f0f0f0;border:none;border-radius:50%;width:28px;height:28px;cursor:pointer;font-size:16px;color:#666;display:flex;align-items:center;justify-content:center;padding:0;">&#10005;</button>
+            <button onclick="nuDismiss()" aria-label="Close" style="margin-left:auto;background:#f0f0f0;border:none;border-radius:50%;width:30px;height:30px;cursor:pointer;font-size:16px;color:#666;display:flex;align-items:center;justify-content:center;padding:0;">&#10005;</button>
           </div>
 
-          <p style="font-size:15px;font-weight:600;margin:0 0 5px;color:#111;">Add to your home screen</p>
-          <p style="font-size:13px;color:#666;margin:0 0 20px;line-height:1.6;">Get quick access to NetworkUp — no app store needed. Works like a native app!</p>
+          <!-- Title -->
+          <p style="font-size:16px;font-weight:700;margin:0 0 6px;color:#111;font-family:sans-serif;">Get the NetworkUp App</p>
+          <p style="font-size:13px;color:#666;margin:0 0 24px;line-height:1.7;font-family:sans-serif;">Download our Android app for a faster, smoother experience — works offline too!</p>
 
-          <div id="nu-ios" style="display:none;">
-            <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px;">
-              <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:#f7f9ff;border-radius:12px;">
-                <div style="width:28px;height:28px;border-radius:50%;background:#dce8fc;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span style="font-size:12px;font-weight:600;color:#1a73e8;">1</span></div>
-                <div><p style="font-size:13px;font-weight:600;margin:0;color:#111;">Tap the Share button</p><p style="font-size:12px;color:#888;margin:0;">The icon at the bottom of Safari</p></div>
-                <span style="margin-left:auto;font-size:18px;">&#8599;</span>
-              </div>
-              <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:#f7f9ff;border-radius:12px;">
-                <div style="width:28px;height:28px;border-radius:50%;background:#dce8fc;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span style="font-size:12px;font-weight:600;color:#1a73e8;">2</span></div>
-                <div><p style="font-size:13px;font-weight:600;margin:0;color:#111;">Tap "Add to Home Screen"</p><p style="font-size:12px;color:#888;margin:0;">Scroll down in the share sheet</p></div>
-                <span style="margin-left:auto;font-size:18px;">&#10133;</span>
-              </div>
-              <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:#f7f9ff;border-radius:12px;">
-                <div style="width:28px;height:28px;border-radius:50%;background:#dce8fc;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span style="font-size:12px;font-weight:600;color:#1a73e8;">3</span></div>
-                <div><p style="font-size:13px;font-weight:600;margin:0;color:#111;">Tap "Add"</p><p style="font-size:12px;color:#888;margin:0;">Confirm in the top-right corner</p></div>
-                <span style="margin-left:auto;font-size:18px;">&#10003;</span>
-              </div>
+          <!-- App info row -->
+          <div style="display:flex;gap:10px;margin-bottom:24px;">
+            <div style="flex:1;padding:12px;background:#f7f9ff;border-radius:12px;text-align:center;">
+        
+              <p style="font-size:11px;color:#888;margin:0;font-family:sans-serif;">Android</p>
             </div>
-          </div>
-
-          <div id="nu-android" style="display:none;">
-            <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px;">
-              <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:#f2fbf5;border-radius:12px;">
-                <div style="width:28px;height:28px;border-radius:50%;background:#c8edd7;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span style="font-size:12px;font-weight:600;color:#1a6e3a;">1</span></div>
-                <div><p style="font-size:13px;font-weight:600;margin:0;color:#111;">Tap the menu &#8942;</p><p style="font-size:12px;color:#888;margin:0;">Three dots in Chrome's top-right corner</p></div>
-              </div>
-              <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:#f2fbf5;border-radius:12px;">
-                <div style="width:28px;height:28px;border-radius:50%;background:#c8edd7;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span style="font-size:12px;font-weight:600;color:#1a6e3a;">2</span></div>
-                <div><p style="font-size:13px;font-weight:600;margin:0;color:#111;">Tap "Add to Home screen"</p><p style="font-size:12px;color:#888;margin:0;">Or "Install app" if prompted automatically</p></div>
-                <span style="margin-left:auto;font-size:18px;">&#10133;</span>
-              </div>
-              <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:#f2fbf5;border-radius:12px;">
-                <div style="width:28px;height:28px;border-radius:50%;background:#c8edd7;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span style="font-size:12px;font-weight:600;color:#1a6e3a;">3</span></div>
-                <div><p style="font-size:13px;font-weight:600;margin:0;color:#111;">Tap "Add"</p><p style="font-size:12px;color:#888;margin:0;">Confirm to install on home screen</p></div>
-                <span style="margin-left:auto;font-size:18px;">&#10003;</span>
-              </div>
+            <div style="flex:1;padding:12px;background:#f7f9ff;border-radius:12px;text-align:center;">
+              
+              <p style="font-size:11px;color:#888;margin:0;font-family:sans-serif;">Fast & Light</p>
+            </div>
+            <div style="flex:1;padding:12px;background:#f7f9ff;border-radius:12px;text-align:center;">
+             
+              <p style="font-size:11px;color:#888;margin:0;font-family:sans-serif;">Secure</p>
+            </div>
+            <div style="flex:1;padding:12px;background:#f7f9ff;border-radius:12px;text-align:center;">
+              
+              <p style="font-size:11px;color:#888;margin:0;font-family:sans-serif;">Free</p>
             </div>
           </div>
 
-          <div id="nu-desktop" style="display:none;">
-            <div style="padding:12px 14px;background:#f5f5f5;border-radius:12px;margin-bottom:20px;">
-              <p style="font-size:13px;color:#666;margin:0;line-height:1.7;">On Chrome or Edge, click the <strong>install icon</strong> in the address bar, or go to <strong>Menu → Install NetworkUp</strong> to add it to your desktop.</p>
-            </div>
+          <!-- iOS warning -->
+          <div id="nu-ios-note" style="display:none;padding:10px 14px;background:#fff8e1;border-radius:10px;margin-bottom:16px;">
+            <p style="font-size:12px;color:#b36a00;margin:0;font-family:sans-serif;">⚠️ APK files are for Android only. iPhone users can add our site to the home screen instead.</p>
           </div>
 
-          <div style="display:flex;gap:10px;">
-            <button onclick="nuDismiss()" style="flex:1;padding:13px;border-radius:12px;border:1px solid #ddd;background:transparent;cursor:pointer;font-size:14px;color:#666;font-family:inherit;">Maybe later</button>
-            <button onclick="nuDismiss()" style="flex:2;padding:13px;border-radius:12px;border:none;background:#1a73e8;cursor:pointer;font-size:14px;font-weight:600;color:#fff;font-family:inherit;">Got it!</button>
-          </div>
+          <!-- Download button -->
+          <a id="nu-download-btn"
+             href="https://github.com/networkupconnect/networkup-frontend/releases/download/v1.0/networkup.app.apk"
+             download
+             style="display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:15px;border-radius:14px;background:#1a73e8;color:#fff;font-size:15px;font-weight:700;text-decoration:none;font-family:sans-serif;box-sizing:border-box;margin-bottom:10px;">
+            ⬇️ Download APK (Android)
+          </a>
+
+          <button onclick="nuDismiss()" style="width:100%;padding:13px;border-radius:14px;border:1px solid #ddd;background:transparent;cursor:pointer;font-size:14px;color:#888;font-family:sans-serif;">Maybe later</button>
 
         </div>
       </div>
@@ -121,8 +110,8 @@
 
     <script>
     (function() {
-      var STORAGE_KEY = 'nu_popup_dismissed';
-      var SHOW_DELAY = 4000;
+      var STORAGE_KEY = 'nu_apk_popup_dismissed';
+      var SHOW_DELAY = 3000;
 
       function nuDismiss() {
         document.getElementById('nu-overlay').style.display = 'none';
@@ -136,19 +125,17 @@
           if (dismissed && (Date.now() - parseInt(dismissed)) < 7 * 24 * 60 * 60 * 1000) return;
         } catch(e) {}
 
-        var ua = navigator.userAgent;
-        var isIOS = /iPhone|iPad|iPod/i.test(ua);
-        var isAndroid = /Android/i.test(ua);
-
+        // Skip if already running as installed PWA
         if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) return;
         if (window.navigator.standalone) return;
 
+        var ua = navigator.userAgent;
+        var isIOS = /iPhone|iPad|iPod/i.test(ua);
+
         if (isIOS) {
-          document.getElementById('nu-ios').style.display = 'block';
-        } else if (isAndroid) {
-          document.getElementById('nu-android').style.display = 'block';
-        } else {
-          document.getElementById('nu-desktop').style.display = 'block';
+          document.getElementById('nu-ios-note').style.display = 'block';
+          document.getElementById('nu-download-btn').style.opacity = '0.5';
+          document.getElementById('nu-download-btn').style.pointerEvents = 'none';
         }
 
         document.getElementById('nu-overlay').style.display = 'flex';
