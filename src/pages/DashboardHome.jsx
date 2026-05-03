@@ -101,8 +101,6 @@ const STYLES = `
   .dh-sidebar { display:none; }
   @media(min-width:640px){ .dh-sidebar{ display:block; flex:1; background:#f3f4f6; border-radius:24px; height:100vh; position:sticky; top:0; } }
 
-  .compose-vid-btn { width:34px; height:34px; border-radius:50%; background:#e5e7eb; display:flex; align-items:center; justify-content:center; cursor:pointer; }
-
   .lightbox-overlay {
     position:fixed; inset:0; z-index:9999;
     background:rgba(0,0,0,0.92);
@@ -130,6 +128,70 @@ const STYLES = `
     width:100%; height:auto; display:block;
     border-radius:10px; background:#000;
   }
+
+  /* ── Birthday Banner ─────────────────────────────────────────────────────── */
+  @keyframes bdaySlideIn { from{opacity:0;transform:translateY(-14px)} to{opacity:1;transform:translateY(0)} }
+  @keyframes bdayFloat   { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-5px)} }
+  @keyframes bdayShimmer { 0%{background-position:-400px 0} 100%{background-position:400px 0} }
+  @keyframes bdaySpin    { from{transform:rotate(-8deg)} to{transform:rotate(8deg)} }
+
+  .bday-wrap {
+    margin:8px 8px 0;
+    animation:bdaySlideIn 0.55s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .bday-banner {
+    position:relative; overflow:hidden;
+    background:linear-gradient(135deg,#fff7ed 0%,#fdf4ff 45%,#fef9c3 100%);
+    border:1.5px solid #f9a8d4;
+    border-radius:20px;
+    padding:14px 16px;
+    display:flex; align-items:center; gap:12px;
+    box-shadow:0 4px 20px rgba(249,168,212,0.3), 0 1px 4px rgba(0,0,0,0.06);
+  }
+  .bday-banner::before {
+    content:'';
+    position:absolute; inset:0;
+    background:repeating-linear-gradient(
+      45deg,transparent,transparent 12px,
+      rgba(249,168,212,0.08) 12px,rgba(249,168,212,0.08) 24px
+    );
+    pointer-events:none;
+  }
+  .bday-banner::after {
+    content:'';
+    position:absolute; top:0; left:-60%; width:40%; height:100%;
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,0.6),transparent);
+    animation:bdayShimmer 3s ease-in-out infinite;
+    background-size:400px 100%;
+  }
+  .bday-cake {
+    font-size:34px;
+    animation:bdayFloat 2.2s ease-in-out infinite;
+    flex-shrink:0; position:relative; z-index:1;
+    filter:drop-shadow(0 2px 6px rgba(249,168,212,0.5));
+  }
+  .bday-body { flex:1; min-width:0; position:relative; z-index:1; }
+  .bday-label {
+    font-size:9px; font-weight:800; letter-spacing:0.12em;
+    text-transform:uppercase; color:#be185d;
+    font-family:monospace; margin-bottom:4px;
+    display:flex; align-items:center; gap:4px;
+  }
+  .bday-names {
+    font-size:15px; font-weight:700; color:#111110;
+    letter-spacing:-0.02em; line-height:1.25;
+  }
+  .bday-msg {
+    font-size:12px; color:#7c3aed; margin-top:4px;
+    font-style:italic; line-height:1.4;
+  }
+  .bday-icons {
+    display:flex; flex-direction:column; gap:3px;
+    flex-shrink:0; position:relative; z-index:1;
+  }
+  .bday-icons span:nth-child(1) { font-size:20px; animation:bdayFloat 1.9s ease-in-out infinite; }
+  .bday-icons span:nth-child(2) { font-size:18px; animation:bdayFloat 2.4s ease-in-out infinite 0.5s; }
+  .bday-icons span:nth-child(3) { font-size:16px; animation:bdayFloat 2s ease-in-out infinite 0.25s; }
 `;
 
 if (typeof document !== "undefined" && !document.getElementById("dh-styles")) {
@@ -148,6 +210,129 @@ const fmtDate = (d) => {
 
 const badgeClass = (s) => `badge ${s === "completed" ? "badge-completed" : s === "in-progress" ? "badge-in-progress" : "badge-idea"}`;
 const badgeLabel = (s) => s === "in-progress" ? "In Progress" : s === "completed" ? "Completed" : "Idea";
+
+// ── Confetti Canvas ───────────────────────────────────────────────────────────
+const ConfettiCanvas = memo(({ running }) => {
+  const canvasRef = useRef(null);
+
+  useEffect(() => {
+    if (!running) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+
+    const setSize = () => {
+      canvas.width  = window.innerWidth;
+      canvas.height = window.innerHeight;
+    };
+    setSize();
+
+    const EMOJIS = ["🎉","🎊","⭐","🌸","🌺","🎈","✨","🎀","💫","🎁","🌼","🎶"];
+    const particles = Array.from({ length: 80 }, () => ({
+      x:        Math.random() * canvas.width,
+      y:        -20 - Math.random() * 150,
+      emoji:    EMOJIS[Math.floor(Math.random() * EMOJIS.length)],
+      size:     13 + Math.random() * 20,
+      vx:       (Math.random() - 0.5) * 3.5,
+      vy:       1.0 + Math.random() * 3.0,
+      gravity:  0.04 + Math.random() * 0.04,
+      rotation: Math.random() * Math.PI * 2,
+      rotSpeed: (Math.random() - 0.5) * 0.13,
+    }));
+
+    const startTime = Date.now();
+    const HOLD = 3500;
+    const FADE = 1000;
+    let raf;
+
+    window.addEventListener("resize", setSize);
+
+    const animate = () => {
+      const elapsed = Date.now() - startTime;
+      if (elapsed > HOLD + FADE + 200) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        return;
+      }
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      const globalAlpha = elapsed > HOLD
+        ? Math.max(0, 1 - (elapsed - HOLD) / FADE)
+        : 1;
+
+      particles.forEach(p => {
+        p.vy       += p.gravity;
+        p.x        += p.vx;
+        p.y        += p.vy;
+        p.rotation += p.rotSpeed;
+
+        // Recycle particles that fall off screen during hold phase
+        if (p.y > canvas.height + 30 && elapsed < HOLD) {
+          p.y  = -20;
+          p.x  = Math.random() * canvas.width;
+          p.vy = 1.0 + Math.random() * 3.0;
+        }
+
+        ctx.save();
+        ctx.globalAlpha = globalAlpha;
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rotation);
+        ctx.font          = `${p.size}px serif`;
+        ctx.textAlign     = "center";
+        ctx.textBaseline  = "middle";
+        ctx.fillText(p.emoji, 0, 0);
+        ctx.restore();
+      });
+
+      raf = requestAnimationFrame(animate);
+    };
+
+    raf = requestAnimationFrame(animate);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("resize", setSize);
+    };
+  }, [running]);
+
+  if (!running) return null;
+  return (
+    <canvas
+      ref={canvasRef}
+      style={{
+        position: "fixed", inset: 0,
+        pointerEvents: "none",
+        zIndex: 9998,
+        width: "100%", height: "100%",
+      }}
+    />
+  );
+});
+
+// ── Birthday Banner ───────────────────────────────────────────────────────────
+const BirthdayBanner = memo(({ shoutout }) => {
+  if (!shoutout) return null;
+  const names = Array.isArray(shoutout.names)
+    ? shoutout.names.join(" & ")
+    : shoutout.names;
+  return (
+    <div className="bday-wrap">
+      <div className="bday-banner">
+        <span className="bday-cake">🎂</span>
+        <div className="bday-body">
+          <p className="bday-label">🎉 Birthday Shoutout!</p>
+          <p className="bday-names">{names}</p>
+          {shoutout.message && <p className="bday-msg">"{shoutout.message}"</p>}
+        </div>
+        <div className="bday-icons">
+          <span>🎊</span>
+          <span>🌸</span>
+          <span>⭐</span>
+        </div>
+      </div>
+    </div>
+  );
+});
 
 // ── Lightbox ──────────────────────────────────────────────────────────────────
 const Lightbox = memo(({ src, onClose }) => {
@@ -412,15 +597,15 @@ const DashboardHome = () => {
 
   const [caption,     setCaption]     = useState("");
   const [imgFile,     setImgFile]     = useState(null);
-  const [vidFile,     setVidFile]     = useState(null);
   const [preview,     setPreview]     = useState(null);
-  const [vidPreview,  setVidPreview]  = useState(null);
   const [creating,    setCreating]    = useState(false);
   const [comments,    setComments]    = useState({});
   const [openCmts,    setOpenCmts]    = useState({});
   const [projects,    setProjects]    = useState([]);
   const [targets,     setTargets]     = useState([]);
   const [lightboxSrc, setLightboxSrc] = useState(null);
+  const [shoutout,    setShoutout]    = useState(null);
+  const [confettiRun, setConfettiRun] = useState(false);
   const taRef = useRef(null);
 
   const resize = useCallback(() => {
@@ -434,12 +619,18 @@ const DashboardHome = () => {
     fetchPosts();
     (async () => {
       try {
-        const [pr, tr] = await Promise.all([
+        const [pr, tr, sd] = await Promise.all([
           api.get("/api/projects/recent"),
           api.get("/api/targets/recent"),
+          api.get("/api/admin/shoutout"),
         ]);
         setProjects(Array.isArray(pr.data) ? pr.data : []);
         setTargets(Array.isArray(tr.data) ? tr.data : []);
+        if (sd.data?.shoutout) {
+          setShoutout(sd.data.shoutout);
+          setConfettiRun(true);
+          setTimeout(() => setConfettiRun(false), 4800);
+        }
       } catch { /* ignore */ }
     })();
   }, []);
@@ -470,16 +661,14 @@ const DashboardHome = () => {
   }, [user, navigate]);
 
   const handleCreatePost = useCallback(async () => {
-    if (!caption.trim() && !imgFile && !vidFile) {
-      alert("Add a photo, video or write something");
+    if (!caption.trim() && !imgFile) {
+      alert("Add a photo or write something");
       return;
     }
 
-    const savedCaption    = caption.trim();
-    const savedImgFile    = imgFile;
-    const savedVidFile    = vidFile;
-    const savedPreview    = preview;
-    const savedVidPreview = vidPreview;
+    const savedCaption = caption.trim();
+    const savedImgFile = imgFile;
+    const savedPreview = preview;
 
     const tempId   = `temp_${Date.now()}`;
     const tempPost = {
@@ -489,21 +678,19 @@ const DashboardHome = () => {
       userId:    { _id: user._id, name: user.name, profileImage: user.profileImage },
       userName:  user.name,
       caption:   savedCaption,
-      image:     savedPreview    || "",
-      videoUrl:  savedVidPreview || "",
+      image:     savedPreview || "",
+      videoUrl:  "",
       likes:     [],
       comments:  [],
       createdAt: new Date().toISOString(),
     };
 
     setPosts(p => [tempPost, ...p]);
-    setCaption(""); setImgFile(null); setVidFile(null);
-    setPreview(null); setVidPreview(null);
+    setCaption(""); setImgFile(null); setPreview(null);
     if (taRef.current) taRef.current.style.height = "36px";
 
     const fd = new FormData();
     if (savedImgFile) fd.append("image", savedImgFile);
-    if (savedVidFile) fd.append("video", savedVidFile);
     if (savedCaption) fd.append("caption", savedCaption);
 
     try {
@@ -513,14 +700,14 @@ const DashboardHome = () => {
     } catch (e) {
       setPosts(p => p.filter(x => x._id !== tempId));
       setCaption(savedCaption);
-      setImgFile(savedImgFile);    setVidFile(savedVidFile);
-      setPreview(savedPreview);    setVidPreview(savedVidPreview);
+      setImgFile(savedImgFile);
+      setPreview(savedPreview);
       if (taRef.current) { taRef.current.style.height = "auto"; resize(); }
       alert(e.response?.data?.message || "Failed to post. Please try again.");
     } finally {
       setCreating(false);
     }
-  }, [caption, imgFile, vidFile, preview, vidPreview, user, setPosts, resize]);
+  }, [caption, imgFile, preview, user, setPosts, resize]);
 
   const handleDeletePost = useCallback(async (id) => {
     if (!window.confirm("Delete this post?")) return;
@@ -584,9 +771,13 @@ const DashboardHome = () => {
 
   return (
     <div className="dh-wrap">
+      {/* Confetti fires on load/refresh whenever a shoutout is active */}
+      <ConfettiCanvas running={confettiRun} />
+
       {lightboxSrc && <Lightbox src={lightboxSrc} onClose={handleCloseLightbox} />}
 
       <div className="dh-feed">
+        {/* ── Compose ── */}
         {user && (
           <div className="compose">
             <textarea ref={taRef} className="compose-ta"
@@ -603,41 +794,19 @@ const DashboardHome = () => {
               </div>
             )}
 
-            {vidPreview && (
-              <div className="compose-preview">
-                <video src={vidPreview} style={{ width:56, height:56, objectFit:"cover", borderRadius:7 }} muted />
-                <div style={{ flex:1 }}>
-                  <p style={{ fontSize:11, color:"#374151", margin:0 }}>{vidFile?.name}</p>
-                </div>
-                <button className="compose-preview-rm" onClick={() => { setVidFile(null); setVidPreview(null); }}>✕</button>
-              </div>
-            )}
-
             <div className="compose-actions">
+              {/* Photo upload — video icon intentionally removed */}
               <label className="compose-img-btn" title="Add photo">
                 <img src="/images/image.svg" alt="photo" style={{ width:17, height:17 }} />
                 <input type="file" accept="image/*" style={{ display:"none" }}
                   onChange={e => {
                     const f = e.target.files?.[0];
-                    if (f) { setImgFile(f); setPreview(URL.createObjectURL(f)); setVidFile(null); setVidPreview(null); }
+                    if (f) { setImgFile(f); setPreview(URL.createObjectURL(f)); }
                     e.target.value = "";
                   }} />
               </label>
 
-              <label className="compose-vid-btn" title="Add video">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#374151" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <polygon points="23 7 16 12 23 17 23 7"/>
-                  <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
-                </svg>
-                <input type="file" accept="video/*" style={{ display:"none" }}
-                  onChange={e => {
-                    const f = e.target.files?.[0];
-                    if (f) { setVidFile(f); setVidPreview(URL.createObjectURL(f)); setImgFile(null); setPreview(null); }
-                    e.target.value = "";
-                  }} />
-              </label>
-
-              <button className="compose-send" onClick={handleCreatePost} disabled={creating || (!caption.trim() && !imgFile && !vidFile)}>
+              <button className="compose-send" onClick={handleCreatePost} disabled={creating || (!caption.trim() && !imgFile)}>
                 {creating
                   ? <div className="compose-spinner" />
                   : <img src="/images/send.svg" alt="" style={{ width:15, height:15 }} />}
@@ -646,6 +815,10 @@ const DashboardHome = () => {
           </div>
         )}
 
+        {/* ── Birthday Shoutout Banner (auto-hidden when no shoutout) ── */}
+        <BirthdayBanner shoutout={shoutout} />
+
+        {/* ── Feed ── */}
         {feed.length === 0
           ? <div className="feed-empty">Nothing here yet — be the first to share</div>
           : feed.map(item => {

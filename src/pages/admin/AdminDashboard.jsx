@@ -3,7 +3,7 @@ import api from "../../api/axios";
 import { useAuth } from "../../context/AuthContext";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-const TABS = ["Overview", "Users", "Products", "Rooms", "Feedback", "Internships", "Personas"];
+const TABS = ["Overview", "Users", "Products", "Rooms", "Feedback", "Internships", "Personas", "Shoutout"];
 
 const ROLE_COLORS = {
   admin: "role-admin",
@@ -290,7 +290,6 @@ function InternshipImportModal({ onClose, onSuccess, showToast }) {
   const [error, setError]           = useState("");
   const fileRef                     = useRef(null);
 
-  // Normalise one LinkedIn-scraped job object → our schema (with auto-extracted tags)
   function normaliseLinkedIn(j, index) {
     const loc      = j["Location"] || j.location || "";
     const isRemote = loc.toLowerCase().includes("remote") ||
@@ -320,7 +319,7 @@ function InternshipImportModal({ onClose, onSuccess, showToast }) {
       logo:        j["Logo"]        || j.logo          || j.company_logo || "",
       remote:      isRemote,
       source:      "LinkedIn",
-      tags:        extractTags(title, description),   // ← auto-extracted role/skill tags
+      tags:        extractTags(title, description),
       postedAt:    null,
       fetchedAt:   new Date().toISOString(),
     };
@@ -382,7 +381,6 @@ function InternshipImportModal({ onClose, onSuccess, showToast }) {
           <button onClick={onClose} className="adm-modal-close">✕</button>
         </div>
         <div className="adm-modal-body">
-
           <div style={{ background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: "var(--r-lg)", padding: "12px 14px", fontSize: 12, color: "var(--text-2)", lineHeight: 1.7 }}>
             <strong style={{ color: "var(--text)", display: "block", marginBottom: 4 }}>Supported formats:</strong>
             LinkedIn scraper JSON (fields: Title, Company, Location, Post Link, Description, Logo, Employment type)<br />
@@ -669,6 +667,13 @@ export default function AdminDashboard() {
   const [personaLoading, setPersonaLoading] = useState(false);
   const [personaFilter, setPersonaFilter] = useState("");
 
+  // Shoutout
+  const [activeShoutout, setActiveShoutout] = useState(null);
+  const [shoutoutNames,  setShoutoutNames]  = useState([]);
+  const [nameInput,      setNameInput]      = useState("");
+  const [shoutoutMsg,    setShoutoutMsg]    = useState("");
+  const [shoutoutSaving, setShoutoutSaving] = useState(false);
+
   const showToast = (msg, type = "success") => {
     setToast({ msg, type });
     setTimeout(() => setToast(null), 3000);
@@ -885,6 +890,53 @@ export default function AdminDashboard() {
         return { name, count: members.length, members, topSkills, topInterests, topGoals };
       });
   }
+
+  // ── Shoutout ──
+  useEffect(() => {
+    if (activeTab !== "Shoutout") return;
+    api.get("/api/admin/shoutout")
+      .then(r => {
+        if (r.data?.shoutout) {
+          setActiveShoutout(r.data.shoutout);
+          setShoutoutNames(r.data.shoutout.names || []);
+          setShoutoutMsg(r.data.shoutout.message || "");
+        } else {
+          setActiveShoutout(null);
+          setShoutoutNames([]);
+          setShoutoutMsg("");
+        }
+      })
+      .catch(() => {});
+  }, [activeTab]);
+
+  const saveShoutout = async () => {
+    if (!shoutoutNames.length) return showToast("Add at least one name", "error");
+    setShoutoutSaving(true);
+    try {
+      const r = await api.post("/api/admin/shoutout", { names: shoutoutNames, message: shoutoutMsg });
+      setActiveShoutout(r.data.shoutout);
+      showToast("Shoutout posted! 🎉");
+    } catch { showToast("Failed to save shoutout", "error"); }
+    finally { setShoutoutSaving(false); }
+  };
+
+  const clearShoutout = async () => {
+    if (!window.confirm("Clear today's shoutout?")) return;
+    try {
+      await api.delete("/api/admin/shoutout");
+      setActiveShoutout(null);
+      setShoutoutNames([]);
+      setShoutoutMsg("");
+      showToast("Shoutout cleared");
+    } catch { showToast("Failed to clear", "error"); }
+  };
+
+  const addName = () => {
+    const trimmed = nameInput.trim();
+    if (!trimmed) return;
+    setShoutoutNames(n => [...n, trimmed]);
+    setNameInput("");
+  };
 
   // ── Actions ──
   const changeUserRole = async (userId, role) => {
@@ -1187,6 +1239,32 @@ export default function AdminDashboard() {
         .source-pill.active { background: var(--accent); color: #fff; border-color: var(--accent); }
         .source-pill-del { background: none; border: none; cursor: pointer; color: currentColor; opacity: 0.6; font-size: 12px; padding: 0; margin-left: 2px; }
         .source-pill-del:hover { opacity: 1; }
+
+        /* ── Shoutout Tab ── */
+        @keyframes bday-pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.015)} }
+        .shoutout-preview {
+          background: linear-gradient(135deg,#fff7ed 0%,#fdf4ff 45%,#fef9c3 100%);
+          border: 1.5px solid #f9a8d4;
+          border-radius: var(--r-xl);
+          padding: 18px 20px;
+          margin-bottom: 20px;
+          display: flex; align-items: center; justify-content: space-between; gap: 12px;
+          animation: bday-pulse 3s ease-in-out infinite;
+          box-shadow: 0 4px 20px rgba(249,168,212,0.2);
+        }
+        .shoutout-name-pill {
+          display: inline-flex; align-items: center; gap: 6px;
+          padding: 5px 14px;
+          background: #fdf4ff; border: 1px solid #f9a8d4;
+          border-radius: 999px; font-size: 13px; font-weight: 500; color: #be185d;
+        }
+        .shoutout-name-remove {
+          background: none; border: none; cursor: pointer;
+          color: #be185d; font-size: 15px; padding: 0; line-height: 1;
+          opacity: 0.6; transition: opacity 0.15s;
+        }
+        .shoutout-name-remove:hover { opacity: 1; }
+
         @media (max-width: 640px) {
           .adm-content { padding: 16px 12px 60px; }
           .adm-section-header { flex-direction: column; align-items: stretch; }
@@ -1256,7 +1334,7 @@ export default function AdminDashboard() {
               <div className="quick-actions">
                 <h3>Quick Actions</h3>
                 <div className="quick-actions-row">
-                  {["Users", "Products", "Rooms", "Feedback", "Internships", "Personas"].map((t) => (
+                  {["Users", "Products", "Rooms", "Feedback", "Internships", "Personas", "Shoutout"].map((t) => (
                     <button key={t} onClick={() => setActiveTab(t)} className="adm-btn-ghost" style={{ height: 34, fontSize: 12 }}>
                       {t} →
                     </button>
@@ -1604,7 +1682,6 @@ export default function AdminDashboard() {
                             <td className="adm-td" style={{ color: "var(--text-2)", fontSize: 12, maxWidth: 130, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                               {j.location || "—"}
                             </td>
-                            {/* ── Tags column ── */}
                             <td className="adm-td">
                               <div className="intern-tags-cell">
                                 {(j.tags || []).slice(0, 3).map(tag => (
@@ -1687,6 +1764,123 @@ export default function AdminDashboard() {
                   </div>
                 </>
               )}
+            </div>
+          )}
+
+          {/* ── SHOUTOUT ── */}
+          {activeTab === "Shoutout" && (
+            <div>
+              <div className="adm-section-header">
+                <h2 className="adm-section-title">Birthday Shoutout 🎂</h2>
+              </div>
+
+              {/* Active shoutout preview */}
+              {activeShoutout && (
+                <div className="shoutout-preview">
+                  <div>
+                    <p style={{ fontSize: 10, fontWeight: 700, color: "#be185d", letterSpacing: "0.1em", textTransform: "uppercase", fontFamily: "var(--mono)", marginBottom: 5 }}>
+                      🎉 Active Today
+                    </p>
+                    <p style={{ fontSize: 18, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.02em" }}>
+                      {activeShoutout.names.join(" & ")}
+                    </p>
+                    {activeShoutout.message && (
+                      <p style={{ fontSize: 13, color: "#7c3aed", fontStyle: "italic", marginTop: 4 }}>
+                        "{activeShoutout.message}"
+                      </p>
+                    )}
+                    <p style={{ fontSize: 11, color: "var(--text-3)", fontFamily: "var(--mono)", marginTop: 8 }}>
+                      Auto-expires at midnight · {activeShoutout.date}
+                    </p>
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-end" }}>
+                    <div style={{ fontSize: 28 }}>🎂🎊🌸</div>
+                    <button onClick={clearShoutout} className="adm-btn-sm danger" style={{ height: 30 }}>
+                      ✕ Clear Shoutout
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Shoutout form */}
+              <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--r-xl)", padding: 24, display: "flex", flexDirection: "column", gap: 18, boxShadow: "var(--shadow)" }}>
+
+                <Field label="Birthday Person(s) *">
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <input
+                      className="adm-input"
+                      placeholder='Type a name and press Enter or click "+"'
+                      value={nameInput}
+                      onChange={e => setNameInput(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === "Enter" || e.key === ",") {
+                          e.preventDefault();
+                          addName();
+                        }
+                      }}
+                    />
+                    <button
+                      className="adm-btn-primary"
+                      style={{ flexShrink: 0, paddingLeft: 20, paddingRight: 20 }}
+                      onClick={addName}
+                    >
+                      + Add
+                    </button>
+                  </div>
+
+                  {shoutoutNames.length > 0 && (
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginTop: 10 }}>
+                      {shoutoutNames.map((name, i) => (
+                        <span key={i} className="shoutout-name-pill">
+                          🎂 {name}
+                          <button
+                            className="shoutout-name-remove"
+                            onClick={() => setShoutoutNames(n => n.filter((_, j) => j !== i))}
+                          >×</button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </Field>
+
+                <Field label="Shoutout Message (optional)">
+                  <input
+                    className="adm-input"
+                    placeholder='e.g. "Wishing you the best day ever! 🎊"'
+                    value={shoutoutMsg}
+                    onChange={e => setShoutoutMsg(e.target.value)}
+                  />
+                </Field>
+
+                <div style={{
+                  background: "#fffbeb", border: "1px solid #fde68a",
+                  borderRadius: "var(--r-md)", padding: "12px 16px",
+                  fontSize: 12, color: "#92400e", lineHeight: 1.6,
+                }}>
+                  <strong style={{ display: "block", marginBottom: 3 }}>💡 How it works</strong>
+                  The birthday banner appears on everyone's feed right after the compose box, with 🎉 confetti on page load &amp; refresh. It auto-clears at midnight. When no shoutout is set, the banner simply doesn't appear.
+                </div>
+
+                <div style={{ display: "flex", gap: 10 }}>
+                  <button
+                    onClick={saveShoutout}
+                    disabled={shoutoutSaving || shoutoutNames.length === 0}
+                    className="adm-btn-primary"
+                    style={{ flex: 1 }}
+                  >
+                    {shoutoutSaving
+                      ? "Saving…"
+                      : activeShoutout
+                        ? "Update Shoutout 🎉"
+                        : "Post Shoutout 🎉"}
+                  </button>
+                  {activeShoutout && (
+                    <button onClick={clearShoutout} className="adm-btn-ghost">
+                      Clear
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
           )}
 

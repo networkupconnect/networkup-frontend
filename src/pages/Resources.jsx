@@ -1,517 +1,925 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import api from "../api/axios";
 
-/* ─── Predeclared subjects ──────────────────────────────────────────────── */
-const BASE_SUBJECTS = [
-  "Maths","Physics","Chemistry","Biology",
-  "CS","DBMS","OS","Networks","DSA",
-  "Electronics","English","Economics",
+// ─── Constants ────────────────────────────────────────────────────────────────
+const PRESET_TAGS = [
+  "Maths", "Physics", "Chemistry", "Mechanical",
+  "Civil", "Computer", "Lab File", "Workshop",
 ];
-const CUSTOM_KEY = "res_custom_subjects";
-function loadCustom() { try { return JSON.parse(localStorage.getItem(CUSTOM_KEY)||"[]"); } catch { return []; } }
-function saveCustom(arr) { try { localStorage.setItem(CUSTOM_KEY, JSON.stringify(arr)); } catch {} }
 
-/* ─── Shared styles ─────────────────────────────────────────────────────── */
-const inp = {
-  width:"100%", padding:"9px 12px", borderRadius:10,
-  border:"1px solid #e5e3dc", background:"#fff",
-  fontSize:13, fontFamily:"inherit", color:"#1a1a18",
-  outline:"none", boxSizing:"border-box",
-};
-const lbl = {
-  fontSize:10, fontWeight:700, color:"#9b9890",
-  textTransform:"uppercase", letterSpacing:".05em",
-  display:"block", marginBottom:7,
-};
-const pill = (active) => ({
-  padding:"5px 12px", borderRadius:100, fontSize:12, fontWeight:600,
-  border:"none", cursor:"pointer", transition:"all .13s",
-  background: active ? "#1a1a18" : "#f0ede8",
-  color:       active ? "#fff"    : "#6b6860",
-  flexShrink:0, whiteSpace:"nowrap",
-});
+const LOCAL_KEY = "custom_resource_tags";
 
-/* ─── ResourceForm ───────────────────────────────────────────────────────── */
-function ResourceForm({
-  initial, activeTab, allSubjects, onSave, onClose,
-  showToast, onNewSubject, saving, mode,
-}) {
-  function parseUnit(str) {
-    if (!str || str === "General") return { num: 1, topic: "" };
-    const m = str.match(/^Module\s+(\d+)(?:\s+—\s+(.+))?$/i);
-    if (m) return { num: parseInt(m[1], 10)||1, topic: m[2]||"" };
-    return { num: 1, topic: str };
-  }
+function loadCustomTags() {
+  try { return JSON.parse(localStorage.getItem(LOCAL_KEY) || "[]"); }
+  catch { return []; }
+}
+function saveCustomTags(tags) {
+  localStorage.setItem(LOCAL_KEY, JSON.stringify(tags));
+}
 
-  const parsed = parseUnit(initial?.unit);
+// ─── Toast ────────────────────────────────────────────────────────────────────
+function Toast({ toast }) {
+  if (!toast) return null;
+  return (
+    <div style={{
+      position: "fixed", top: 16, right: 16, zIndex: 9999,
+      background: toast.type === "error" ? "#1a1a1a" : "#1a1a1a",
+      color: "#fff", fontSize: 13, fontWeight: 500,
+      padding: "10px 16px", borderRadius: 10,
+      borderLeft: `3px solid ${toast.type === "error" ? "#ef4444" : "#22c55e"}`,
+      maxWidth: 280,
+    }}>
+      {toast.msg}
+    </div>
+  );
+}
 
-  const [title,          setTitle]          = useState(initial?.title          || "");
-  const [description,    setDescription]    = useState(initial?.description    || "");
-  const [lectureLink,    setLectureLink]    = useState(initial?.lectureLink    || "");
-  const [notesLink,      setNotesLink]      = useState(initial?.notesLink      || "");
-  const [assignmentLink, setAssignmentLink] = useState(initial?.assignmentLink || ""); // ← NEW
-  const [unit,           setUnit]           = useState(parsed.num);
-  const [topic,          setTopic]          = useState(parsed.topic);
+// ─── Tag Pill ─────────────────────────────────────────────────────────────────
+function TagPill({ label, active, onClick, onDelete }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        display: "inline-flex", alignItems: "center", gap: 5,
+        padding: "5px 11px", borderRadius: 20,
+        fontSize: 12, fontWeight: 500, cursor: "pointer",
+        border: "1px solid",
+        borderColor: active ? "#000" : "#D4D4D4",
+        background: active ? "#000" : "#F5F5F5",
+        color: active ? "#fff" : "#555",
+        transition: "all 0.12s",
+        whiteSpace: "nowrap",
+      }}
+    >
+      {label}
+      {onDelete && (
+        <span
+          role="button"
+          tabIndex={0}
+          onClick={(e) => { e.stopPropagation(); onDelete(); }}
+          onKeyDown={(e) => e.key === "Enter" && (e.stopPropagation(), onDelete())}
+          style={{
+            width: 14, height: 14, display: "flex", alignItems: "center",
+            justifyContent: "center", borderRadius: "50%",
+            background: active ? "rgba(255,255,255,0.25)" : "#D4D4D4",
+            color: active ? "#fff" : "#666",
+            fontSize: 10, lineHeight: 1, fontWeight: 700,
+            cursor: "pointer",
+          }}
+          aria-label={`Remove ${label}`}
+        >
+          x
+        </span>
+      )}
+    </button>
+  );
+}
 
-  const initSubj = initial?.subject || "";
-  const isBaseOrExtra = allSubjects.some(s => s.toLowerCase() === initSubj.toLowerCase());
-  const [subject,    setSubject]    = useState(isBaseOrExtra ? initSubj : "");
-  const [isOther,    setIsOther]    = useState(!!initSubj && !isBaseOrExtra);
-  const [customSubj, setCustomSubj] = useState(isBaseOrExtra ? "" : initSubj);
+// ─── Tag Selector (upload form) ───────────────────────────────────────────────
+function TagSelector({ selected, onChange }) {
+  const [customTags, setCustomTags] = useState(loadCustomTags);
+  const [inputVal, setInputVal] = useState("");
+  const inputRef = useRef();
 
-  const finalSubject = isOther ? customSubj.trim() : subject;
-  const tabLabel = { notes:"Note", pyq:"PYQ" }[activeTab] || "Resource";
+  const allTags = [...PRESET_TAGS, ...customTags];
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!title.trim())    return showToast("Title is required");
-    if (!finalSubject)    return showToast("Select or enter a subject");
-    if (!lectureLink.trim() && !notesLink.trim() && !assignmentLink.trim())
-      return showToast("Add at least one link");
+  const toggle = (tag) =>
+    onChange(selected.includes(tag) ? selected.filter((t) => t !== tag) : [...selected, tag]);
 
-    if (isOther && customSubj.trim()) onNewSubject(customSubj.trim());
+  const addCustom = () => {
+    const val = inputVal.trim();
+    if (!val || allTags.includes(val)) { setInputVal(""); return; }
+    const updated = [...customTags, val];
+    setCustomTags(updated);
+    saveCustomTags(updated);
+    onChange([...selected, val]);
+    setInputVal("");
+  };
 
-    const unitStr = topic.trim()
-      ? `Module ${unit} — ${topic.trim()}`
-      : `Module ${unit}`;
-
-    await onSave({
-      title:          title.trim(),
-      description:    description.trim(),
-      subject:        finalSubject,
-      unit:           unitStr,
-      lectureLink:    lectureLink.trim(),
-      notesLink:      notesLink.trim(),
-      assignmentLink: assignmentLink.trim(), // ← NEW
-    });
+  const deleteCustom = (tag) => {
+    const updated = customTags.filter((t) => t !== tag);
+    setCustomTags(updated);
+    saveCustomTags(updated);
+    onChange(selected.filter((t) => t !== tag));
   };
 
   return (
-    <form onSubmit={handleSubmit} style={{ display:"flex", flexDirection:"column", gap:16 }}>
-
-      {/* Title */}
-      <div>
-        <label style={lbl}>Title *</label>
-        <input style={inp} placeholder="e.g. Fourier Series full lecture" value={title} onChange={e=>setTitle(e.target.value)} required />
+    <div>
+      <p style={{ fontSize: 11, color: "#888", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 8 }}>
+        Tags
+      </p>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
+        {PRESET_TAGS.map((t) => (
+          <TagPill key={t} label={t} active={selected.includes(t)} onClick={() => toggle(t)} />
+        ))}
+        {customTags.map((t) => (
+          <TagPill
+            key={t} label={t} active={selected.includes(t)}
+            onClick={() => toggle(t)}
+            onDelete={() => deleteCustom(t)}
+          />
+        ))}
       </div>
-
-      {/* Subject */}
-      <div>
-        <label style={lbl}>Subject *</label>
-        <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
-          {allSubjects.map(s => (
-            <button key={s} type="button" style={pill(!isOther && subject.toLowerCase()===s.toLowerCase())}
-              onClick={() => { setSubject(s); setIsOther(false); }}>
-              {s}
-            </button>
-          ))}
-          <button type="button"
-            style={{ ...pill(isOther), border: isOther ? "none" : "1.5px dashed #c5c2b8" }}
-            onClick={() => { setIsOther(true); setSubject(""); }}>
-            + Other
-          </button>
-        </div>
-        {isOther && (
-          <div style={{ marginTop:8 }}>
-            <input style={{ ...inp, borderColor: customSubj.trim() ? "#1a1a18" : "#e5e3dc" }}
-              placeholder="Type subject name…" value={customSubj}
-              onChange={e=>setCustomSubj(e.target.value)} autoFocus />
-            <div style={{ fontSize:10, color:"#9b9890", marginTop:3 }}>Will be added to the subject list</div>
-          </div>
-        )}
-      </div>
-
-      {/* Module counter */}
-      <div>
-        <label style={lbl}>Unit / Module</label>
-        <div style={{ display:"flex", alignItems:"center", gap:0, background:"#f5f4f0", borderRadius:10, padding:"3px", width:"fit-content" }}>
-          <button type="button" onClick={() => setUnit(u=>Math.max(1,u-1))} disabled={unit<=1}
-            style={{ width:34, height:34, borderRadius:8, border:"none", background:unit<=1?"transparent":"#fff", cursor:unit<=1?"not-allowed":"pointer", fontSize:18, fontWeight:700, color:unit<=1?"#ccc":"#1a1a18", display:"flex", alignItems:"center", justifyContent:"center", boxShadow:unit<=1?"none":"0 1px 3px rgba(0,0,0,.08)", transition:"all .12s" }}>
-            −
-          </button>
-          <span style={{ minWidth:56, textAlign:"center", fontSize:14, fontWeight:700, fontFamily:"monospace", color:"#1a1a18" }}>
-            {unit}
-          </span>
-          <button type="button" onClick={() => setUnit(u=>u+1)}
-            style={{ width:34, height:34, borderRadius:8, border:"none", background:"#fff", cursor:"pointer", fontSize:18, fontWeight:700, color:"#1a1a18", display:"flex", alignItems:"center", justifyContent:"center", boxShadow:"0 1px 3px rgba(0,0,0,.08)", transition:"all .12s" }}>
-            +
-          </button>
-        </div>
-        <div style={{ marginTop:8 }}>
-          <input style={{ ...inp, fontSize:12 }}
-            placeholder="Topic (optional) — e.g. Laplace Transforms, Recursion…"
-            value={topic} onChange={e=>setTopic(e.target.value)} />
-        </div>
-        <div style={{ marginTop:5, fontSize:11, color:"#9b9890" }}>
-          Saved as: <strong style={{ color:"#1a1a18" }}>
-            {topic.trim() ? `Unit ${unit} — ${topic.trim()}` : `Unit ${unit}`}
-          </strong>
-        </div>
-      </div>
-
-      <div style={{ borderTop:"1px solid #f0ede8" }} />
-
-      {/* Lecture link */}
-      <div>
-        <label style={lbl}>Lecture Link</label>
-        <div style={{ position:"relative" }}>
-          <span style={{ position:"absolute", left:11, top:"50%", transform:"translateY(-50%)", fontSize:13, color:"#9b9890", pointerEvents:"none" }}>▶</span>
-          <input style={{...inp, paddingLeft:28}} placeholder="YouTube video or playlist URL"
-            value={lectureLink} onChange={e=>setLectureLink(e.target.value)} type="url" />
-        </div>
-        <div style={{ fontSize:10, color:"#b5b3ac", marginTop:3 }}>YouTube video or playlist</div>
-      </div>
-
-      {/* Notes link */}
-      <div>
-        <label style={lbl}>Notes Link</label>
-        <div style={{ position:"relative" }}>
-          <span style={{ position:"absolute", left:11, top:"50%", transform:"translateY(-50%)", fontSize:13, color:"#9b9890", pointerEvents:"none" }}>↗</span>
-          <input style={{...inp, paddingLeft:28}} placeholder="Google Drive, PDF link…"
-            value={notesLink} onChange={e=>setNotesLink(e.target.value)} type="url" />
-        </div>
-        <div style={{ fontSize:10, color:"#b5b3ac", marginTop:3 }}>Google Drive, any public URL</div>
-      </div>
-
-      {/* ── Assignment link (NEW) ── */}
-      <div>
-        <label style={lbl}>Assignment Link <span style={{ fontSize:9, color:"#b5b3ac", textTransform:"none", fontWeight:500 }}>(optional)</span></label>
-        <div style={{ position:"relative" }}>
-          <span style={{ position:"absolute", left:11, top:"50%", transform:"translateY(-50%)", fontSize:13, color:"#9b9890", pointerEvents:"none" }}>📋</span>
-          <input style={{...inp, paddingLeft:28}} placeholder="Google Drive, PDF link to assignment…"
-            value={assignmentLink} onChange={e=>setAssignmentLink(e.target.value)} type="url" />
-        </div>
-        <div style={{ fontSize:10, color:"#b5b3ac", marginTop:3 }}>Attach an assignment along with this post</div>
-      </div>
-
-      {/* Description */}
-      <div>
-        <label style={lbl}>Description</label>
-        <textarea style={{...inp, resize:"none", minHeight:50, fontSize:12}}
-          placeholder="Optional — any extra context"
-          value={description} onChange={e=>setDescription(e.target.value)} rows={2} />
-      </div>
-
-      {/* Actions */}
-      <div style={{ display:"flex", gap:8, paddingTop:2 }}>
-        <button type="submit" disabled={saving}
-          style={{ flex:1, padding:"11px", borderRadius:11, border:"none", background:"#1a1a18", color:"#fff", fontSize:13, fontWeight:700, cursor:saving?"not-allowed":"pointer", opacity:saving?.6:1, fontFamily:"inherit" }}>
-          {saving ? "Saving…" : mode==="edit" ? "Save Changes" : `Add ${tabLabel}`}
+      <div style={{ display: "flex", gap: 6 }}>
+        <input
+          ref={inputRef}
+          value={inputVal}
+          onChange={(e) => setInputVal(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addCustom())}
+          placeholder="Custom tag..."
+          style={{
+            flex: 1, padding: "7px 11px", fontSize: 13,
+            border: "1px solid #E0E0E0", borderRadius: 8,
+            outline: "none", background: "#FAFAFA", color: "#111",
+          }}
+        />
+        <button
+          type="button"
+          onClick={addCustom}
+          style={{
+            padding: "7px 14px", fontSize: 12, fontWeight: 600,
+            border: "1px solid #D4D4D4", borderRadius: 8,
+            background: "#F5F5F5", color: "#333", cursor: "pointer",
+          }}
+        >
+          Add
         </button>
-        <button type="button" onClick={onClose}
-          style={{ padding:"11px 16px", borderRadius:11, border:"1px solid #e5e3dc", background:"#f5f4f0", color:"#6b6860", fontSize:13, cursor:"pointer", fontFamily:"inherit", whiteSpace:"nowrap" }}>
-          Cancel
-        </button>
-      </div>
-    </form>
-  );
-}
-
-/* ─── Add Modal ─────────────────────────────────────────────────────────── */
-function AddModal({ activeTab, onClose, onSuccess, showToast, extraSubjects, onNewSubject }) {
-  const [saving, setSaving] = useState(false);
-  const allSubjects = [...BASE_SUBJECTS, ...extraSubjects];
-
-  const handleSave = async (payload) => {
-    try {
-      setSaving(true);
-      await api.post("/api/resources", { ...payload, type: activeTab });
-      onSuccess();
-      onClose();
-      showToast("Saved!");
-    } catch (err) {
-      showToast(err.response?.data?.message || "Failed to save");
-    } finally { setSaving(false); }
-  };
-
-  return (
-    <ModalShell title={`Add ${{ notes:"Note", pyq:"PYQ" }[activeTab]||"Resource"}`} onClose={onClose}>
-      <ResourceForm
-        initial={null} activeTab={activeTab} allSubjects={allSubjects}
-        onSave={handleSave} onClose={onClose} showToast={showToast}
-        onNewSubject={onNewSubject} saving={saving} mode="add"
-      />
-    </ModalShell>
-  );
-}
-
-/* ─── Edit Modal ─────────────────────────────────────────────────────────── */
-function EditModal({ resource, activeTab, onClose, onSuccess, showToast, extraSubjects, onNewSubject }) {
-  const [saving, setSaving] = useState(false);
-
-  const resourceSubject = resource?.subject || "";
-  const baseAndExtra = [...BASE_SUBJECTS, ...extraSubjects];
-  const alreadyKnown = baseAndExtra.some(s => s.toLowerCase() === resourceSubject.toLowerCase());
-  const allSubjects  = alreadyKnown ? baseAndExtra : [...baseAndExtra, resourceSubject].filter(Boolean);
-
-  const handleSave = async (payload) => {
-    try {
-      setSaving(true);
-      await api.patch(`/api/resources/${resource._id}`, payload);
-      onSuccess();
-      onClose();
-      showToast("Updated!");
-    } catch (err) {
-      showToast(err.response?.data?.message || "Failed to update");
-    } finally { setSaving(false); }
-  };
-
-  return (
-    <ModalShell title="Edit Resource" onClose={onClose}>
-      <ResourceForm
-        initial={resource} activeTab={activeTab} allSubjects={allSubjects}
-        onSave={handleSave} onClose={onClose} showToast={showToast}
-        onNewSubject={onNewSubject} saving={saving} mode="edit"
-      />
-    </ModalShell>
-  );
-}
-
-/* ─── Modal shell ───────────────────────────────────────────────────────── */
-function ModalShell({ title, onClose, children }) {
-  return (
-    <div style={{ position:"fixed", inset:0, zIndex:50, background:"rgba(0,0,0,.2)", backdropFilter:"blur(4px)", display:"flex", alignItems:"flex-end", justifyContent:"center", padding:16 }}
-         onClick={onClose}>
-      <div style={{ background:"#fff", borderRadius:"18px 18px 0 0", width:"100%", maxWidth:520, maxHeight:"93vh", overflowY:"auto", boxShadow:"0 -8px 40px rgba(0,0,0,.1)" }}
-           onClick={e=>e.stopPropagation()}>
-        <div style={{ padding:20 }}>
-          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:18 }}>
-            <div style={{ fontSize:15, fontWeight:800 }}>{title}</div>
-            <button onClick={onClose} style={{ width:28, height:28, borderRadius:7, border:"1px solid #e5e3dc", background:"#f5f4f0", cursor:"pointer", color:"#9b9890", fontSize:13 }}>✕</button>
-          </div>
-          {children}
-        </div>
       </div>
     </div>
   );
 }
 
-/* ─── Resource Card ─────────────────────────────────────────────────────── */
-function ResourceCard({ resource, user, onDelete, onEdit }) {
-  const hasLecture    = !!resource.lectureLink;
-  const hasNotes      = !!resource.notesLink;
-  const hasAssignment = !!resource.assignmentLink; // ← NEW
-  const isOwner  = user?._id === resource.uploadedBy?._id?.toString();
-  const isAdmin  = user?.role === "admin";
-  const canDelete = isOwner || isAdmin;
+// ─── Upload Modal ─────────────────────────────────────────────────────────────
+function UploadModal({ activeTab, onClose, onSuccess, showToast, user }) {
+  const [uploading, setUploading] = useState(false);
+  const [form, setForm] = useState({
+    title: "", description: "", subject: "",
+    units: [], tags: [],
+    notesLink: "", lectureLink: "", assignmentLink: "", pyqLink: "",
+  });
 
-  const openLink = (url) => url && window.open(url, "_blank", "noopener,noreferrer");
+  const handleUpload = async (e) => {
+    e.preventDefault();
+    if (!form.subject) return showToast("Subject name is required", "error");
+    if (activeTab === "notes" && !form.notesLink) return showToast("Notes link is required", "error");
+    if (activeTab === "pyq" && !form.pyqLink) return showToast("PYQ link is required", "error");
+
+    const formData = new FormData();
+    formData.append("title", form.title || form.subject);
+    formData.append("description", form.description);
+    formData.append("type", activeTab);
+    formData.append("subject", form.subject);
+    formData.append("unit", form.units.length > 0 ? form.units.join(",") : "General");
+    formData.append("tags", form.tags.join(","));
+    formData.append("notesLink", form.notesLink || "");
+    formData.append("lectureLink", form.lectureLink || "");
+    formData.append("assignmentLink", form.assignmentLink || "");
+    formData.append("pyqLink", form.pyqLink || "");
+    formData.append("branch", user?.branch || "General");
+    formData.append("year", user?.year || 1);
+    formData.append("section", "all");
+
+    try {
+      setUploading(true);
+      await api.post("/api/resources", formData);
+      onClose(); onSuccess(); showToast("Uploaded");
+    } catch (err) {
+      showToast(err.response?.data?.message || "Failed to upload", "error");
+    } finally { setUploading(false); }
+  };
+
+  const units = ["1", "2", "3", "4", "5"];
+  const toggleUnit = (u) =>
+    setForm((f) => ({
+      ...f, units: f.units.includes(u) ? f.units.filter((x) => x !== u) : [...f.units, u],
+    }));
+
+  const inputStyle = {
+    width: "100%", padding: "10px 13px", fontSize: 13,
+    border: "1px solid #E0E0E0", borderRadius: 9, outline: "none",
+    background: "#FAFAFA", color: "#111", boxSizing: "border-box",
+  };
+  const labelStyle = { fontSize: 11, color: "#888", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", display: "block", marginBottom: 5 };
 
   return (
-    <div style={{ background:"#fff", border:"1px solid #e5e3dc", borderRadius:13, padding:"13px 15px" }}>
+    <div style={{
+      position: "fixed", inset: 0, zIndex: 40,
+      background: "rgba(0,0,0,0.4)",
+      display: "flex", alignItems: "flex-end",
+    }}>
+      <div style={{
+        background: "#fff", width: "100%", maxWidth: 520,
+        margin: "0 auto",
+        borderRadius: "18px 18px 0 0",
+        maxHeight: "92vh", overflowY: "auto",
+      }}>
+        {/* Header */}
+        <div style={{
+          position: "sticky", top: 0, background: "#fff",
+          borderBottom: "1px solid #F0F0F0",
+          padding: "16px 20px",
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+        }}>
+          <span style={{ fontSize: 14, fontWeight: 600, color: "#111" }}>
+            {activeTab === "notes" ? "Upload Note" : "Upload PYQ"}
+          </span>
+          <button onClick={onClose} style={{
+            width: 28, height: 28, borderRadius: "50%",
+            border: "1px solid #E0E0E0", background: "#F5F5F5",
+            cursor: "pointer", fontSize: 14, color: "#555",
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}>x</button>
+        </div>
 
-      {/* Title row */}
-      <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", gap:10, marginBottom:7 }}>
-        <div style={{ flex:1, minWidth:0 }}>
-          <div style={{ fontSize:13, fontWeight:700, lineHeight:1.4 }}>{resource.title}</div>
-          {resource.description && (
-            <div style={{ fontSize:11, color:"#9b9890", marginTop:2, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
-              {resource.description}
+        <form onSubmit={handleUpload} style={{ padding: 20, display: "flex", flexDirection: "column", gap: 14 }}>
+          <div>
+            <label style={labelStyle}>Subject *</label>
+            <input style={inputStyle} placeholder="e.g. Engineering Mathematics" value={form.subject}
+              onChange={(e) => setForm({ ...form, subject: e.target.value })} required />
+          </div>
+          <div>
+            <label style={labelStyle}>Title</label>
+            <input style={inputStyle} placeholder="Optional" value={form.title}
+              onChange={(e) => setForm({ ...form, title: e.target.value })} />
+          </div>
+          <div>
+            <label style={labelStyle}>Description</label>
+            <textarea style={{ ...inputStyle, resize: "none", height: 60 }} placeholder="Optional"
+              value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+          </div>
+
+          {/* Unit */}
+          <div>
+            <label style={labelStyle}>Unit</label>
+            <div style={{ display: "flex", gap: 6 }}>
+              {units.map((u) => (
+                <button key={u} type="button" onClick={() => toggleUnit(u)} style={{
+                  width: 38, height: 38, borderRadius: 9,
+                  border: "1px solid",
+                  borderColor: form.units.includes(u) ? "#000" : "#D4D4D4",
+                  background: form.units.includes(u) ? "#000" : "#F5F5F5",
+                  color: form.units.includes(u) ? "#fff" : "#555",
+                  fontSize: 13, fontWeight: 600, cursor: "pointer",
+                }}>{u}</button>
+              ))}
+            </div>
+          </div>
+
+          {/* Tags */}
+          <TagSelector
+            selected={form.tags}
+            onChange={(tags) => setForm({ ...form, tags })}
+          />
+
+          {/* Links */}
+          {activeTab === "notes" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <div>
+                <label style={labelStyle}>Notes Link <span style={{ color: "#ef4444" }}>*</span></label>
+                <input style={{ ...inputStyle, borderColor: !form.notesLink ? "#FBBF24" : "#E0E0E0" }}
+                  placeholder="https://drive.google.com/..." value={form.notesLink}
+                  onChange={(e) => setForm({ ...form, notesLink: e.target.value })} />
+              </div>
+              <div>
+                <label style={labelStyle}>Lecture Link <span style={{ color: "#D4D4D4" }}>(optional)</span></label>
+                <input style={inputStyle} placeholder="https://youtube.com/..." value={form.lectureLink}
+                  onChange={(e) => setForm({ ...form, lectureLink: e.target.value })} />
+              </div>
+              <div>
+                <label style={labelStyle}>Assignment Link <span style={{ color: "#D4D4D4" }}>(optional)</span></label>
+                <input style={inputStyle} placeholder="https://..." value={form.assignmentLink}
+                  onChange={(e) => setForm({ ...form, assignmentLink: e.target.value })} />
+              </div>
             </div>
           )}
+
+          {activeTab === "pyq" && (
+            <div>
+              <label style={labelStyle}>PYQ Link <span style={{ color: "#ef4444" }}>*</span></label>
+              <input style={{ ...inputStyle, borderColor: !form.pyqLink ? "#FBBF24" : "#E0E0E0" }}
+                placeholder="https://drive.google.com/..." value={form.pyqLink}
+                onChange={(e) => setForm({ ...form, pyqLink: e.target.value })} />
+            </div>
+          )}
+
+          {/* Actions */}
+          <div style={{ display: "flex", gap: 8, paddingTop: 4 }}>
+            <button type="submit" disabled={uploading} style={{
+              flex: 1, padding: "12px 0", borderRadius: 10,
+              background: "#000", color: "#fff",
+              fontSize: 13, fontWeight: 600, border: "none", cursor: "pointer",
+              opacity: uploading ? 0.5 : 1,
+            }}>
+              {uploading ? "Uploading..." : activeTab === "notes" ? "Upload Note" : "Upload PYQ"}
+            </button>
+            <button type="button" onClick={onClose} style={{
+              padding: "12px 18px", borderRadius: 10,
+              border: "1px solid #E0E0E0", background: "#F5F5F5",
+              fontSize: 13, fontWeight: 500, cursor: "pointer", color: "#555",
+            }}>Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ─── Edit Modal ───────────────────────────────────────────────────────────────
+function EditModal({ resource, onClose, onSuccess, showToast }) {
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({
+    title: resource.title || "",
+    description: resource.description || "",
+    subject: resource.subject || "",
+    units: resource.unit && resource.unit !== "General" ? resource.unit.split(",").map((u) => u.trim()) : [],
+    tags: resource.tags ? resource.tags.split(",").map((t) => t.trim()).filter(Boolean) : [],
+    notesLink: resource.notesLink || "",
+    lectureLink: resource.lectureLink || "",
+    assignmentLink: resource.assignmentLink || "",
+    pyqLink: resource.pyqLink || "",
+  });
+
+  const handleSave = async (e) => {
+    e.preventDefault();
+    if (!form.subject) return showToast("Subject name is required", "error");
+    const payload = {
+      title: form.title || form.subject,
+      description: form.description,
+      subject: form.subject,
+      unit: form.units.length > 0 ? form.units.join(",") : "General",
+      tags: form.tags.join(","),
+      notesLink: form.notesLink || "",
+      lectureLink: form.lectureLink || "",
+      assignmentLink: form.assignmentLink || "",
+      pyqLink: form.pyqLink || "",
+    };
+    try {
+      setSaving(true);
+      await api.put(`/api/resources/${resource._id}`, payload);
+      onClose(); onSuccess(); showToast("Saved");
+    } catch (err) {
+      showToast(err.response?.data?.message || "Failed to save", "error");
+    } finally { setSaving(false); }
+  };
+
+  const units = ["1", "2", "3", "4", "5"];
+  const toggleUnit = (u) =>
+    setForm((f) => ({ ...f, units: f.units.includes(u) ? f.units.filter((x) => x !== u) : [...f.units, u] }));
+
+  const inputStyle = {
+    width: "100%", padding: "10px 13px", fontSize: 13,
+    border: "1px solid #E0E0E0", borderRadius: 9, outline: "none",
+    background: "#FAFAFA", color: "#111", boxSizing: "border-box",
+  };
+  const labelStyle = { fontSize: 11, color: "#888", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", display: "block", marginBottom: 5 };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 50, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "flex-end" }}>
+      <div style={{ background: "#fff", width: "100%", maxWidth: 520, margin: "0 auto", borderRadius: "18px 18px 0 0", maxHeight: "92vh", overflowY: "auto" }}>
+        <div style={{ position: "sticky", top: 0, background: "#fff", borderBottom: "1px solid #F0F0F0", padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <span style={{ fontSize: 14, fontWeight: 600, color: "#111" }}>Edit Resource</span>
+          <button onClick={onClose} style={{ width: 28, height: 28, borderRadius: "50%", border: "1px solid #E0E0E0", background: "#F5F5F5", cursor: "pointer", fontSize: 14, color: "#555", display: "flex", alignItems: "center", justifyContent: "center" }}>x</button>
         </div>
-        <div style={{ display:"flex", gap:6, flexShrink:0, alignItems:"center" }}>
-          <button onClick={() => onEdit(resource)}
-            style={{ padding:"3px 10px", borderRadius:7, border:"1px solid #e5e3dc", background:"#f5f4f0", color:"#6b6860", fontSize:11, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
-            Edit
+        <form onSubmit={handleSave} style={{ padding: 20, display: "flex", flexDirection: "column", gap: 14 }}>
+          <div>
+            <label style={labelStyle}>Subject *</label>
+            <input style={inputStyle} value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} required />
+          </div>
+          <div>
+            <label style={labelStyle}>Title</label>
+            <input style={inputStyle} placeholder="Optional" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+          </div>
+          <div>
+            <label style={labelStyle}>Description</label>
+            <textarea style={{ ...inputStyle, resize: "none", height: 60 }} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+          </div>
+          <div>
+            <label style={labelStyle}>Unit</label>
+            <div style={{ display: "flex", gap: 6 }}>
+              {units.map((u) => (
+                <button key={u} type="button" onClick={() => toggleUnit(u)} style={{
+                  width: 38, height: 38, borderRadius: 9, border: "1px solid",
+                  borderColor: form.units.includes(u) ? "#000" : "#D4D4D4",
+                  background: form.units.includes(u) ? "#000" : "#F5F5F5",
+                  color: form.units.includes(u) ? "#fff" : "#555",
+                  fontSize: 13, fontWeight: 600, cursor: "pointer",
+                }}>{u}</button>
+              ))}
+            </div>
+          </div>
+          <TagSelector selected={form.tags} onChange={(tags) => setForm({ ...form, tags })} />
+          {resource.type === "notes" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <div>
+                <label style={labelStyle}>Notes Link</label>
+                <input style={inputStyle} placeholder="https://drive.google.com/..." value={form.notesLink} onChange={(e) => setForm({ ...form, notesLink: e.target.value })} />
+              </div>
+              <div>
+                <label style={labelStyle}>Lecture Link</label>
+                <input style={inputStyle} placeholder="https://youtube.com/..." value={form.lectureLink} onChange={(e) => setForm({ ...form, lectureLink: e.target.value })} />
+              </div>
+              <div>
+                <label style={labelStyle}>Assignment Link</label>
+                <input style={inputStyle} placeholder="https://..." value={form.assignmentLink} onChange={(e) => setForm({ ...form, assignmentLink: e.target.value })} />
+              </div>
+            </div>
+          )}
+          {resource.type === "pyq" && (
+            <div>
+              <label style={labelStyle}>PYQ Link</label>
+              <input style={inputStyle} placeholder="https://drive.google.com/..." value={form.pyqLink} onChange={(e) => setForm({ ...form, pyqLink: e.target.value })} />
+            </div>
+          )}
+          <div style={{ display: "flex", gap: 8, paddingTop: 4 }}>
+            <button type="submit" disabled={saving} style={{ flex: 1, padding: "12px 0", borderRadius: 10, background: "#000", color: "#fff", fontSize: 13, fontWeight: 600, border: "none", cursor: "pointer", opacity: saving ? 0.5 : 1 }}>
+              {saving ? "Saving..." : "Save Changes"}
+            </button>
+            <button type="button" onClick={onClose} style={{ padding: "12px 18px", borderRadius: 10, border: "1px solid #E0E0E0", background: "#F5F5F5", fontSize: 13, fontWeight: 500, cursor: "pointer", color: "#555" }}>Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ─── Resource Card ────────────────────────────────────────────────────────────
+function ResourceCard({ resource, user, onView, onDownload, onDelete, onEdit, onTagClick, showToast }) {
+  const ext = resource.fileUrl
+    ? resource.fileUrl.split(".").pop().split("?")[0].toLowerCase()
+    : "pdf";
+  const isPdf = !["png", "jpg", "jpeg", "webp", "gif"].includes(ext);
+  const fileExt = isPdf ? "pdf" : ext;
+  const hasFile = !!resource.fileUrl;
+
+  const unitTags = resource.unit && resource.unit !== "General"
+    ? resource.unit.split(",").map((u) => u.trim())
+    : [];
+
+  const resourceTags = resource.tags
+    ? resource.tags.split(",").map((t) => t.trim()).filter(Boolean)
+    : [];
+
+  const isAdmin = user?.role === "admin";
+  const isOwner = user && user._id === resource.uploadedBy?._id?.toString();
+  const canManage = isAdmin || isOwner;
+
+  const handleShare = () => {
+    const url = `${window.location.origin}/resources?id=${resource._id}`;
+    if (navigator.share) {
+      navigator.share({ title: resource.title, url });
+    } else {
+      navigator.clipboard.writeText(url).then(() => showToast("Link copied"));
+    }
+  };
+
+  const greyBtnStyle = {
+    fontSize: 12, fontWeight: 500,
+    padding: "6px 13px", borderRadius: 7,
+    border: "1px solid #E0E0E0",
+    background: "#F5F5F5", color: "#444",
+    cursor: "pointer", textDecoration: "none",
+    display: "inline-block", textAlign: "center",
+  };
+
+  return (
+    <div style={{
+      background: "#fff", borderRadius: 13,
+      border: "1px solid #EBEBEB",
+      overflow: "hidden",
+    }}>
+      {/* Body */}
+      <div style={{ padding: "13px 14px" }}>
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p style={{ fontSize: 13, fontWeight: 600, color: "#111", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {resource.title}
+            </p>
+            {resource.subject && (
+              <p style={{ fontSize: 11, color: "#888", margin: "3px 0 0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {resource.subject}
+              </p>
+            )}
+            {resource.description && (
+              <p style={{ fontSize: 11, color: "#AAAAAA", margin: "2px 0 0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {resource.description}
+              </p>
+            )}
+            {(unitTags.length > 0 || resourceTags.length > 0) && (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 7 }}>
+                {unitTags.map((u) => (
+                  <span key={u} style={{ fontSize: 10, fontWeight: 600, background: "#F0F0F0", color: "#666", padding: "2px 7px", borderRadius: 5 }}>U{u}</span>
+                ))}
+                {resourceTags.map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => onTagClick?.(t)}
+                    style={{
+                      fontSize: 10, fontWeight: 500,
+                      background: "#F0F0F0", color: "#666",
+                      padding: "2px 7px", borderRadius: 5,
+                      border: "none", cursor: onTagClick ? "pointer" : "default",
+                    }}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          <button onClick={handleShare} style={{
+            padding: "6px 10px", borderRadius: 7,
+            border: "1px solid #BFDBFE", background: "#EFF6FF",
+            color: "#2563EB", fontSize: 12, fontWeight: 600,
+            cursor: "pointer", flexShrink: 0,
+          }}>
+            Share
           </button>
-          {canDelete && (
-            <button onClick={() => onDelete(resource._id)}
-              style={{ background:"none", border:"none", cursor:"pointer", fontSize:13, color:"#d1d0ca", padding:0 }}>
-              🗑
-            </button>
-          )}
+
+          {/* Right action buttons */}
+          <div style={{ display: "flex", gap: 5, flexShrink: 0, alignItems: "center" }}>
+            {hasFile && (
+              <>
+                <button onClick={() => onView(resource)} style={greyBtnStyle}>View</button>
+                <button onClick={() => onDownload(resource.fileUrl, resource.title, fileExt)} style={greyBtnStyle}>Save</button>
+              </>
+            )}
+            {isAdmin && (
+              <button onClick={() => onEdit(resource)} style={{ ...greyBtnStyle, color: "#1d4ed8", borderColor: "#bfdbfe", background: "#eff6ff" }}>
+                Edit
+              </button>
+            )}
+            {canManage && (
+              <button onClick={() => onDelete(resource._id)} style={{ ...greyBtnStyle, color: "#ef4444", borderColor: "#fecaca", background: "#fff5f5" }}>
+                Del
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Tags */}
-      <div style={{ display:"flex", gap:5, flexWrap:"wrap", marginBottom:10 }}>
-        <span style={{ fontSize:10, padding:"2px 8px", borderRadius:100, background:"#1a1a18", color:"#fff", fontWeight:700 }}>
-          {resource.subject}
-        </span>
-        {resource.unit && resource.unit !== "General" && (
-          <span style={{ fontSize:10, padding:"2px 8px", borderRadius:100, background:"#f0ede8", color:"#6b6860", fontWeight:600 }}>
-            {resource.unit}
-          </span>
-        )}
-        {/* Assignment badge */}
-        {hasAssignment && (
-          <span style={{ fontSize:10, padding:"2px 8px", borderRadius:100, background:"#fff4e0", color:"#b06800", fontWeight:600 }}>
-            📋 Assignment
-          </span>
-        )}
-      </div>
-
-      {/* Link buttons */}
-      {(hasLecture || hasNotes || hasAssignment) && (
-        <div style={{ display:"flex", gap:7, flexWrap:"wrap" }}>
-          {hasLecture && (
-            <button onClick={() => openLink(resource.lectureLink)}
-              style={{ flex:1, minWidth:90, display:"flex", alignItems:"center", justifyContent:"center", gap:6, padding:"8px 12px", borderRadius:9, border:"1px solid #e5e3dc", background:"#fafaf9", cursor:"pointer", fontSize:12, fontWeight:600, color:"#1a1a18", fontFamily:"inherit" }}>
-              <span style={{ fontSize:12 }}>▶</span> Lecture
-            </button>
+      {/* Notes links */}
+      {resource.type === "notes" && (resource.notesLink || resource.lectureLink || resource.assignmentLink) && (
+        <div style={{ display: "flex", gap: 6, padding: "0 14px 12px" }}>
+          {resource.notesLink && (
+            <a href={resource.notesLink} target="_blank" rel="noopener noreferrer" style={{ ...greyBtnStyle, flex: 1 }}>Notes</a>
           )}
-          {hasNotes && (
-            <button onClick={() => openLink(resource.notesLink)}
-              style={{ flex:1, minWidth:90, display:"flex", alignItems:"center", justifyContent:"center", gap:6, padding:"8px 12px", borderRadius:9, border:"1px solid #e5e3dc", background:"#fafaf9", cursor:"pointer", fontSize:12, fontWeight:600, color:"#1a1a18", fontFamily:"inherit" }}>
-              <span style={{ fontSize:12 }}>↗</span> Notes
-            </button>
+          {resource.lectureLink && (
+            <a href={resource.lectureLink} target="_blank" rel="noopener noreferrer" style={{ ...greyBtnStyle, flex: 1 }}>Lecture</a>
           )}
-          {/* Assignment button (NEW) */}
-          {hasAssignment && (
-            <button onClick={() => openLink(resource.assignmentLink)}
-              style={{ flex:1, minWidth:90, display:"flex", alignItems:"center", justifyContent:"center", gap:6, padding:"8px 12px", borderRadius:9, border:"1px solid #ffe0a0", background:"#fff9ee", cursor:"pointer", fontSize:12, fontWeight:600, color:"#b06800", fontFamily:"inherit" }}>
-              <span style={{ fontSize:12 }}>📋</span> Assignment
-            </button>
+          {resource.assignmentLink && (
+            <a href={resource.assignmentLink} target="_blank" rel="noopener noreferrer" style={{ ...greyBtnStyle, flex: 1 }}>Assignment</a>
           )}
         </div>
       )}
+
+      {/* PYQ link */}
+      {resource.type === "pyq" && resource.pyqLink && (
+        <div style={{ padding: "0 14px 12px" }}>
+          <a href={resource.pyqLink} target="_blank" rel="noopener noreferrer" style={{ ...greyBtnStyle, display: "block", textAlign: "center" }}>
+            View PYQ
+          </a>
+        </div>
+      )}
+
     </div>
   );
 }
 
-/* ─── Main ──────────────────────────────────────────────────────────────── */
+// ─── Notes View (flat list) ───────────────────────────────────────────────────
+function NotesView({ resources, user, onView, onDownload, onDelete, onEdit, onTagClick, showToast, activeFilterTags }) {
+  const filtered = activeFilterTags.length === 0
+    ? resources
+    : resources.filter((r) => {
+        const rTags = r.tags ? r.tags.split(",").map((t) => t.trim()) : [];
+        return activeFilterTags.some((t) => rTags.includes(t));
+      });
+
+  if (filtered.length === 0) {
+    return (
+      <div style={{
+        textAlign: "center", padding: "60px 0",
+        background: "#FAFAFA", borderRadius: 14,
+        border: "1px dashed #DDDDD8",
+      }}>
+        <p style={{ fontSize: 14, fontWeight: 600, color: "#555", margin: 0 }}>No notes found</p>
+        <p style={{ fontSize: 12, color: "#AAA", marginTop: 4 }}>
+          {activeFilterTags.length > 0 ? "Try a different tag filter" : "Be the first to upload"}
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      {filtered.map((resource) => (
+        <ResourceCard key={resource._id} resource={resource} user={user}
+          onView={onView} onDownload={onDownload} onDelete={onDelete} onEdit={onEdit} onTagClick={onTagClick} showToast={showToast} />
+      ))}
+    </div>
+  );
+}
+
+// ─── PYQ View ─────────────────────────────────────────────────────────────────
+function PYQView({ resources, user, onView, onDownload, onDelete, onEdit, onTagClick, showToast, activeFilterTags }) {
+  const [activeUnits, setActiveUnits] = useState([]);
+  const units = ["1", "2", "3", "4", "5"];
+
+  const toggleUnit = (u) =>
+    setActiveUnits((prev) => prev.includes(u) ? prev.filter((x) => x !== u) : [...prev, u]);
+
+  let filtered = activeFilterTags.length === 0
+    ? resources
+    : resources.filter((r) => {
+        const rTags = r.tags ? r.tags.split(",").map((t) => t.trim()) : [];
+        return activeFilterTags.some((t) => rTags.includes(t));
+      });
+
+  if (activeUnits.length > 0) {
+    filtered = filtered.filter((r) => {
+      if (!r.unit || r.unit === "General") return false;
+      const rUnits = r.unit.split(",").map((x) => x.trim());
+      return activeUnits.some((u) => rUnits.includes(u));
+    });
+  }
+
+  const btnBase = {
+    borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer",
+    border: "1px solid", padding: "5px 12px",
+  };
+
+  if (resources.length === 0) {
+    return (
+      <div style={{ textAlign: "center", padding: "60px 0", background: "#FAFAFA", borderRadius: 14, border: "1px dashed #DDDDD8" }}>
+        <p style={{ fontSize: 14, fontWeight: 600, color: "#555", margin: 0 }}>No PYQs yet</p>
+        <p style={{ fontSize: 12, color: "#AAA", marginTop: 4 }}>Be the first to upload</p>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
+        <span style={{ fontSize: 11, color: "#888", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase" }}>Unit</span>
+        <button onClick={() => setActiveUnits([])} style={{
+          ...btnBase,
+          borderColor: activeUnits.length === 0 ? "#000" : "#D4D4D4",
+          background: activeUnits.length === 0 ? "#000" : "#F5F5F5",
+          color: activeUnits.length === 0 ? "#fff" : "#555",
+        }}>All</button>
+        {units.map((u) => (
+          <button key={u} onClick={() => toggleUnit(u)} style={{
+            ...btnBase, width: 32, height: 32, padding: 0,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            borderColor: activeUnits.includes(u) ? "#000" : "#D4D4D4",
+            background: activeUnits.includes(u) ? "#000" : "#F5F5F5",
+            color: activeUnits.includes(u) ? "#fff" : "#555",
+          }}>{u}</button>
+        ))}
+      </div>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {filtered.length === 0 ? (
+          <p style={{ textAlign: "center", color: "#AAA", fontSize: 13, padding: "40px 0" }}>No results</p>
+        ) : (
+          filtered.map((resource) => (
+            <ResourceCard key={resource._id} resource={resource} user={user}
+              onView={onView} onDownload={onDownload} onDelete={onDelete} onEdit={onEdit} onTagClick={onTagClick} showToast={showToast} />
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── File Viewer ──────────────────────────────────────────────────────────────
+function FileViewer({ url, title, ext, onClose, onDownload }) {
+  const isPdf = ext === "pdf";
+  const [imgLoading, setImgLoading] = useState(true);
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 50, background: "#111", display: "flex", flexDirection: "column" }}>
+      <div style={{
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        padding: "12px 16px", background: "#fff", borderBottom: "1px solid #E8E8E8", flexShrink: 0,
+      }}>
+        <p style={{ fontSize: 13, fontWeight: 600, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, marginRight: 12 }}>{title}</p>
+        <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+          <button onClick={onDownload} style={{ fontSize: 12, fontWeight: 600, padding: "7px 14px", borderRadius: 8, background: "#000", color: "#fff", border: "none", cursor: "pointer" }}>Download</button>
+          <button onClick={onClose} style={{ fontSize: 12, fontWeight: 600, padding: "7px 14px", borderRadius: 8, background: "#F5F5F5", color: "#333", border: "1px solid #E0E0E0", cursor: "pointer" }}>Close</button>
+        </div>
+      </div>
+      <div style={{ flex: 1, overflowY: "auto", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+        {imgLoading && !isPdf && (
+          <p style={{ color: "#888", fontSize: 13 }}>Loading...</p>
+        )}
+        {!isPdf && (
+          <img src={url} alt={title} style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain", borderRadius: 8 }}
+            onLoad={() => setImgLoading(false)} />
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Tag Filter Bar ───────────────────────────────────────────────────────────
+function TagFilterBar({ allTags, activeFilterTags, onToggle }) {
+  if (allTags.length === 0) return null;
+  return (
+    <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 14, alignItems: "center" }}>
+      <span style={{ fontSize: 11, color: "#888", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase" }}>Filter</span>
+      {allTags.map((t) => (
+        <TagPill key={t} label={t} active={activeFilterTags.includes(t)} onClick={() => onToggle(t)} />
+      ))}
+    </div>
+  );
+}
+
+// ─── Main Component ───────────────────────────────────────────────────────────
 export default function Resources() {
   const { user } = useAuth();
   const navigate = useNavigate();
-
-  const [resources,      setResources]      = useState([]);
-  const [loading,        setLoading]        = useState(true);
-  const [activeTab,      setActiveTab]      = useState("notes");
-  const [activeSubject,  setActiveSubject]  = useState("all");
-  const [showAdd,        setShowAdd]        = useState(false);
-  const [editTarget,     setEditTarget]     = useState(null);
-  const [toast,          setToast]          = useState(null);
-  const [customSubjects, setCustomSubjects] = useState(() => loadCustom());
+  const [resources, setResources] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("notes");
+  const [showUpload, setShowUpload] = useState(false);
+  const [editResource, setEditResource] = useState(null);
+  const [toast, setToast] = useState(null);
+  const [viewer, setViewer] = useState(null);
+  const [activeFilterTags, setActiveFilterTags] = useState([]);
+  const [customTags] = useState(loadCustomTags);
 
   useEffect(() => { fetchResources(); }, [activeTab]);
 
   const fetchResources = async () => {
     try {
       setLoading(true);
-      setActiveSubject("all");
       const res = await api.get(`/api/resources/all?type=${activeTab}`);
       setResources(res.data);
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
   };
 
-  const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 3000); };
+  const showToast = (msg, type = "success") => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3000);
+  };
 
   const handleDelete = async (id) => {
-    if (!window.confirm("Delete this entry?")) return;
+    if (!window.confirm("Delete this resource?")) return;
     try {
       await api.delete(`/api/resources/${id}`);
-      setResources(r => r.filter(x => x._id !== id));
+      setResources(resources.filter((r) => r._id !== id));
       showToast("Deleted");
-    } catch { showToast("Failed to delete"); }
+    } catch { showToast("Failed to delete", "error"); }
   };
 
-  const handleNewSubject = (name) => {
-    const all = [...BASE_SUBJECTS, ...customSubjects];
-    if (all.map(s => s.toLowerCase()).includes(name.toLowerCase())) return;
-    const updated = [...customSubjects, name];
-    setCustomSubjects(updated);
-    saveCustom(updated);
+  const getFileExt = (url) => {
+    if (!url) return "pdf";
+    const rawExt = url.split(".").pop().split("?")[0].toLowerCase();
+    return ["png", "jpg", "jpeg", "webp", "gif"].includes(rawExt) ? rawExt : "pdf";
   };
 
-  const dbSubjects    = Array.from(new Set(resources.map(r => r.subject).filter(Boolean)));
-  const knownLower    = new Set([...BASE_SUBJECTS, ...customSubjects].map(s => s.toLowerCase()));
-  const dbOnly        = dbSubjects.filter(s => !knownLower.has(s.toLowerCase()));
-  const extraSubjects = [...customSubjects, ...dbOnly];
-  const allKnown      = [...BASE_SUBJECTS, ...extraSubjects];
-  const tagSubjects   = ["all", ...Array.from(new Set(
-    dbSubjects.map(s => allKnown.find(k => k.toLowerCase() === s.toLowerCase()) || s)
-  ))];
-
-  const filtered = activeSubject === "all"
-    ? resources
-    : resources.filter(r => r.subject?.toLowerCase() === activeSubject.toLowerCase());
-
-  // ── Removed "assignment" tab ──
-  const TABS = [
-    { id:"notes", label:"Notes" },
-    { id:"pyq",   label:"PYQs"  },
-  ];
-
-  const S = {
-    page:    { minHeight:"100vh", background:"#fafaf9", fontFamily:"'DM Sans',system-ui,sans-serif", color:"#1a1a18", fontSize:14 },
-    wrap:    { maxWidth:600, margin:"0 auto", padding:"20px 16px 88px" },
-    hdr:     { display:"flex", alignItems:"center", gap:12, marginBottom:22 },
-    backBtn: { width:34, height:34, borderRadius:9, border:"1px solid #e5e3dc", background:"#fff", cursor:"pointer", fontSize:17, color:"#6b6860", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 },
-    btn:     { padding:"8px 14px", borderRadius:10, border:"none", background:"#1a1a18", color:"#fff", fontSize:12, fontWeight:700, cursor:"pointer", fontFamily:"inherit" },
-    tabBar:  { display:"flex", borderBottom:"1.5px solid #e5e3dc", marginBottom:14 },
-    tab:     (a) => ({ padding:"8px 0", marginRight:22, fontSize:13, fontWeight:700, border:"none", background:"transparent", cursor:"pointer", color:a?"#1a1a18":"#9b9890", borderBottom:a?"2px solid #1a1a18":"2px solid transparent", marginBottom:"-1.5px", transition:"color .13s" }),
-    ptag:    (a) => ({ padding:"5px 12px", borderRadius:100, fontSize:11, fontWeight:600, border:"none", cursor:"pointer", background:a?"#1a1a18":"#f0ede8", color:a?"#fff":"#6b6860", transition:"all .13s", whiteSpace:"nowrap", flexShrink:0 }),
+  const handleDownload = (url, title, ext) => {
+    let downloadUrl = url;
+    if (url && url.includes("/upload/")) downloadUrl = url.replace("/upload/", "/upload/fl_attachment/");
+    const a = document.createElement("a");
+    a.href = downloadUrl; a.download = `${title || "file"}.${ext}`; a.target = "_blank";
+    document.body.appendChild(a); a.click(); a.remove();
   };
 
-  const modalProps = { activeTab, showToast, extraSubjects, onNewSubject: handleNewSubject, onSuccess: fetchResources };
+  const handleView = (resource) => {
+    const ext = getFileExt(resource.fileUrl);
+    if (ext === "pdf") {
+      let viewUrl = resource.fileUrl || "";
+      if (!viewUrl.split("?")[0].toLowerCase().endsWith(".pdf")) viewUrl += ".pdf";
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      if (isMobile) {
+        window.open(`https://docs.google.com/viewer?url=${encodeURIComponent(viewUrl)}&embedded=true`, "_blank", "noopener,noreferrer");
+      } else {
+        window.open(viewUrl, "_blank", "noopener,noreferrer");
+      }
+    } else {
+      setViewer({ url: resource.fileUrl, title: resource.title, ext });
+    }
+  };
+
+  // Collect all unique tags from current resources + saved custom tags
+  const allTagsInResources = Array.from(new Set(
+    resources.flatMap((r) => r.tags ? r.tags.split(",").map((t) => t.trim()).filter(Boolean) : [])
+  ));
+  const displayableTags = Array.from(new Set([
+    ...PRESET_TAGS,
+    ...allTagsInResources.filter((t) => !PRESET_TAGS.includes(t)),
+  ]));
+
+  const toggleFilterTag = (tag) =>
+    setActiveFilterTags((prev) => prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]);
+
+  const dividerStyle = { borderTop: "1px solid #F0F0F0", margin: "0 0 14px" };
 
   return (
-    <div style={S.page}>
+    <div style={{ maxWidth: 600, margin: "0 auto", padding: "20px 16px 120px", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
+      <Toast toast={toast} />
 
-      {toast && (
-        <div style={{ position:"fixed", top:16, right:16, zIndex:99, padding:"9px 16px", borderRadius:11, background:"#1a1a18", color:"#fff", fontSize:12, fontWeight:700, boxShadow:"0 4px 20px rgba(0,0,0,.18)" }}>
-          {toast}
-        </div>
+      {viewer && (
+        <FileViewer url={viewer.url} title={viewer.title} ext={viewer.ext}
+          onClose={() => setViewer(null)}
+          onDownload={() => handleDownload(viewer.url, viewer.title, viewer.ext)} />
       )}
 
-      {showAdd && <AddModal {...modalProps} onClose={() => setShowAdd(false)} />}
-      {editTarget && <EditModal {...modalProps} resource={editTarget} onClose={() => setEditTarget(null)} />}
+      {showUpload && (
+        <UploadModal user={user} activeTab={activeTab}
+          onClose={() => setShowUpload(false)}
+          onSuccess={fetchResources}
+          showToast={showToast} />
+      )}
 
-      <div style={S.wrap}>
+      {editResource && (
+        <EditModal
+          resource={editResource}
+          onClose={() => setEditResource(null)}
+          onSuccess={() => { setEditResource(null); fetchResources(); }}
+          showToast={showToast}
+        />
+      )}
 
-        {/* Header */}
-        <div style={S.hdr}>
-          <button style={S.backBtn} onClick={() => navigate("/")}>‹</button>
-          <div style={{ flex:1 }}>
-            <div style={{ fontSize:18, fontWeight:800, letterSpacing:"-.3px" }}>Resources</div>
-            <div style={{ fontSize:11, color:"#9b9890", marginTop:1 }}>Notes · PYQs</div>
-          </div>
-          <button style={S.btn} onClick={() => setShowAdd(true)}>+ Add</button>
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
+        <button
+          onClick={() => navigate("/")}
+          aria-label="Go back"
+          style={{ background: "none", border: "none", cursor: "pointer", padding: 4, display: "flex", alignItems: "center", color: "#111", flexShrink: 0 }}
+        >
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12.5 15L7.5 10L12.5 5" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </button>
+        <div>
+          <h1 style={{ fontSize: 20, fontWeight: 700, color: "#111", margin: 0, letterSpacing: "-0.4px" }}>Resources</h1>
+          <p style={{ fontSize: 11, color: "#AAA", margin: "2px 0 0" }}>Notes and PYQs</p>
         </div>
-
-        {/* Tabs */}
-        <div style={S.tabBar}>
-          {TABS.map(t => (
-            <button key={t.id} style={S.tab(activeTab===t.id)} onClick={() => setActiveTab(t.id)}>
-              {t.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Subject filters */}
-        {tagSubjects.length > 1 && (
-          <div style={{ display:"flex", gap:6, overflowX:"auto", paddingBottom:4, marginBottom:14 }}>
-            {tagSubjects.map(s => (
-              <button key={s} style={S.ptag(activeSubject===s)} onClick={() => setActiveSubject(s)}>
-                {s === "all" ? "All" : s}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* Content */}
-        {loading ? (
-          <div style={{ textAlign:"center", padding:"48px 0", color:"#9b9890" }}>Loading…</div>
-        ) : filtered.length === 0 ? (
-          <div style={{ textAlign:"center", padding:"48px", background:"#fff", border:"1px solid #e5e3dc", borderRadius:14 }}>
-            <div style={{ fontSize:32, marginBottom:8 }}>📭</div>
-            <div style={{ fontWeight:700, marginBottom:4 }}>Nothing here yet</div>
-            <div style={{ fontSize:12, color:"#9b9890", marginBottom:16 }}>Be the first to add</div>
-            <button style={S.btn} onClick={() => setShowAdd(true)}>+ Add</button>
-          </div>
-        ) : (
-          <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-            {filtered.map(resource => (
-              <ResourceCard key={resource._id} resource={resource} user={user} onDelete={handleDelete} onEdit={setEditTarget} />
-            ))}
-          </div>
-        )}
-
       </div>
+
+      {/* Tabs */}
+      <div style={{ display: "flex", marginBottom: 18, borderBottom: "1px solid #F0F0F0" }}>
+        {[{ id: "notes", label: "Notes" }, { id: "pyq", label: "PYQs" }].map((tab) => (
+          <button key={tab.id} onClick={() => { setActiveTab(tab.id); setActiveFilterTags([]); }}
+            style={{
+              flex: 1, padding: "10px 0",
+              fontSize: 13, fontWeight: activeTab === tab.id ? 700 : 500,
+              color: activeTab === tab.id ? "#111" : "#AAA",
+              background: "transparent", border: "none", cursor: "pointer",
+              borderBottom: activeTab === tab.id ? "2px solid #111" : "2px solid transparent",
+              marginBottom: -1, transition: "all 0.12s",
+            }}>{tab.label}</button>
+        ))}
+      </div>
+
+      {/* Tag filter */}
+      <TagFilterBar allTags={displayableTags} activeFilterTags={activeFilterTags} onToggle={toggleFilterTag} />
+
+      {/* Content */}
+      {loading ? (
+        <div style={{ textAlign: "center", padding: "60px 0", color: "#BBB", fontSize: 13 }}>
+          Loading...
+        </div>
+      ) : (
+        <>
+          {activeTab === "notes" && (
+            <NotesView resources={resources} user={user} activeFilterTags={activeFilterTags}
+              onView={handleView} onDownload={handleDownload} onDelete={handleDelete}
+              onEdit={(r) => setEditResource(r)} onTagClick={toggleFilterTag} showToast={showToast} />
+          )}
+          {activeTab === "pyq" && (
+            <PYQView resources={resources} user={user} activeFilterTags={activeFilterTags}
+              onView={handleView} onDownload={handleDownload} onDelete={handleDelete}
+              onEdit={(r) => setEditResource(r)} onTagClick={toggleFilterTag} showToast={showToast} />
+          )}
+        </>
+      )}
+
+      {/* FAB — raised above bottom nav */}
+      {user && (
+        <button
+          onClick={() => setShowUpload(true)}
+          aria-label="Upload resource"
+          style={{
+            position: "fixed", bottom: 80, right: 20,
+            width: 52, height: 52, borderRadius: 14,
+            background: "#111", color: "#fff",
+            border: "none", cursor: "pointer", zIndex: 30,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            boxShadow: "0 2px 12px rgba(0,0,0,0.2)",
+          }}
+        >
+          <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M11 4V18M4 11H18" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+          </svg>
+        </button>
+      )}
     </div>
   );
 }

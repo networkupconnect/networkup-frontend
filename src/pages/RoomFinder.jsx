@@ -44,11 +44,12 @@ function Avatar({ name = "", src }) {
 function ListingCard({ listing, user, onDelete, onImageClick, idx }) {
   const allFacilities = listing.facilities || [];
   const navigate = useNavigate();
+  const detailPath = `/room/${listing._id}`;
 
   return (
     <div
       className="card-enter"
-      onClick={() => navigate(`/rooms/${listing._id}`)}
+      onClick={() => navigate(detailPath)}
       style={{
         background: "#fff",
         border: "1.5px solid #ebebeb",
@@ -144,10 +145,11 @@ function ListingCard({ listing, user, onDelete, onImageClick, idx }) {
               {listing.postedBy?.name || "—"}
             </span>
           </div>
-          <div style={{ display: "flex", gap: 7 }}>
-            {listing.contactPhone && (
+          <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
+            {listing.contactPhone && user ? (
               <a
                 href={`tel:${listing.contactPhone}`}
+                onClick={(e) => e.stopPropagation()}
                 style={{
                   display: "inline-flex", alignItems: "center", gap: 5,
                   fontSize: 11, fontWeight: 600, color: "#1a9e6a",
@@ -163,7 +165,11 @@ function ListingCard({ listing, user, onDelete, onImageClick, idx }) {
                 </svg>
                 Call
               </a>
-            )}
+            ) : listing.contactPhone ? (
+              <div style={{ fontSize: 11, color: "#888", padding: "6px 11px", borderRadius: 8, border: "1px solid #E5E7EB", background: "#F9FAFB" }}>
+                Login to get Contact Number
+              </div>
+            ) : null}
             {(user?._id === listing.postedBy?._id?.toString() ||
               user?._id === String(listing.postedBy?._id) ||
               user?.role === "admin") && (

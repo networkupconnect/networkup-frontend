@@ -1,7 +1,9 @@
 import axios from 'axios';
 
+const BASE_URL = import.meta.env.VITE_API_URL || 'https://network.networkup.in';
+
 const api = axios.create({
-  baseURL: 'https://network.networkup.in',
+  baseURL: BASE_URL,
 });
 
 api.interceptors.request.use((config) => {

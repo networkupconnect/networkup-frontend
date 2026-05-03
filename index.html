@@ -1,8 +1,22 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
+    <!-- Google tag (gtag.js) -->
+    <script
+      async
+      src="https://www.googletagmanager.com/gtag/js?id=G-HB1Q5J0869"
+    ></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag() {
+        dataLayer.push(arguments);
+      }
+      gtag("js", new Date());
+      gtag("config", "G-HB1Q5J0869");
+    </script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<<<<<<< HEAD
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="NetworkUp">
@@ -11,6 +25,19 @@
     <!-- Relaxed CSP for development -->
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' blob: data: https: http:; media-src 'self' blob: https: data:; frame-src 'self' https://www.youtube.com; connect-src 'self' http://localhost:* https://localhost:* http://127.0.0.1:* https://network.networkup.in wss://network.networkup.in;" />
 
+=======
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self';
+               script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com;
+               style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+               font-src 'self' data: https://fonts.gstatic.com;
+               img-src 'self' blob: data: https: http:;
+               media-src 'self' blob: https: data:;
+               frame-src 'self' https://www.youtube.com;
+               connect-src 'self' http://localhost:* https://localhost:* http://127.0.0.1:* https://network.networkup.in wss://network.networkup.in https://www.google-analytics.com https://region1.google-analytics.com https://www.googletagmanager.com;"
+    />
+>>>>>>> 249237ba0804ed18ece733066fc5cab2f5de993e
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     <link rel="icon" type="image/png" href="/favicon-96x96.png" sizes="96x96" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
@@ -22,15 +49,7 @@
   <body>
     <div id="root"></div>
 
-    <!-- Google tag (gtag.js) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-MLNLS8TQPD"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-      gtag('config', 'G-MLNLS8TQPD');
-    </script>
-
+    <!-- ✅ This line was missing — loads your React app -->
     <script type="module" src="/src/main.jsx"></script>
     <div id="nu-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:9999; align-items:flex-end; justify-content:center;">
   <div id="nu-popup" style="background:#fff; width:100%; max-width:480px; border-radius:20px 20px 0 0; padding:0; overflow:hidden; box-shadow:0 -4px 30px rgba(0,0,0,0.15);">
