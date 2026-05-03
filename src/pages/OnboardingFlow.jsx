@@ -34,8 +34,17 @@ const COURSE_BRANCHES = {
 const MAX_YEARS = { "BTech":4,"MTech":2,"BCA":3,"MCA":2,"BSc":3,"MSc":2,"MBA":2,"BBA":3,"B.Com":3,"M.Com":2,"BPharm":4,"MPharm":2,"LLB":5,"Other":4 };
 const HAS_SECTION = ["BTech"];
 
-// Export so Profile.jsx can reuse the same mapping
+// Exported so Profile.jsx can reuse the same mapping
 export { COURSE_BRANCHES, MAX_YEARS, HAS_SECTION };
+
+// Derives a valid username from a full name
+const toUsername = (name) =>
+  name
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 20);
 
 const SS = `
   @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap');
@@ -61,14 +70,12 @@ const SS = `
   .ob-field{display:flex;flex-direction:column;gap:5px}
   .ob-label{font-size:13px;font-weight:500;color:var(--t2)}
   .ob-hint{font-size:11px;color:var(--t3);margin-top:3px}
+  .ob-username-wrap{position:relative}
+  .ob-username-prefix{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:14px;color:var(--t3);pointer-events:none;user-select:none}
   .ob-input{width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:var(--radius);font-family:var(--font);font-size:14px;color:var(--text);background:var(--surface);outline:none}
   .ob-input:focus{border-color:var(--bf);box-shadow:0 0 0 3px rgba(26,26,26,.06)}
   .ob-input:disabled{opacity:.5;cursor:not-allowed}
-  .ob-select{width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:var(--radius);font-family:var(--font);font-size:14px;color:var(--text);background:var(--surface);outline:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23737373' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:36px}
-  .ob-select:focus{border-color:var(--bf);box-shadow:0 0 0 3px rgba(26,26,26,.06)}
-  .ob-select:disabled{opacity:.5;cursor:not-allowed}
-  .ob-row{display:flex;gap:10px}
-  .ob-row .ob-field{flex:1}
+  .ob-input.with-prefix{padding-left:26px}
   .ob-actions{display:flex;justify-content:space-between;align-items:center;gap:12px}
   .ob-btn{flex:1;padding:12px;border-radius:var(--radius);font-family:var(--font);font-size:14px;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px}
   .ob-btn-primary{background:var(--accent);color:#fff;border:none}
@@ -82,60 +89,56 @@ const SS = `
 `;
 
 const STEPS = [
-  { num: 1, title: "Your identity", sub: "How others will find and know you" },
-  { num: 2, title: "Your course",   sub: "Helps connect you with the right peers" },
-  { num: 3, title: "Contact",       sub: "For collaboration and networking" },
+  { num: 1, title: "Your identity",  sub: "How others will find and know you" },
+  { num: 2, title: "Contact",        sub: "For collaboration and networking" },
 ];
 
 export default function OnboardingFlow() {
   const { user, login } = useAuth();
   const navigate = useNavigate();
 
-  const [step, setStep] = useState(1);
-  const [error, setError] = useState("");
-  const [saving, setSaving] = useState(false);
+  const [step, setStep]       = useState(1);
+  const [error, setError]     = useState("");
+  const [saving, setSaving]   = useState(false);
 
-  const [name, setName] = useState(user?.name || "");
-  const [username, setUsername] = useState(user?.username || "");
-  const [course, setCourse] = useState(user?.course || "");
-  const [branch, setBranch] = useState(user?.branch || "");
-  const [year, setYear] = useState(user?.year ? String(user.year) : "");
-  const [section, setSection] = useState(user?.section || "");
-  const [phone, setPhone] = useState(user?.phone || "");
+  const [name, setName]               = useState(user?.name || "");
+  const [username, setUsername]       = useState(() => toUsername(user?.name || ""));
+  // Track whether the user has manually edited the username
+  const [usernameTouched, setUsernameTouched] = useState(false);
+  const [phone, setPhone]             = useState(user?.phone || "");
 
-  useEffect(() => { setBranch(""); }, [course]);
+  // Keep username in sync with name until user touches it manually
+  useEffect(() => {
+    if (!usernameTouched) {
+      setUsername(toUsername(name));
+    }
+  }, [name, usernameTouched]);
 
   useEffect(() => {
     if (user?.onboardingComplete) navigate("/", { replace: true });
   }, []);
 
-  const branches = COURSE_BRANCHES[course] || [];
-  const maxYear = MAX_YEARS[course] || 4;
-  const showSection = HAS_SECTION.includes(course);
+  const handleUsernameChange = (e) => {
+    const val = e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "");
+    setUsername(val);
+    setUsernameTouched(true);
+  };
 
   const next = () => {
     setError("");
-    if (step === 1) {
-      if (!name.trim()) return setError("Full name is required");
-      if (!username.trim()) return setError("Username is required");
-      if (!/^[a-zA-Z0-9_]{3,20}$/.test(username.trim()))
-        return setError("Username: 3–20 chars, letters/numbers/underscore only");
-      setStep(2);
-    } else if (step === 2) {
-      if (!course) return setError("Please select your course");
-      if (!branch) return setError("Please select your branch / department");
-      if (!year) return setError("Please select your current year");
-      setStep(3);
-    }
+    if (!name.trim())     return setError("Full name is required");
+    if (!username.trim()) return setError("Username is required");
+    if (!/^[a-zA-Z0-9_]{3,20}$/.test(username.trim()))
+      return setError("Username: 3–20 chars, letters/numbers/underscore only");
+    setStep(2);
   };
 
-  const back = () => { setError(""); setStep(s => s - 1); };
+  const back = () => { setError(""); setStep(1); };
 
   const finish = async () => {
     setError("");
     if (!phone.trim()) return setError("Phone number is required");
-    // Relaxed: just needs 7+ digits after stripping formatting
-    const digits = phone.trim().replace(/[\s\-()+ ]/g, "");
+    const digits = phone.trim().replace(/[\s\-()+]/g, "");
     if (digits.length < 7 || !/^\d+$/.test(digits))
       return setError("Enter a valid phone number (e.g. 9876543210)");
 
@@ -144,22 +147,22 @@ export default function OnboardingFlow() {
       const payload = {
         name: name.trim(),
         username: username.trim().toLowerCase(),
-        course,
-        branch,
-        year: Number(year),
-        section: showSection ? section : "",
-        phone: phone.trim(),
+        // Course/branch/year/section intentionally omitted — not collected at signup
+        course:   user?.course   || "",
+        branch:   user?.branch   || "",
+        year:     user?.year     || null,
+        section:  user?.section  || "",
+        phone:    phone.trim(),
         onboardingComplete: true,
       };
 
-      // ✅ Correct path: /api/user/me (matches users.route.js mounted at /api/user)
       const res = await api.put("/api/user/me", payload);
       const token = localStorage.getItem("token");
       login({ token, user: { ...user, ...res.data } });
       navigate("/", { replace: true });
     } catch (e) {
       const status = e.response?.status ?? "network";
-      const msg = e.response?.data?.message ?? e.message ?? "Unknown error";
+      const msg    = e.response?.data?.message ?? e.message ?? "Unknown error";
       setError(`Error ${status}: ${msg}`);
     } finally {
       setSaving(false);
@@ -181,6 +184,7 @@ export default function OnboardingFlow() {
             <span className="ob-logo-name">NetworkUp</span>
           </div>
 
+          {/* Progress */}
           <div className="ob-progress">
             {STEPS.map((s, i) => (
               <div key={s.num} className="ob-step">
@@ -197,75 +201,51 @@ export default function OnboardingFlow() {
 
           {error && <div className="ob-error">{error}</div>}
 
-          {/* Step 1 */}
+          {/* ── Step 1 : identity ── */}
           {step === 1 && (
             <div className="ob-fields">
               <div className="ob-field">
                 <label className="ob-label">Full name</label>
-                <input className="ob-input" placeholder="Your full name" value={name}
-                  onChange={e => setName(e.target.value)} autoComplete="name" autoFocus />
+                <input
+                  className="ob-input"
+                  placeholder="Your full name"
+                  value={name}
+                  onChange={e => setName(e.target.value)}
+                  autoComplete="name"
+                  autoFocus
+                />
               </div>
               <div className="ob-field">
                 <label className="ob-label">Username</label>
-                <input className="ob-input" placeholder="e.g. john_doe99" value={username}
-                  onChange={e => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ""))}
-                  autoComplete="username" />
-                <span className="ob-hint">3–20 chars · letters, numbers, underscore</span>
+                <div className="ob-username-wrap">
+                  <span className="ob-username-prefix">@</span>
+                  <input
+                    className="ob-input with-prefix"
+                    placeholder="your_handle"
+                    value={username}
+                    onChange={handleUsernameChange}
+                    autoComplete="username"
+                  />
+                </div>
+                <span className="ob-hint">Auto-set from your name · 3–20 chars · letters, numbers, underscore</span>
               </div>
             </div>
           )}
 
-          {/* Step 2 */}
+          {/* ── Step 2 : contact ── */}
           {step === 2 && (
             <div className="ob-fields">
               <div className="ob-field">
-                <label className="ob-label">Course</label>
-                <select className="ob-select" value={course} onChange={e => setCourse(e.target.value)}>
-                  <option value="">Select course</option>
-                  {Object.keys(COURSE_BRANCHES).map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
-              </div>
-
-              
-              {course && (
-                <div className="ob-field">
-                  <label className="ob-label">Branch / Department</label>
-                  <select className="ob-select" value={branch} onChange={e => setBranch(e.target.value)}>
-                    <option value="">Select branch</option>
-                    {branches.map(b => <option key={b} value={b}>{b}</option>)}
-                  </select>
-                </div>
-              )}
-              {course && (
-                <div className="ob-row">
-                  <div className="ob-field">
-                    <label className="ob-label">Current year</label>
-                    <select className="ob-select" value={year} onChange={e => setYear(e.target.value)}>
-                      <option value="">Year</option>
-                      {Array.from({ length: maxYear }, (_, i) => i + 1).map(y =>
-                        <option key={y} value={y}>Year {y}</option>
-                      )}
-                    </select>
-                  </div>
-                  {showSection && (
-                    <div className="ob-field">
-                      <label className="ob-label">Section <span style={{ color: "#a3a3a3" }}>(optional)</span></label>
-                      <input className="ob-input" placeholder="e.g. A" value={section}
-                        onChange={e => setSection(e.target.value.toUpperCase().slice(0, 2))} maxLength={2} />
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Step 3 */}
-          {step === 3 && (
-            <div className="ob-fields">
-              <div className="ob-field">
                 <label className="ob-label">Phone number</label>
-                <input className="ob-input" type="tel" placeholder="+91 98765 43210"
-                  value={phone} onChange={e => setPhone(e.target.value)} autoComplete="tel" autoFocus />
+                <input
+                  className="ob-input"
+                  type="tel"
+                  placeholder="+91 98765 43210"
+                  value={phone}
+                  onChange={e => setPhone(e.target.value)}
+                  autoComplete="tel"
+                  autoFocus
+                />
                 <span className="ob-hint">Used for collaboration requests — not publicly shown</span>
               </div>
             </div>
@@ -275,7 +255,7 @@ export default function OnboardingFlow() {
             {step > 1
               ? <button className="ob-btn ob-btn-ghost" onClick={back} disabled={saving}>Back</button>
               : <div />}
-            {step < 3
+            {step < 2
               ? <button className="ob-btn ob-btn-primary" onClick={next}>Continue →</button>
               : <button className="ob-btn ob-btn-primary" onClick={finish} disabled={saving}>
                   {saving && <span className="ob-spinner" />}
