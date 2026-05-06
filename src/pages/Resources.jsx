@@ -3,328 +3,303 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import api from "../api/axios";
 
-// ─── Constants ────────────────────────────────────────────────────────────────
+/* ─────────────────────────────────────────────────────────────────────────────
+   RESOURCES PAGE — Teal/Cyan accent (focus, clarity, study)
+   Primary:  #0D9488 (Teal)       — trust, calm focus
+   Accent:   #7C3AED (Purple)     — creativity
+   Highlight: #EA580C (Orange)    — CTA energy
+   Success:  #16A34A (Green)      — completion
+   Sharp corners throughout — border-radius: 4–6px max
+   ───────────────────────────────────────────────────────────────────────────── */
+
 const PRESET_TAGS = [
   "Maths", "Physics", "Chemistry", "Mechanical",
   "Civil", "Computer", "Lab File", "Workshop",
 ];
-
 const LOCAL_KEY = "custom_resource_tags";
+function loadCustomTags() { try { return JSON.parse(localStorage.getItem(LOCAL_KEY) || "[]"); } catch { return []; } }
+function saveCustomTags(tags) { localStorage.setItem(LOCAL_KEY, JSON.stringify(tags)); }
 
-function loadCustomTags() {
-  try { return JSON.parse(localStorage.getItem(LOCAL_KEY) || "[]"); }
-  catch { return []; }
-}
-function saveCustomTags(tags) {
-  localStorage.setItem(LOCAL_KEY, JSON.stringify(tags));
-}
-
-// ── Theme tokens ──────────────────────────────────────────────────────────────
+// ── Vibrant theme tokens ──────────────────────────────────────────────────────
 const T = {
-  blue:       "#1D4ED8",
-  blueSoft:   "#eff6ff",
-  blueBorder: "#bfdbfe",
-  yellow:     "#FACC15",
-  yellowSoft: "#fefce8",
+  // Teal family
+  teal:       "#0D9488",
+  tealLight:  "#F0FDFA",
+  tealBorder: "#99F6E4",
+  tealMid:    "#14B8A6",
+  // Purple accent
+  purple:     "#7C3AED",
+  purpleLight:"#FAF5FF",
+  purpleBorder:"#DDD6FE",
+  // Orange CTA
+  orange:     "#EA580C",
+  orangeLight:"#FFF7ED",
+  orangeBorder:"#FED7AA",
+  // Utility
   white:      "#fff",
-  text:       "#111",
-  muted:      "#6b7280",
-  border:     "#e5e7eb",
+  text:       "#0F172A",
+  muted:      "#64748B",
+  border:     "#E2E8F0",
+  // Gradient
+  grad:       "linear-gradient(135deg, #0D9488 0%, #0891B2 50%, #7C3AED 100%)",
+  gradLight:  "linear-gradient(135deg, #F0FDFA 0%, #EFF6FF 50%, #FAF5FF 100%)",
 };
 
-// ─── Toast ────────────────────────────────────────────────────────────────────
+// ── Toast ─────────────────────────────────────────────────────────────────────
 function Toast({ toast }) {
   if (!toast) return null;
   return (
     <div style={{
-      position: "fixed", top: 16, right: 16, zIndex: 9999,
-      background: toast.type === "error" ? "#dc2626" : T.blue,
-      color: "#fff", fontSize: 13, fontWeight: 500,
-      padding: "10px 16px", borderRadius: 10,
-      borderLeft: `3px solid ${toast.type === "error" ? "#fca5a5" : T.yellow}`,
-      maxWidth: 280,
+      position:"fixed", top:16, right:16, zIndex:9999,
+      background: toast.type === "error"
+        ? "linear-gradient(135deg, #DC2626, #EA580C)"
+        : T.grad,
+      color:"#fff", fontSize:13, fontWeight:700,
+      padding:"11px 18px", borderRadius:6,
+      boxShadow: "0 4px 20px rgba(13,148,136,0.4)",
+      maxWidth:290, fontFamily:"'Nunito', sans-serif",
+      border: "1.5px solid rgba(255,255,255,0.2)",
     }}>
       {toast.msg}
     </div>
   );
 }
 
-// ─── Tag Pill ─────────────────────────────────────────────────────────────────
+// ── Tag Pill ──────────────────────────────────────────────────────────────────
 function TagPill({ label, active, onClick, onDelete }) {
   return (
     <button
       type="button"
       onClick={onClick}
       style={{
-        display: "inline-flex", alignItems: "center", gap: 5,
-        padding: "5px 11px", borderRadius: 20,
-        fontSize: 12, fontWeight: 500, cursor: "pointer",
-        border: "1px solid",
-        borderColor: active ? T.blue : "#D4D4D4",
-        background: active ? T.blue : T.blueSoft,
-        color: active ? "#fff" : T.blue,
-        transition: "all 0.12s",
-        whiteSpace: "nowrap",
+        display:"inline-flex", alignItems:"center", gap:5,
+        padding:"5px 12px", borderRadius:4,
+        fontSize:12, fontWeight:700, cursor:"pointer",
+        border:"1.5px solid",
+        borderColor: active ? T.teal : T.tealBorder,
+        background: active ? T.teal : T.tealLight,
+        color: active ? "#fff" : T.teal,
+        transition:"all 0.12s",
+        whiteSpace:"nowrap",
+        fontFamily:"'Nunito', sans-serif",
+        boxShadow: active ? "0 2px 10px rgba(13,148,136,0.35)" : "none",
       }}
     >
       {label}
       {onDelete && (
         <span
-          role="button"
-          tabIndex={0}
-          onClick={(e) => { e.stopPropagation(); onDelete(); }}
-          onKeyDown={(e) => e.key === "Enter" && (e.stopPropagation(), onDelete())}
+          role="button" tabIndex={0}
+          onClick={e => { e.stopPropagation(); onDelete(); }}
+          onKeyDown={e => e.key === "Enter" && (e.stopPropagation(), onDelete())}
           style={{
-            width: 14, height: 14, display: "flex", alignItems: "center",
-            justifyContent: "center", borderRadius: "50%",
-            background: active ? "rgba(255,255,255,0.3)" : T.blueBorder,
-            color: active ? "#fff" : T.blue,
-            fontSize: 10, lineHeight: 1, fontWeight: 700,
-            cursor: "pointer",
+            width:14, height:14, display:"flex", alignItems:"center", justifyContent:"center",
+            borderRadius:2, background: active ? "rgba(255,255,255,0.3)" : T.tealBorder,
+            color: active ? "#fff" : T.teal,
+            fontSize:10, fontWeight:900, cursor:"pointer",
           }}
           aria-label={`Remove ${label}`}
-        >
-          x
-        </span>
+        >×</span>
       )}
     </button>
   );
 }
 
-// ─── Tag Selector ─────────────────────────────────────────────────────────────
+// ── Tag Selector ──────────────────────────────────────────────────────────────
 function TagSelector({ selected, onChange }) {
   const [customTags, setCustomTags] = useState(loadCustomTags);
   const [inputVal, setInputVal] = useState("");
-  const inputRef = useRef();
 
   const allTags = [...PRESET_TAGS, ...customTags];
-
-  const toggle = (tag) =>
-    onChange(selected.includes(tag) ? selected.filter((t) => t !== tag) : [...selected, tag]);
+  const toggle  = tag => onChange(selected.includes(tag) ? selected.filter(t => t !== tag) : [...selected, tag]);
 
   const addCustom = () => {
     const val = inputVal.trim();
     if (!val || allTags.includes(val)) { setInputVal(""); return; }
     const updated = [...customTags, val];
-    setCustomTags(updated);
-    saveCustomTags(updated);
-    onChange([...selected, val]);
-    setInputVal("");
+    setCustomTags(updated); saveCustomTags(updated);
+    onChange([...selected, val]); setInputVal("");
   };
 
-  const deleteCustom = (tag) => {
-    const updated = customTags.filter((t) => t !== tag);
-    setCustomTags(updated);
-    saveCustomTags(updated);
-    onChange(selected.filter((t) => t !== tag));
+  const deleteCustom = tag => {
+    const updated = customTags.filter(t => t !== tag);
+    setCustomTags(updated); saveCustomTags(updated);
+    onChange(selected.filter(t => t !== tag));
   };
 
   return (
     <div>
-      <p style={{ fontSize: 11, color: T.blue, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 8 }}>
+      <p style={{ fontSize:11, color:T.teal, fontWeight:800, letterSpacing:"0.08em", textTransform:"uppercase", marginBottom:9, fontFamily:"'Nunito', sans-serif" }}>
         Tags
       </p>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
-        {PRESET_TAGS.map((t) => (
-          <TagPill key={t} label={t} active={selected.includes(t)} onClick={() => toggle(t)} />
-        ))}
-        {customTags.map((t) => (
-          <TagPill
-            key={t} label={t} active={selected.includes(t)}
-            onClick={() => toggle(t)}
-            onDelete={() => deleteCustom(t)}
-          />
-        ))}
+      <div style={{ display:"flex", flexWrap:"wrap", gap:6, marginBottom:9 }}>
+        {PRESET_TAGS.map(t => <TagPill key={t} label={t} active={selected.includes(t)} onClick={() => toggle(t)} />)}
+        {customTags.map(t => <TagPill key={t} label={t} active={selected.includes(t)} onClick={() => toggle(t)} onDelete={() => deleteCustom(t)} />)}
       </div>
-      <div style={{ display: "flex", gap: 6 }}>
+      <div style={{ display:"flex", gap:6 }}>
         <input
-          ref={inputRef}
           value={inputVal}
-          onChange={(e) => setInputVal(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addCustom())}
-          placeholder="Custom tag..."
+          onChange={e => setInputVal(e.target.value)}
+          onKeyDown={e => e.key === "Enter" && (e.preventDefault(), addCustom())}
+          placeholder="Custom tag…"
           style={{
-            flex: 1, padding: "7px 11px", fontSize: 13,
-            border: `1px solid ${T.blueBorder}`, borderRadius: 8,
-            outline: "none", background: T.blueSoft, color: T.text,
+            flex:1, padding:"8px 12px", fontSize:13, fontWeight:600,
+            border:`1.5px solid ${T.tealBorder}`, borderRadius:6, outline:"none",
+            background:T.tealLight, color:T.text, fontFamily:"'Nunito', sans-serif",
           }}
         />
-        <button
-          type="button"
-          onClick={addCustom}
-          style={{
-            padding: "7px 14px", fontSize: 12, fontWeight: 600,
-            border: `1px solid ${T.blueBorder}`, borderRadius: 8,
-            background: T.blue, color: "#fff", cursor: "pointer",
-          }}
-        >
-          Add
-        </button>
+        <button type="button" onClick={addCustom} style={{
+          padding:"8px 16px", fontSize:12, fontWeight:800,
+          border:"none", borderRadius:6,
+          background:T.teal, color:"#fff", cursor:"pointer",
+          boxShadow:"0 2px 10px rgba(13,148,136,0.35)",
+          fontFamily:"'Nunito', sans-serif",
+        }}>Add</button>
       </div>
     </div>
   );
 }
 
-// ─── Upload Modal ─────────────────────────────────────────────────────────────
+// ── Upload Modal ──────────────────────────────────────────────────────────────
 function UploadModal({ activeTab, onClose, onSuccess, showToast, user }) {
   const [uploading, setUploading] = useState(false);
   const [form, setForm] = useState({
-    title: "", description: "", subject: "",
-    units: [], tags: [],
-    notesLink: "", lectureLink: "", assignmentLink: "", pyqLink: "",
+    title:"", description:"", subject:"",
+    units:[], tags:[],
+    notesLink:"", lectureLink:"", assignmentLink:"", pyqLink:"",
   });
 
-  const handleUpload = async (e) => {
+  const handleUpload = async e => {
     e.preventDefault();
     if (!form.subject) return showToast("Subject name is required", "error");
     if (activeTab === "notes" && !form.notesLink) return showToast("Notes link is required", "error");
     if (activeTab === "pyq" && !form.pyqLink) return showToast("PYQ link is required", "error");
-
-    const formData = new FormData();
-    formData.append("title", form.title || form.subject);
-    formData.append("description", form.description);
-    formData.append("type", activeTab);
-    formData.append("subject", form.subject);
-    formData.append("unit", form.units.length > 0 ? form.units.join(",") : "General");
-    formData.append("tags", form.tags.join(","));
-    formData.append("notesLink", form.notesLink || "");
-    formData.append("lectureLink", form.lectureLink || "");
-    formData.append("assignmentLink", form.assignmentLink || "");
-    formData.append("pyqLink", form.pyqLink || "");
-    formData.append("branch", user?.branch || "General");
-    formData.append("year", user?.year || 1);
-    formData.append("section", "all");
-
+    const fd = new FormData();
+    fd.append("title", form.title || form.subject);
+    fd.append("description", form.description);
+    fd.append("type", activeTab);
+    fd.append("subject", form.subject);
+    fd.append("unit", form.units.length > 0 ? form.units.join(",") : "General");
+    fd.append("tags", form.tags.join(","));
+    fd.append("notesLink", form.notesLink || "");
+    fd.append("lectureLink", form.lectureLink || "");
+    fd.append("assignmentLink", form.assignmentLink || "");
+    fd.append("pyqLink", form.pyqLink || "");
+    fd.append("branch", user?.branch || "General");
+    fd.append("year", user?.year || 1);
+    fd.append("section", "all");
     try {
       setUploading(true);
-      await api.post("/api/resources", formData);
-      onClose(); onSuccess(); showToast("Uploaded");
+      await api.post("/api/resources", fd);
+      onClose(); onSuccess(); showToast("Uploaded successfully! 🎉");
     } catch (err) {
       showToast(err.response?.data?.message || "Failed to upload", "error");
     } finally { setUploading(false); }
   };
 
-  const units = ["1", "2", "3", "4", "5"];
-  const toggleUnit = (u) =>
-    setForm((f) => ({
-      ...f, units: f.units.includes(u) ? f.units.filter((x) => x !== u) : [...f.units, u],
-    }));
+  const units = ["1","2","3","4","5"];
+  const toggleUnit = u => setForm(f => ({ ...f, units: f.units.includes(u) ? f.units.filter(x => x !== u) : [...f.units, u] }));
 
   const inputStyle = {
-    width: "100%", padding: "10px 13px", fontSize: 13,
-    border: `1px solid ${T.blueBorder}`, borderRadius: 9, outline: "none",
-    background: T.blueSoft, color: T.text, boxSizing: "border-box",
+    width:"100%", padding:"10px 14px", fontSize:13, fontWeight:600,
+    border:`1.5px solid ${T.tealBorder}`, borderRadius:6, outline:"none",
+    background:T.tealLight, color:T.text, boxSizing:"border-box",
+    fontFamily:"'Nunito', sans-serif",
   };
-  const labelStyle = { fontSize: 11, color: T.blue, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", display: "block", marginBottom: 5 };
+  const labelStyle = { fontSize:11, color:T.teal, fontWeight:800, letterSpacing:"0.08em", textTransform:"uppercase", display:"block", marginBottom:6, fontFamily:"'Nunito', sans-serif" };
 
   return (
-    <div style={{
-      position: "fixed", inset: 0, zIndex: 40,
-      background: "rgba(0,0,0,0.4)",
-      display: "flex", alignItems: "flex-end",
-    }}>
+    <div style={{ position:"fixed", inset:0, zIndex:40, background:"rgba(15,23,42,0.6)", display:"flex", alignItems:"flex-end" }}>
       <div style={{
-        background: T.white, width: "100%", maxWidth: 520,
-        margin: "0 auto",
-        borderRadius: "18px 18px 0 0",
-        maxHeight: "92vh", overflowY: "auto",
+        background:T.white, width:"100%", maxWidth:520, margin:"0 auto",
+        borderRadius:"10px 10px 0 0", maxHeight:"92vh", overflowY:"auto",
+        borderTop:`3px solid ${T.teal}`,
       }}>
         <div style={{
-          position: "sticky", top: 0, background: T.white,
-          borderBottom: `1px solid ${T.blueBorder}`,
-          padding: "16px 20px",
-          display: "flex", alignItems: "center", justifyContent: "space-between",
+          position:"sticky", top:0, background:T.white,
+          borderBottom:`1.5px solid ${T.tealBorder}`,
+          padding:"16px 20px",
+          display:"flex", alignItems:"center", justifyContent:"space-between",
         }}>
-          <span style={{ fontSize: 14, fontWeight: 600, color: T.blue }}>
-            {activeTab === "notes" ? "Upload Note" : "Upload PYQ"}
+          <span style={{ fontSize:15, fontWeight:900, color:T.teal, fontFamily:"'Nunito', sans-serif" }}>
+            {activeTab === "notes" ? "📝 Upload Note" : "📋 Upload PYQ"}
           </span>
           <button onClick={onClose} style={{
-            width: 28, height: 28, borderRadius: "50%",
-            border: `1px solid ${T.blueBorder}`, background: T.blueSoft,
-            cursor: "pointer", fontSize: 14, color: T.blue,
-            display: "flex", alignItems: "center", justifyContent: "center",
-          }}>x</button>
+            width:30, height:30, borderRadius:6,
+            border:`1.5px solid ${T.tealBorder}`, background:T.tealLight,
+            cursor:"pointer", fontSize:16, color:T.teal, fontWeight:900,
+            display:"flex", alignItems:"center", justifyContent:"center",
+          }}>×</button>
         </div>
-
-        <form onSubmit={handleUpload} style={{ padding: 20, display: "flex", flexDirection: "column", gap: 14 }}>
-          <div>
-            <label style={labelStyle}>Subject *</label>
+        <form onSubmit={handleUpload} style={{ padding:20, display:"flex", flexDirection:"column", gap:15 }}>
+          <div><label style={labelStyle}>Subject *</label>
             <input style={inputStyle} placeholder="e.g. Engineering Mathematics" value={form.subject}
-              onChange={(e) => setForm({ ...form, subject: e.target.value })} required />
-          </div>
-          <div>
-            <label style={labelStyle}>Title</label>
+              onChange={e => setForm({ ...form, subject:e.target.value })} required /></div>
+          <div><label style={labelStyle}>Title</label>
             <input style={inputStyle} placeholder="Optional" value={form.title}
-              onChange={(e) => setForm({ ...form, title: e.target.value })} />
-          </div>
-          <div>
-            <label style={labelStyle}>Description</label>
-            <textarea style={{ ...inputStyle, resize: "none", height: 60 }} placeholder="Optional"
-              value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
-          </div>
-
+              onChange={e => setForm({ ...form, title:e.target.value })} /></div>
+          <div><label style={labelStyle}>Description</label>
+            <textarea style={{ ...inputStyle, resize:"none", height:64 }} placeholder="Optional"
+              value={form.description} onChange={e => setForm({ ...form, description:e.target.value })} /></div>
           <div>
             <label style={labelStyle}>Unit</label>
-            <div style={{ display: "flex", gap: 6 }}>
-              {units.map((u) => (
+            <div style={{ display:"flex", gap:7 }}>
+              {units.map(u => (
                 <button key={u} type="button" onClick={() => toggleUnit(u)} style={{
-                  width: 38, height: 38, borderRadius: 9,
-                  border: "1px solid",
-                  borderColor: form.units.includes(u) ? T.blue : T.blueBorder,
-                  background: form.units.includes(u) ? T.blue : T.blueSoft,
-                  color: form.units.includes(u) ? "#fff" : T.blue,
-                  fontSize: 13, fontWeight: 600, cursor: "pointer",
+                  width:40, height:40, borderRadius:6, border:"1.5px solid",
+                  borderColor: form.units.includes(u) ? T.teal : T.tealBorder,
+                  background: form.units.includes(u) ? T.teal : T.tealLight,
+                  color: form.units.includes(u) ? "#fff" : T.teal,
+                  fontSize:14, fontWeight:800, cursor:"pointer", fontFamily:"'Nunito', sans-serif",
+                  boxShadow: form.units.includes(u) ? "0 2px 10px rgba(13,148,136,0.35)" : "none",
                 }}>{u}</button>
               ))}
             </div>
           </div>
-
-          <TagSelector selected={form.tags} onChange={(tags) => setForm({ ...form, tags })} />
-
+          <TagSelector selected={form.tags} onChange={tags => setForm({ ...form, tags })} />
           {activeTab === "notes" && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <div style={{ display:"flex", flexDirection:"column", gap:11 }}>
               <div>
-                <label style={labelStyle}>Notes Link <span style={{ color: "#ef4444" }}>*</span></label>
-                <input style={{ ...inputStyle, borderColor: !form.notesLink ? T.yellow : T.blueBorder }}
-                  placeholder="https://drive.google.com/..." value={form.notesLink}
-                  onChange={(e) => setForm({ ...form, notesLink: e.target.value })} />
+                <label style={labelStyle}>Notes Link <span style={{ color:"#EA580C" }}>*</span></label>
+                <input style={{ ...inputStyle, borderColor:!form.notesLink ? T.orange : T.tealBorder }}
+                  placeholder="https://drive.google.com/…" value={form.notesLink}
+                  onChange={e => setForm({ ...form, notesLink:e.target.value })} />
               </div>
               <div>
-                <label style={labelStyle}>Lecture Link <span style={{ color: T.muted }}>(optional)</span></label>
-                <input style={inputStyle} placeholder="https://youtube.com/..." value={form.lectureLink}
-                  onChange={(e) => setForm({ ...form, lectureLink: e.target.value })} />
+                <label style={labelStyle}>Lecture Link <span style={{ color:T.muted }}>(optional)</span></label>
+                <input style={inputStyle} placeholder="https://youtube.com/…" value={form.lectureLink}
+                  onChange={e => setForm({ ...form, lectureLink:e.target.value })} />
               </div>
               <div>
-                <label style={labelStyle}>Assignment Link <span style={{ color: T.muted }}>(optional)</span></label>
-                <input style={inputStyle} placeholder="https://..." value={form.assignmentLink}
-                  onChange={(e) => setForm({ ...form, assignmentLink: e.target.value })} />
+                <label style={labelStyle}>Assignment Link <span style={{ color:T.muted }}>(optional)</span></label>
+                <input style={inputStyle} placeholder="https://…" value={form.assignmentLink}
+                  onChange={e => setForm({ ...form, assignmentLink:e.target.value })} />
               </div>
             </div>
           )}
-
           {activeTab === "pyq" && (
             <div>
-              <label style={labelStyle}>PYQ Link <span style={{ color: "#ef4444" }}>*</span></label>
-              <input style={{ ...inputStyle, borderColor: !form.pyqLink ? T.yellow : T.blueBorder }}
-                placeholder="https://drive.google.com/..." value={form.pyqLink}
-                onChange={(e) => setForm({ ...form, pyqLink: e.target.value })} />
+              <label style={labelStyle}>PYQ Link <span style={{ color:"#EA580C" }}>*</span></label>
+              <input style={{ ...inputStyle, borderColor:!form.pyqLink ? T.orange : T.tealBorder }}
+                placeholder="https://drive.google.com/…" value={form.pyqLink}
+                onChange={e => setForm({ ...form, pyqLink:e.target.value })} />
             </div>
           )}
-
-          <div style={{ display: "flex", gap: 8, paddingTop: 4 }}>
+          <div style={{ display:"flex", gap:9, paddingTop:4 }}>
             <button type="submit" disabled={uploading} style={{
-              flex: 1, padding: "12px 0", borderRadius: 10,
-              background: T.yellow, color: "#111",
-              fontSize: 13, fontWeight: 700, border: "none", cursor: "pointer",
-              opacity: uploading ? 0.5 : 1,
-              boxShadow: "0 1px 6px rgba(250,204,21,0.35)",
+              flex:1, padding:"13px 0", borderRadius:6,
+              background: uploading ? "#94A3B8" : T.grad,
+              color:"#fff", fontSize:13, fontWeight:800,
+              border:"none", cursor:"pointer",
+              boxShadow: uploading ? "none" : "0 2px 14px rgba(13,148,136,0.45)",
+              fontFamily:"'Nunito', sans-serif",
             }}>
-              {uploading ? "Uploading..." : activeTab === "notes" ? "Upload Note" : "Upload PYQ"}
+              {uploading ? "Uploading…" : activeTab === "notes" ? "📝 Upload Note" : "📋 Upload PYQ"}
             </button>
             <button type="button" onClick={onClose} style={{
-              padding: "12px 18px", borderRadius: 10,
-              border: `1px solid ${T.blueBorder}`, background: T.blueSoft,
-              fontSize: 13, fontWeight: 500, cursor: "pointer", color: T.blue,
+              padding:"13px 20px", borderRadius:6,
+              border:`1.5px solid ${T.tealBorder}`, background:T.tealLight,
+              fontSize:13, fontWeight:700, cursor:"pointer", color:T.teal,
+              fontFamily:"'Nunito', sans-serif",
             }}>Cancel</button>
           </div>
         </form>
@@ -333,22 +308,22 @@ function UploadModal({ activeTab, onClose, onSuccess, showToast, user }) {
   );
 }
 
-// ─── Edit Modal ───────────────────────────────────────────────────────────────
+// ── Edit Modal ────────────────────────────────────────────────────────────────
 function EditModal({ resource, onClose, onSuccess, showToast }) {
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
     title: resource.title || "",
     description: resource.description || "",
     subject: resource.subject || "",
-    units: resource.unit && resource.unit !== "General" ? resource.unit.split(",").map((u) => u.trim()) : [],
-    tags: resource.tags ? resource.tags.split(",").map((t) => t.trim()).filter(Boolean) : [],
+    units: resource.unit && resource.unit !== "General" ? resource.unit.split(",").map(u => u.trim()) : [],
+    tags: resource.tags ? resource.tags.split(",").map(t => t.trim()).filter(Boolean) : [],
     notesLink: resource.notesLink || "",
     lectureLink: resource.lectureLink || "",
     assignmentLink: resource.assignmentLink || "",
     pyqLink: resource.pyqLink || "",
   });
 
-  const handleSave = async (e) => {
+  const handleSave = async e => {
     e.preventDefault();
     if (!form.subject) return showToast("Subject name is required", "error");
     const payload = {
@@ -365,71 +340,79 @@ function EditModal({ resource, onClose, onSuccess, showToast }) {
     try {
       setSaving(true);
       await api.put(`/api/resources/${resource._id}`, payload);
-      onClose(); onSuccess(); showToast("Saved");
+      onClose(); onSuccess(); showToast("Saved ✓");
     } catch (err) {
       showToast(err.response?.data?.message || "Failed to save", "error");
     } finally { setSaving(false); }
   };
 
-  const units = ["1", "2", "3", "4", "5"];
-  const toggleUnit = (u) =>
-    setForm((f) => ({ ...f, units: f.units.includes(u) ? f.units.filter((x) => x !== u) : [...f.units, u] }));
+  const units = ["1","2","3","4","5"];
+  const toggleUnit = u => setForm(f => ({ ...f, units: f.units.includes(u) ? f.units.filter(x => x !== u) : [...f.units, u] }));
 
   const inputStyle = {
-    width: "100%", padding: "10px 13px", fontSize: 13,
-    border: `1px solid ${T.blueBorder}`, borderRadius: 9, outline: "none",
-    background: T.blueSoft, color: T.text, boxSizing: "border-box",
+    width:"100%", padding:"10px 14px", fontSize:13, fontWeight:600,
+    border:`1.5px solid ${T.tealBorder}`, borderRadius:6, outline:"none",
+    background:T.tealLight, color:T.text, boxSizing:"border-box",
+    fontFamily:"'Nunito', sans-serif",
   };
-  const labelStyle = { fontSize: 11, color: T.blue, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", display: "block", marginBottom: 5 };
+  const labelStyle = { fontSize:11, color:T.teal, fontWeight:800, letterSpacing:"0.08em", textTransform:"uppercase", display:"block", marginBottom:6, fontFamily:"'Nunito', sans-serif" };
 
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 50, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "flex-end" }}>
-      <div style={{ background: T.white, width: "100%", maxWidth: 520, margin: "0 auto", borderRadius: "18px 18px 0 0", maxHeight: "92vh", overflowY: "auto" }}>
-        <div style={{ position: "sticky", top: 0, background: T.white, borderBottom: `1px solid ${T.blueBorder}`, padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <span style={{ fontSize: 14, fontWeight: 600, color: T.blue }}>Edit Resource</span>
-          <button onClick={onClose} style={{ width: 28, height: 28, borderRadius: "50%", border: `1px solid ${T.blueBorder}`, background: T.blueSoft, cursor: "pointer", fontSize: 14, color: T.blue, display: "flex", alignItems: "center", justifyContent: "center" }}>x</button>
+    <div style={{ position:"fixed", inset:0, zIndex:50, background:"rgba(15,23,42,0.6)", display:"flex", alignItems:"flex-end" }}>
+      <div style={{ background:T.white, width:"100%", maxWidth:520, margin:"0 auto", borderRadius:"10px 10px 0 0", maxHeight:"92vh", overflowY:"auto", borderTop:`3px solid ${T.purple}` }}>
+        <div style={{ position:"sticky", top:0, background:T.white, borderBottom:`1.5px solid ${T.tealBorder}`, padding:"16px 20px", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+          <span style={{ fontSize:15, fontWeight:900, color:T.purple, fontFamily:"'Nunito', sans-serif" }}>✏️ Edit Resource</span>
+          <button onClick={onClose} style={{ width:30, height:30, borderRadius:6, border:`1.5px solid ${T.purpleBorder}`, background:T.purpleLight, cursor:"pointer", fontSize:16, color:T.purple, fontWeight:900, display:"flex", alignItems:"center", justifyContent:"center" }}>×</button>
         </div>
-        <form onSubmit={handleSave} style={{ padding: 20, display: "flex", flexDirection: "column", gap: 14 }}>
+        <form onSubmit={handleSave} style={{ padding:20, display:"flex", flexDirection:"column", gap:15 }}>
           <div><label style={labelStyle}>Subject *</label>
-            <input style={inputStyle} value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} required /></div>
+            <input style={inputStyle} value={form.subject} onChange={e => setForm({ ...form, subject:e.target.value })} required /></div>
           <div><label style={labelStyle}>Title</label>
-            <input style={inputStyle} placeholder="Optional" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></div>
+            <input style={inputStyle} placeholder="Optional" value={form.title} onChange={e => setForm({ ...form, title:e.target.value })} /></div>
           <div><label style={labelStyle}>Description</label>
-            <textarea style={{ ...inputStyle, resize: "none", height: 60 }} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
+            <textarea style={{ ...inputStyle, resize:"none", height:64 }} value={form.description} onChange={e => setForm({ ...form, description:e.target.value })} /></div>
           <div>
             <label style={labelStyle}>Unit</label>
-            <div style={{ display: "flex", gap: 6 }}>
-              {units.map((u) => (
+            <div style={{ display:"flex", gap:7 }}>
+              {units.map(u => (
                 <button key={u} type="button" onClick={() => toggleUnit(u)} style={{
-                  width: 38, height: 38, borderRadius: 9, border: "1px solid",
-                  borderColor: form.units.includes(u) ? T.blue : T.blueBorder,
-                  background: form.units.includes(u) ? T.blue : T.blueSoft,
-                  color: form.units.includes(u) ? "#fff" : T.blue,
-                  fontSize: 13, fontWeight: 600, cursor: "pointer",
+                  width:40, height:40, borderRadius:6, border:"1.5px solid",
+                  borderColor: form.units.includes(u) ? T.purple : T.purpleBorder,
+                  background: form.units.includes(u) ? T.purple : T.purpleLight,
+                  color: form.units.includes(u) ? "#fff" : T.purple,
+                  fontSize:14, fontWeight:800, cursor:"pointer", fontFamily:"'Nunito', sans-serif",
                 }}>{u}</button>
               ))}
             </div>
           </div>
-          <TagSelector selected={form.tags} onChange={(tags) => setForm({ ...form, tags })} />
+          <TagSelector selected={form.tags} onChange={tags => setForm({ ...form, tags })} />
           {resource.type === "notes" && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              <div><label style={labelStyle}>Notes Link</label>
-                <input style={inputStyle} placeholder="https://drive.google.com/..." value={form.notesLink} onChange={(e) => setForm({ ...form, notesLink: e.target.value })} /></div>
-              <div><label style={labelStyle}>Lecture Link</label>
-                <input style={inputStyle} placeholder="https://youtube.com/..." value={form.lectureLink} onChange={(e) => setForm({ ...form, lectureLink: e.target.value })} /></div>
-              <div><label style={labelStyle}>Assignment Link</label>
-                <input style={inputStyle} placeholder="https://..." value={form.assignmentLink} onChange={(e) => setForm({ ...form, assignmentLink: e.target.value })} /></div>
+            <div style={{ display:"flex", flexDirection:"column", gap:11 }}>
+              <div><label style={labelStyle}>Notes Link</label><input style={inputStyle} placeholder="https://drive.google.com/…" value={form.notesLink} onChange={e => setForm({ ...form, notesLink:e.target.value })} /></div>
+              <div><label style={labelStyle}>Lecture Link</label><input style={inputStyle} placeholder="https://youtube.com/…" value={form.lectureLink} onChange={e => setForm({ ...form, lectureLink:e.target.value })} /></div>
+              <div><label style={labelStyle}>Assignment Link</label><input style={inputStyle} placeholder="https://…" value={form.assignmentLink} onChange={e => setForm({ ...form, assignmentLink:e.target.value })} /></div>
             </div>
           )}
           {resource.type === "pyq" && (
-            <div><label style={labelStyle}>PYQ Link</label>
-              <input style={inputStyle} placeholder="https://drive.google.com/..." value={form.pyqLink} onChange={(e) => setForm({ ...form, pyqLink: e.target.value })} /></div>
+            <div><label style={labelStyle}>PYQ Link</label><input style={inputStyle} placeholder="https://drive.google.com/…" value={form.pyqLink} onChange={e => setForm({ ...form, pyqLink:e.target.value })} /></div>
           )}
-          <div style={{ display: "flex", gap: 8, paddingTop: 4 }}>
-            <button type="submit" disabled={saving} style={{ flex: 1, padding: "12px 0", borderRadius: 10, background: T.yellow, color: "#111", fontSize: 13, fontWeight: 700, border: "none", cursor: "pointer", opacity: saving ? 0.5 : 1 }}>
-              {saving ? "Saving..." : "Save Changes"}
+          <div style={{ display:"flex", gap:9, paddingTop:4 }}>
+            <button type="submit" disabled={saving} style={{
+              flex:1, padding:"13px 0", borderRadius:6,
+              background: saving ? "#94A3B8" : `linear-gradient(135deg, ${T.purple}, ${T.teal})`,
+              color:"#fff", fontSize:13, fontWeight:800,
+              border:"none", cursor:"pointer",
+              fontFamily:"'Nunito', sans-serif",
+              boxShadow: saving ? "none" : "0 2px 14px rgba(109,40,217,0.35)",
+            }}>
+              {saving ? "Saving…" : "✓ Save Changes"}
             </button>
-            <button type="button" onClick={onClose} style={{ padding: "12px 18px", borderRadius: 10, border: `1px solid ${T.blueBorder}`, background: T.blueSoft, fontSize: 13, fontWeight: 500, cursor: "pointer", color: T.blue }}>Cancel</button>
+            <button type="button" onClick={onClose} style={{
+              padding:"13px 20px", borderRadius:6,
+              border:`1.5px solid ${T.tealBorder}`, background:T.tealLight,
+              fontSize:13, fontWeight:700, cursor:"pointer", color:T.teal,
+              fontFamily:"'Nunito', sans-serif",
+            }}>Cancel</button>
           </div>
         </form>
       </div>
@@ -437,125 +420,137 @@ function EditModal({ resource, onClose, onSuccess, showToast }) {
   );
 }
 
-// ─── Resource Card ────────────────────────────────────────────────────────────
+// ── Resource Card — SHARP CORNERS ─────────────────────────────────────────────
 function ResourceCard({ resource, user, onView, onDownload, onDelete, onEdit, onTagClick, showToast }) {
   const ext = resource.fileUrl
     ? resource.fileUrl.split(".").pop().split("?")[0].toLowerCase()
     : "pdf";
-  const isPdf = !["png", "jpg", "jpeg", "webp", "gif"].includes(ext);
+  const isPdf = !["png","jpg","jpeg","webp","gif"].includes(ext);
   const fileExt = isPdf ? "pdf" : ext;
   const hasFile = !!resource.fileUrl;
 
-  const unitTags = resource.unit && resource.unit !== "General"
-    ? resource.unit.split(",").map((u) => u.trim())
-    : [];
+  const unitTags     = resource.unit && resource.unit !== "General" ? resource.unit.split(",").map(u => u.trim()) : [];
+  const resourceTags = resource.tags ? resource.tags.split(",").map(t => t.trim()).filter(Boolean) : [];
 
-  const resourceTags = resource.tags
-    ? resource.tags.split(",").map((t) => t.trim()).filter(Boolean)
-    : [];
-
-  const isAdmin = user?.role === "admin";
-  const isOwner = user && user._id === resource.uploadedBy?._id?.toString();
+  const isAdmin  = user?.role === "admin";
+  const isOwner  = user && user._id === resource.uploadedBy?._id?.toString();
   const canManage = isAdmin || isOwner;
 
   const handleShare = () => {
     const url = `${window.location.origin}/resources?id=${resource._id}`;
-    if (navigator.share) {
-      navigator.share({ title: resource.title, url });
-    } else {
-      navigator.clipboard.writeText(url).then(() => showToast("Link copied"));
-    }
+    if (navigator.share) navigator.share({ title:resource.title, url });
+    else navigator.clipboard.writeText(url).then(() => showToast("Link copied 🔗"));
   };
 
-  const greyBtnStyle = {
-    fontSize: 12, fontWeight: 500,
-    padding: "6px 13px", borderRadius: 7,
-    border: `1px solid ${T.blueBorder}`,
-    background: T.blueSoft, color: T.blue,
-    cursor: "pointer", textDecoration: "none",
-    display: "inline-block", textAlign: "center",
+  const btnBase = {
+    fontSize:12, fontWeight:700,
+    padding:"6px 13px", borderRadius:4,
+    border:`1.5px solid ${T.tealBorder}`,
+    background:T.tealLight, color:T.teal,
+    cursor:"pointer", textDecoration:"none",
+    display:"inline-block", textAlign:"center",
+    fontFamily:"'Nunito', sans-serif",
+    transition:"all 0.12s",
   };
 
   return (
     <div style={{
-      background: T.white, borderRadius: 13,
-      border: `1px solid ${T.blueBorder}`,
-      overflow: "hidden",
-    }}>
-      <div style={{ padding: "13px 14px" }}>
-        <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <p style={{ fontSize: 13, fontWeight: 600, color: T.text, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+      background:"#ffffff",
+      borderRadius:4,           // SHARP CORNERS
+      border:`1.5px solid ${T.tealBorder}`,
+      overflow:"hidden",
+      boxShadow:"0 2px 12px rgba(13,148,136,0.08)",
+      transition:"all 0.15s",
+      borderLeft:`3px solid ${T.teal}`,
+    }}
+    onMouseEnter={e => { e.currentTarget.style.boxShadow = "0 4px 24px rgba(13,148,136,0.18)"; e.currentTarget.style.borderLeftColor = T.purple; }}
+    onMouseLeave={e => { e.currentTarget.style.boxShadow = "0 2px 12px rgba(13,148,136,0.08)"; e.currentTarget.style.borderLeftColor = T.teal; }}
+    >
+      <div style={{ padding:"13px 14px" }}>
+        <div style={{ display:"flex", alignItems:"flex-start", gap:10 }}>
+          <div style={{ flex:1, minWidth:0 }}>
+            <p style={{ fontSize:13, fontWeight:800, color:T.text, margin:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", fontFamily:"'Nunito', sans-serif" }}>
               {resource.title}
             </p>
             {resource.subject && (
-              <p style={{ fontSize: 11, color: T.blue, margin: "3px 0 0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              <p style={{ fontSize:11, color:T.teal, margin:"3px 0 0", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", fontWeight:700 }}>
                 {resource.subject}
               </p>
             )}
             {resource.description && (
-              <p style={{ fontSize: 11, color: T.muted, margin: "2px 0 0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              <p style={{ fontSize:11, color:T.muted, margin:"2px 0 0", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", fontWeight:600 }}>
                 {resource.description}
               </p>
             )}
             {(unitTags.length > 0 || resourceTags.length > 0) && (
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 7 }}>
-                {unitTags.map((u) => (
-                  <span key={u} style={{ fontSize: 10, fontWeight: 600, background: T.blueSoft, color: T.blue, padding: "2px 7px", borderRadius: 5, border: `1px solid ${T.blueBorder}` }}>U{u}</span>
+              <div style={{ display:"flex", flexWrap:"wrap", gap:4, marginTop:8 }}>
+                {unitTags.map(u => (
+                  <span key={u} style={{ fontSize:10, fontWeight:800, background:T.tealLight, color:T.teal, padding:"2px 8px", borderRadius:3, border:`1.5px solid ${T.tealBorder}`, fontFamily:"'Nunito', sans-serif" }}>U{u}</span>
                 ))}
-                {resourceTags.map((t) => (
+                {resourceTags.map(t => (
                   <button key={t} type="button" onClick={() => onTagClick?.(t)} style={{
-                    fontSize: 10, fontWeight: 500,
-                    background: T.blueSoft, color: T.blue,
-                    padding: "2px 7px", borderRadius: 5,
-                    border: `1px solid ${T.blueBorder}`, cursor: onTagClick ? "pointer" : "default",
+                    fontSize:10, fontWeight:700, background:T.purpleLight, color:T.purple,
+                    padding:"2px 8px", borderRadius:3, border:`1.5px solid ${T.purpleBorder}`,
+                    cursor: onTagClick ? "pointer" : "default", fontFamily:"'Nunito', sans-serif",
                   }}>{t}</button>
                 ))}
               </div>
             )}
           </div>
+
           <button onClick={handleShare} style={{
-            padding: "6px 10px", borderRadius: 7,
-            border: `1px solid ${T.yellow}`, background: T.yellowSoft,
-            color: "#92400e", fontSize: 12, fontWeight: 600,
-            cursor: "pointer", flexShrink: 0,
+            padding:"6px 11px", borderRadius:4,
+            border:`1.5px solid ${T.orangeBorder}`,
+            background:T.orangeLight, color:T.orange,
+            fontSize:12, fontWeight:800, cursor:"pointer", flexShrink:0,
+            fontFamily:"'Nunito', sans-serif",
           }}>Share</button>
 
-          <div style={{ display: "flex", gap: 5, flexShrink: 0, alignItems: "center" }}>
+          <div style={{ display:"flex", gap:5, flexShrink:0, alignItems:"center" }}>
             {hasFile && (
               <>
-                <button onClick={() => onView(resource)} style={greyBtnStyle}>View</button>
-                <button onClick={() => onDownload(resource.fileUrl, resource.title, fileExt)} style={greyBtnStyle}>Save</button>
+                <button onClick={() => onView(resource)} style={btnBase}>View</button>
+                <button onClick={() => onDownload(resource.fileUrl, resource.title, fileExt)} style={btnBase}>Save</button>
               </>
             )}
             {isAdmin && (
-              <button onClick={() => onEdit(resource)} style={{ ...greyBtnStyle, color: T.blue, borderColor: T.blueBorder, background: T.blueSoft }}>Edit</button>
+              <button onClick={() => onEdit(resource)} style={{ ...btnBase, color:T.purple, borderColor:T.purpleBorder, background:T.purpleLight }}>Edit</button>
             )}
             {canManage && (
-              <button onClick={() => onDelete(resource._id)} style={{ ...greyBtnStyle, color: "#ef4444", borderColor: "#fecaca", background: "#fff5f5" }}>Del</button>
+              <button onClick={() => onDelete(resource._id)} style={{ ...btnBase, color:"#DC2626", borderColor:"#FECACA", background:"#FEF2F2" }}>Del</button>
             )}
           </div>
         </div>
       </div>
 
       {resource.type === "notes" && (resource.notesLink || resource.lectureLink || resource.assignmentLink) && (
-        <div style={{ display: "flex", gap: 6, padding: "0 14px 12px" }}>
+        <div style={{ display:"flex", gap:6, padding:"0 14px 12px" }}>
           {resource.notesLink && (
-            <a href={resource.notesLink} target="_blank" rel="noopener noreferrer" style={{ ...greyBtnStyle, flex: 1 }}>Notes</a>
+            <a href={resource.notesLink} target="_blank" rel="noopener noreferrer"
+              style={{ ...btnBase, flex:1, display:"block", textAlign:"center", background:T.teal, color:"#fff", borderColor:T.teal, boxShadow:"0 2px 8px rgba(13,148,136,0.3)" }}>
+              📝 Notes
+            </a>
           )}
           {resource.lectureLink && (
-            <a href={resource.lectureLink} target="_blank" rel="noopener noreferrer" style={{ ...greyBtnStyle, flex: 1 }}>Lecture</a>
+            <a href={resource.lectureLink} target="_blank" rel="noopener noreferrer"
+              style={{ ...btnBase, flex:1, display:"block", textAlign:"center" }}>
+              🎥 Lecture
+            </a>
           )}
           {resource.assignmentLink && (
-            <a href={resource.assignmentLink} target="_blank" rel="noopener noreferrer" style={{ ...greyBtnStyle, flex: 1 }}>Assignment</a>
+            <a href={resource.assignmentLink} target="_blank" rel="noopener noreferrer"
+              style={{ ...btnBase, flex:1, display:"block", textAlign:"center" }}>
+              ✅ Assignment
+            </a>
           )}
         </div>
       )}
 
       {resource.type === "pyq" && resource.pyqLink && (
-        <div style={{ padding: "0 14px 12px" }}>
-          <a href={resource.pyqLink} target="_blank" rel="noopener noreferrer" style={{ ...greyBtnStyle, display: "block", textAlign: "center", background: T.blue, color: "#fff", borderColor: T.blue }}>
-            View PYQ
+        <div style={{ padding:"0 14px 12px" }}>
+          <a href={resource.pyqLink} target="_blank" rel="noopener noreferrer"
+            style={{ ...btnBase, display:"block", textAlign:"center", background:T.grad, color:"#fff", borderColor:T.teal, boxShadow:"0 2px 10px rgba(13,148,136,0.35)" }}>
+            📋 View PYQ
           </a>
         </div>
       )}
@@ -563,128 +558,128 @@ function ResourceCard({ resource, user, onView, onDownload, onDelete, onEdit, on
   );
 }
 
-// ─── Notes View ───────────────────────────────────────────────────────────────
+// ── Notes View ────────────────────────────────────────────────────────────────
 function NotesView({ resources, user, onView, onDownload, onDelete, onEdit, onTagClick, showToast, activeFilterTags }) {
-  const filtered = activeFilterTags.length === 0
-    ? resources
-    : resources.filter((r) => {
-        const rTags = r.tags ? r.tags.split(",").map((t) => t.trim()) : [];
-        return activeFilterTags.some((t) => rTags.includes(t));
+  const filtered = activeFilterTags.length === 0 ? resources
+    : resources.filter(r => {
+        const rTags = r.tags ? r.tags.split(",").map(t => t.trim()) : [];
+        return activeFilterTags.some(t => rTags.includes(t));
       });
 
   if (filtered.length === 0) {
     return (
-      <div style={{ textAlign: "center", padding: "60px 0", background: T.blueSoft, borderRadius: 14, border: `1px dashed ${T.blueBorder}` }}>
-        <p style={{ fontSize: 14, fontWeight: 600, color: T.blue, margin: 0 }}>No notes found</p>
-        <p style={{ fontSize: 12, color: T.muted, marginTop: 4 }}>
-          {activeFilterTags.length > 0 ? "Try a different tag filter" : "Be the first to upload"}
+      <div style={{ textAlign:"center", padding:"64px 0", background:T.tealLight, borderRadius:6, border:`2px dashed ${T.tealBorder}` }}>
+        <p style={{ fontSize:32, margin:"0 0 8px" }}>📚</p>
+        <p style={{ fontSize:14, fontWeight:800, color:T.teal, margin:0, fontFamily:"'Nunito', sans-serif" }}>No notes found</p>
+        <p style={{ fontSize:12, color:T.muted, marginTop:4, fontWeight:600 }}>
+          {activeFilterTags.length > 0 ? "Try a different tag filter" : "Be the first to upload!"}
         </p>
       </div>
     );
   }
-
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-      {filtered.map((resource) => (
-        <ResourceCard key={resource._id} resource={resource} user={user}
-          onView={onView} onDownload={onDownload} onDelete={onDelete} onEdit={onEdit} onTagClick={onTagClick} showToast={showToast} />
+    <div style={{ display:"flex", flexDirection:"column", gap:9 }}>
+      {filtered.map(r => (
+        <ResourceCard key={r._id} resource={r} user={user}
+          onView={onView} onDownload={onDownload} onDelete={onDelete}
+          onEdit={onEdit} onTagClick={onTagClick} showToast={showToast} />
       ))}
     </div>
   );
 }
 
-// ─── PYQ View ─────────────────────────────────────────────────────────────────
+// ── PYQ View ──────────────────────────────────────────────────────────────────
 function PYQView({ resources, user, onView, onDownload, onDelete, onEdit, onTagClick, showToast, activeFilterTags }) {
   const [activeUnits, setActiveUnits] = useState([]);
-  const units = ["1", "2", "3", "4", "5"];
+  const units = ["1","2","3","4","5"];
+  const toggleUnit = u => setActiveUnits(prev => prev.includes(u) ? prev.filter(x => x !== u) : [...prev, u]);
 
-  const toggleUnit = (u) =>
-    setActiveUnits((prev) => prev.includes(u) ? prev.filter((x) => x !== u) : [...prev, u]);
-
-  let filtered = activeFilterTags.length === 0
-    ? resources
-    : resources.filter((r) => {
-        const rTags = r.tags ? r.tags.split(",").map((t) => t.trim()) : [];
-        return activeFilterTags.some((t) => rTags.includes(t));
+  let filtered = activeFilterTags.length === 0 ? resources
+    : resources.filter(r => {
+        const rTags = r.tags ? r.tags.split(",").map(t => t.trim()) : [];
+        return activeFilterTags.some(t => rTags.includes(t));
       });
 
   if (activeUnits.length > 0) {
-    filtered = filtered.filter((r) => {
+    filtered = filtered.filter(r => {
       if (!r.unit || r.unit === "General") return false;
-      const rUnits = r.unit.split(",").map((x) => x.trim());
-      return activeUnits.some((u) => rUnits.includes(u));
+      const rUnits = r.unit.split(",").map(x => x.trim());
+      return activeUnits.some(u => rUnits.includes(u));
     });
   }
 
-  const btnBase = {
-    borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer",
-    border: "1px solid", padding: "5px 12px",
-  };
-
   if (resources.length === 0) {
     return (
-      <div style={{ textAlign: "center", padding: "60px 0", background: T.blueSoft, borderRadius: 14, border: `1px dashed ${T.blueBorder}` }}>
-        <p style={{ fontSize: 14, fontWeight: 600, color: T.blue, margin: 0 }}>No PYQs yet</p>
-        <p style={{ fontSize: 12, color: T.muted, marginTop: 4 }}>Be the first to upload</p>
+      <div style={{ textAlign:"center", padding:"64px 0", background:T.tealLight, borderRadius:6, border:`2px dashed ${T.tealBorder}` }}>
+        <p style={{ fontSize:32, margin:"0 0 8px" }}>📋</p>
+        <p style={{ fontSize:14, fontWeight:800, color:T.teal, margin:0, fontFamily:"'Nunito', sans-serif" }}>No PYQs yet</p>
+        <p style={{ fontSize:12, color:T.muted, marginTop:4, fontWeight:600 }}>Be the first to upload!</p>
       </div>
     );
   }
 
+  const unitBtnBase = {
+    borderRadius:4, fontSize:13, fontWeight:800, cursor:"pointer",
+    border:"1.5px solid", fontFamily:"'Nunito', sans-serif",
+  };
+
   return (
     <div>
-      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
-        <span style={{ fontSize: 11, color: T.blue, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase" }}>Unit</span>
+      <div style={{ display:"flex", alignItems:"center", gap:7, marginBottom:16, flexWrap:"wrap" }}>
+        <span style={{ fontSize:11, color:T.teal, fontWeight:800, letterSpacing:"0.08em", textTransform:"uppercase", fontFamily:"'Nunito', sans-serif" }}>Unit</span>
         <button onClick={() => setActiveUnits([])} style={{
-          ...btnBase,
-          borderColor: activeUnits.length === 0 ? T.blue : T.blueBorder,
-          background: activeUnits.length === 0 ? T.blue : T.blueSoft,
-          color: activeUnits.length === 0 ? "#fff" : T.blue,
+          ...unitBtnBase, padding:"5px 14px",
+          borderColor: activeUnits.length === 0 ? T.teal : T.tealBorder,
+          background: activeUnits.length === 0 ? T.teal : T.tealLight,
+          color: activeUnits.length === 0 ? "#fff" : T.teal,
+          boxShadow: activeUnits.length === 0 ? "0 2px 8px rgba(13,148,136,0.3)" : "none",
         }}>All</button>
-        {units.map((u) => (
+        {units.map(u => (
           <button key={u} onClick={() => toggleUnit(u)} style={{
-            ...btnBase, width: 32, height: 32, padding: 0,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            borderColor: activeUnits.includes(u) ? T.blue : T.blueBorder,
-            background: activeUnits.includes(u) ? T.blue : T.blueSoft,
-            color: activeUnits.includes(u) ? "#fff" : T.blue,
+            ...unitBtnBase, width:36, height:36, padding:0,
+            display:"flex", alignItems:"center", justifyContent:"center",
+            borderColor: activeUnits.includes(u) ? T.teal : T.tealBorder,
+            background: activeUnits.includes(u) ? T.teal : T.tealLight,
+            color: activeUnits.includes(u) ? "#fff" : T.teal,
+            boxShadow: activeUnits.includes(u) ? "0 2px 8px rgba(13,148,136,0.3)" : "none",
           }}>{u}</button>
         ))}
       </div>
-
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        {filtered.length === 0 ? (
-          <p style={{ textAlign: "center", color: T.muted, fontSize: 13, padding: "40px 0" }}>No results</p>
-        ) : (
-          filtered.map((resource) => (
-            <ResourceCard key={resource._id} resource={resource} user={user}
-              onView={onView} onDownload={onDownload} onDelete={onDelete} onEdit={onEdit} onTagClick={onTagClick} showToast={showToast} />
-          ))
-        )}
+      <div style={{ display:"flex", flexDirection:"column", gap:9 }}>
+        {filtered.length === 0
+          ? <p style={{ textAlign:"center", color:T.muted, fontSize:13, padding:"40px 0", fontWeight:600 }}>No results for this filter</p>
+          : filtered.map(r => (
+              <ResourceCard key={r._id} resource={r} user={user}
+                onView={onView} onDownload={onDownload} onDelete={onDelete}
+                onEdit={onEdit} onTagClick={onTagClick} showToast={showToast} />
+            ))
+        }
       </div>
     </div>
   );
 }
 
-// ─── File Viewer ──────────────────────────────────────────────────────────────
+// ── File Viewer ───────────────────────────────────────────────────────────────
 function FileViewer({ url, title, ext, onClose, onDownload }) {
   const isPdf = ext === "pdf";
   const [imgLoading, setImgLoading] = useState(true);
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 50, background: "#111", display: "flex", flexDirection: "column" }}>
+    <div style={{ position:"fixed", inset:0, zIndex:50, background:"#0F172A", display:"flex", flexDirection:"column" }}>
       <div style={{
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-        padding: "12px 16px", background: T.white, borderBottom: `1px solid ${T.blueBorder}`, flexShrink: 0,
+        display:"flex", alignItems:"center", justifyContent:"space-between",
+        padding:"13px 18px", background:"#fff",
+        borderBottom:`2px solid ${T.tealBorder}`, flexShrink:0,
       }}>
-        <p style={{ fontSize: 13, fontWeight: 600, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, marginRight: 12 }}>{title}</p>
-        <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-          <button onClick={onDownload} style={{ fontSize: 12, fontWeight: 600, padding: "7px 14px", borderRadius: 8, background: T.yellow, color: "#111", border: "none", cursor: "pointer" }}>Download</button>
-          <button onClick={onClose} style={{ fontSize: 12, fontWeight: 600, padding: "7px 14px", borderRadius: 8, background: T.blueSoft, color: T.blue, border: `1px solid ${T.blueBorder}`, cursor: "pointer" }}>Close</button>
+        <p style={{ fontSize:14, fontWeight:800, margin:0, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", flex:1, marginRight:12, color:T.text, fontFamily:"'Nunito', sans-serif" }}>{title}</p>
+        <div style={{ display:"flex", gap:9, flexShrink:0 }}>
+          <button onClick={onDownload} style={{ fontSize:12, fontWeight:800, padding:"8px 16px", borderRadius:6, background:T.grad, color:"#fff", border:"none", cursor:"pointer", fontFamily:"'Nunito', sans-serif", boxShadow:"0 2px 10px rgba(13,148,136,0.35)" }}>Download</button>
+          <button onClick={onClose} style={{ fontSize:12, fontWeight:800, padding:"8px 16px", borderRadius:6, background:T.tealLight, color:T.teal, border:`1.5px solid ${T.tealBorder}`, cursor:"pointer", fontFamily:"'Nunito', sans-serif" }}>Close</button>
         </div>
       </div>
-      <div style={{ flex: 1, overflowY: "auto", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
-        {imgLoading && !isPdf && <p style={{ color: "#888", fontSize: 13 }}>Loading...</p>}
+      <div style={{ flex:1, overflowY:"auto", display:"flex", alignItems:"center", justifyContent:"center", padding:16 }}>
+        {imgLoading && !isPdf && <p style={{ color:"#94A3B8", fontSize:13, fontWeight:700 }}>Loading…</p>}
         {!isPdf && (
-          <img src={url} alt={title} style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain", borderRadius: 8 }}
+          <img src={url} alt={title} style={{ maxWidth:"100%", maxHeight:"100%", objectFit:"contain", borderRadius:6 }}
             onLoad={() => setImgLoading(false)} />
         )}
       </div>
@@ -692,30 +687,28 @@ function FileViewer({ url, title, ext, onClose, onDownload }) {
   );
 }
 
-// ─── Tag Filter Bar ───────────────────────────────────────────────────────────
+// ── Tag Filter Bar ────────────────────────────────────────────────────────────
 function TagFilterBar({ allTags, activeFilterTags, onToggle }) {
   if (allTags.length === 0) return null;
   return (
-    <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 14, alignItems: "center" }}>
-      <span style={{ fontSize: 11, color: T.blue, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase" }}>Filter</span>
-      {allTags.map((t) => (
-        <TagPill key={t} label={t} active={activeFilterTags.includes(t)} onClick={() => onToggle(t)} />
-      ))}
+    <div style={{ display:"flex", gap:6, flexWrap:"wrap", marginBottom:14, alignItems:"center" }}>
+      <span style={{ fontSize:11, color:T.teal, fontWeight:800, letterSpacing:"0.08em", textTransform:"uppercase", fontFamily:"'Nunito', sans-serif" }}>Filter</span>
+      {allTags.map(t => <TagPill key={t} label={t} active={activeFilterTags.includes(t)} onClick={() => onToggle(t)} />)}
     </div>
   );
 }
 
-// ─── Main Component ───────────────────────────────────────────────────────────
+// ── Main Component ────────────────────────────────────────────────────────────
 export default function Resources() {
-  const { user } = useAuth();
-  const navigate = useNavigate();
-  const [resources, setResources] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("notes");
-  const [showUpload, setShowUpload] = useState(false);
-  const [editResource, setEditResource] = useState(null);
-  const [toast, setToast] = useState(null);
-  const [viewer, setViewer] = useState(null);
+  const { user }   = useAuth();
+  const navigate   = useNavigate();
+  const [resources,       setResources]       = useState([]);
+  const [loading,         setLoading]         = useState(true);
+  const [activeTab,       setActiveTab]       = useState("notes");
+  const [showUpload,      setShowUpload]      = useState(false);
+  const [editResource,    setEditResource]    = useState(null);
+  const [toast,           setToast]           = useState(null);
+  const [viewer,          setViewer]          = useState(null);
   const [activeFilterTags, setActiveFilterTags] = useState([]);
 
   useEffect(() => { fetchResources(); }, [activeTab]);
@@ -734,19 +727,19 @@ export default function Resources() {
     setTimeout(() => setToast(null), 3000);
   };
 
-  const handleDelete = async (id) => {
+  const handleDelete = async id => {
     if (!window.confirm("Delete this resource?")) return;
     try {
       await api.delete(`/api/resources/${id}`);
-      setResources(resources.filter((r) => r._id !== id));
+      setResources(resources.filter(r => r._id !== id));
       showToast("Deleted");
     } catch { showToast("Failed to delete", "error"); }
   };
 
-  const getFileExt = (url) => {
+  const getFileExt = url => {
     if (!url) return "pdf";
     const rawExt = url.split(".").pop().split("?")[0].toLowerCase();
-    return ["png", "jpg", "jpeg", "webp", "gif"].includes(rawExt) ? rawExt : "pdf";
+    return ["png","jpg","jpeg","webp","gif"].includes(rawExt) ? rawExt : "pdf";
   };
 
   const handleDownload = (url, title, ext) => {
@@ -757,35 +750,35 @@ export default function Resources() {
     document.body.appendChild(a); a.click(); a.remove();
   };
 
-  const handleView = (resource) => {
+  const handleView = resource => {
     const ext = getFileExt(resource.fileUrl);
     if (ext === "pdf") {
       let viewUrl = resource.fileUrl || "";
       if (!viewUrl.split("?")[0].toLowerCase().endsWith(".pdf")) viewUrl += ".pdf";
       const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-      if (isMobile) {
-        window.open(`https://docs.google.com/viewer?url=${encodeURIComponent(viewUrl)}&embedded=true`, "_blank", "noopener,noreferrer");
-      } else {
-        window.open(viewUrl, "_blank", "noopener,noreferrer");
-      }
+      if (isMobile) window.open(`https://docs.google.com/viewer?url=${encodeURIComponent(viewUrl)}&embedded=true`, "_blank", "noopener,noreferrer");
+      else window.open(viewUrl, "_blank", "noopener,noreferrer");
     } else {
-      setViewer({ url: resource.fileUrl, title: resource.title, ext });
+      setViewer({ url:resource.fileUrl, title:resource.title, ext });
     }
   };
 
   const allTagsInResources = Array.from(new Set(
-    resources.flatMap((r) => r.tags ? r.tags.split(",").map((t) => t.trim()).filter(Boolean) : [])
+    resources.flatMap(r => r.tags ? r.tags.split(",").map(t => t.trim()).filter(Boolean) : [])
   ));
   const displayableTags = Array.from(new Set([
     ...PRESET_TAGS,
-    ...allTagsInResources.filter((t) => !PRESET_TAGS.includes(t)),
+    ...allTagsInResources.filter(t => !PRESET_TAGS.includes(t)),
   ]));
 
-  const toggleFilterTag = (tag) =>
-    setActiveFilterTags((prev) => prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]);
+  const toggleFilterTag = tag => setActiveFilterTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]);
 
   return (
-    <div style={{ maxWidth: 600, margin: "0 auto", padding: "20px 16px 120px", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", background: T.white, minHeight: "100vh" }}>
+    <div style={{
+      minHeight:"100vh",
+      background: "linear-gradient(160deg, #0F172A 0%, #0D4A45 30%, #134E4A 60%, #0F172A 100%)",
+      fontFamily:"'Nunito', -apple-system, BlinkMacSystemFont, sans-serif",
+    }}>
       <Toast toast={toast} />
 
       {viewer && (
@@ -802,81 +795,108 @@ export default function Resources() {
       )}
 
       {editResource && (
-        <EditModal
-          resource={editResource}
+        <EditModal resource={editResource}
           onClose={() => setEditResource(null)}
           onSuccess={() => { setEditResource(null); fetchResources(); }}
-          showToast={showToast}
-        />
+          showToast={showToast} />
       )}
 
-      {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
-        <button
-          onClick={() => navigate("/")}
-          aria-label="Go back"
-          style={{ background: T.blueSoft, border: `1px solid ${T.blueBorder}`, cursor: "pointer", padding: 6, borderRadius: 8, display: "flex", alignItems: "center", color: T.blue, flexShrink: 0 }}
-        >
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12.5 15L7.5 10L12.5 5" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        </button>
-        <div>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: T.blue, margin: 0, letterSpacing: "-0.4px" }}>Resources</h1>
-          <p style={{ fontSize: 11, color: T.muted, margin: "2px 0 0" }}>Notes and PYQs</p>
+      <div style={{ maxWidth:600, margin:"0 auto", padding:"24px 16px 120px" }}>
+
+        {/* ── Header ── */}
+        <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:24 }}>
+          <button
+            onClick={() => navigate("/")}
+            style={{
+              background:"rgba(255,255,255,0.1)", border:"1.5px solid rgba(255,255,255,0.2)",
+              cursor:"pointer", padding:8, borderRadius:6,
+              display:"flex", alignItems:"center", color:"#fff", flexShrink:0,
+              backdropFilter:"blur(8px)",
+            }}
+          >
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+              <path d="M12.5 15L7.5 10L12.5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+          <div>
+            <h1 style={{ fontSize:22, fontWeight:900, color:"#fff", margin:0, letterSpacing:"-0.5px", textShadow:"0 2px 8px rgba(0,0,0,0.3)" }}>
+              📚 Resources
+            </h1>
+            <p style={{ fontSize:12, color:"rgba(255,255,255,0.6)", margin:"3px 0 0", fontWeight:600 }}>Notes & PYQs</p>
+          </div>
+        </div>
+
+        {/* ── Tabs ── */}
+        <div style={{
+          display:"flex", marginBottom:20,
+          background:"rgba(255,255,255,0.08)",
+          border:"1.5px solid rgba(255,255,255,0.15)",
+          borderRadius:6, padding:4, gap:4,
+          backdropFilter:"blur(12px)",
+        }}>
+          {[{ id:"notes", label:"📝 Notes" }, { id:"pyq", label:"📋 PYQs" }].map(tab => (
+            <button key={tab.id} onClick={() => { setActiveTab(tab.id); setActiveFilterTags([]); }}
+              style={{
+                flex:1, padding:"10px 0",
+                fontSize:13, fontWeight:800,
+                color: activeTab === tab.id ? "#0F172A" : "rgba(255,255,255,0.6)",
+                background: activeTab === tab.id ? T.tealMid : "transparent",
+                border:"none", cursor:"pointer", borderRadius:4,
+                transition:"all 0.15s",
+                fontFamily:"'Nunito', sans-serif",
+                boxShadow: activeTab === tab.id ? "0 2px 10px rgba(20,184,166,0.4)" : "none",
+              }}>{tab.label}</button>
+          ))}
+        </div>
+
+        {/* ── Content card ── */}
+        <div style={{
+          background:"rgba(255,255,255,0.95)",
+          borderRadius:6,
+          border:"1.5px solid rgba(255,255,255,0.3)",
+          padding:"18px 16px",
+          backdropFilter:"blur(16px)",
+          boxShadow:"0 8px 40px rgba(0,0,0,0.2)",
+        }}>
+          <TagFilterBar allTags={displayableTags} activeFilterTags={activeFilterTags} onToggle={toggleFilterTag} />
+
+          {loading ? (
+            <div style={{ textAlign:"center", padding:"64px 0", color:T.teal, fontSize:13, fontWeight:800 }}>Loading…</div>
+          ) : (
+            <>
+              {activeTab === "notes" && (
+                <NotesView resources={resources} user={user} activeFilterTags={activeFilterTags}
+                  onView={handleView} onDownload={handleDownload} onDelete={handleDelete}
+                  onEdit={r => setEditResource(r)} onTagClick={toggleFilterTag} showToast={showToast} />
+              )}
+              {activeTab === "pyq" && (
+                <PYQView resources={resources} user={user} activeFilterTags={activeFilterTags}
+                  onView={handleView} onDownload={handleDownload} onDelete={handleDelete}
+                  onEdit={r => setEditResource(r)} onTagClick={toggleFilterTag} showToast={showToast} />
+              )}
+            </>
+          )}
         </div>
       </div>
 
-      {/* Tabs */}
-      <div style={{ display: "flex", marginBottom: 18, borderBottom: `2px solid ${T.blueBorder}` }}>
-        {[{ id: "notes", label: "Notes" }, { id: "pyq", label: "PYQs" }].map((tab) => (
-          <button key={tab.id} onClick={() => { setActiveTab(tab.id); setActiveFilterTags([]); }}
-            style={{
-              flex: 1, padding: "10px 0",
-              fontSize: 13, fontWeight: activeTab === tab.id ? 700 : 500,
-              color: activeTab === tab.id ? T.blue : T.muted,
-              background: "transparent", border: "none", cursor: "pointer",
-              borderBottom: activeTab === tab.id ? `2px solid ${T.blue}` : "2px solid transparent",
-              marginBottom: -2, transition: "all 0.12s",
-            }}>{tab.label}</button>
-        ))}
-      </div>
-
-      <TagFilterBar allTags={displayableTags} activeFilterTags={activeFilterTags} onToggle={toggleFilterTag} />
-
-      {loading ? (
-        <div style={{ textAlign: "center", padding: "60px 0", color: T.blue, fontSize: 13 }}>Loading...</div>
-      ) : (
-        <>
-          {activeTab === "notes" && (
-            <NotesView resources={resources} user={user} activeFilterTags={activeFilterTags}
-              onView={handleView} onDownload={handleDownload} onDelete={handleDelete}
-              onEdit={(r) => setEditResource(r)} onTagClick={toggleFilterTag} showToast={showToast} />
-          )}
-          {activeTab === "pyq" && (
-            <PYQView resources={resources} user={user} activeFilterTags={activeFilterTags}
-              onView={handleView} onDownload={handleDownload} onDelete={handleDelete}
-              onEdit={(r) => setEditResource(r)} onTagClick={toggleFilterTag} showToast={showToast} />
-          )}
-        </>
-      )}
-
-      {/* FAB */}
+      {/* ── FAB ── */}
       {user && (
         <button
           onClick={() => setShowUpload(true)}
-          aria-label="Upload resource"
           style={{
-            position: "fixed", bottom: 80, right: 20,
-            width: 52, height: 52, borderRadius: 14,
-            background: T.yellow, color: "#111",
-            border: "none", cursor: "pointer", zIndex: 30,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            boxShadow: "0 2px 12px rgba(250,204,21,0.4)",
+            position:"fixed", bottom:80, right:20,
+            width:54, height:54, borderRadius:6,
+            background:T.grad,
+            color:"#fff", border:"none", cursor:"pointer", zIndex:30,
+            display:"flex", alignItems:"center", justifyContent:"center",
+            boxShadow:"0 4px 24px rgba(13,148,136,0.55)",
+            transition:"all 0.15s",
           }}
+          onMouseEnter={e => { e.currentTarget.style.transform = "scale(1.1) translateY(-2px)"; }}
+          onMouseLeave={e => { e.currentTarget.style.transform = "scale(1) translateY(0)"; }}
         >
-          <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M11 4V18M4 11H18" stroke="#111" strokeWidth="2" strokeLinecap="round"/>
+          <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+            <path d="M11 4V18M4 11H18" stroke="#fff" strokeWidth="2.5" strokeLinecap="round"/>
           </svg>
         </button>
       )}
