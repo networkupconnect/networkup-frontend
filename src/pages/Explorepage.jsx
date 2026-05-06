@@ -60,39 +60,68 @@ export default function ExplorePage() {
   return (
     <div className="min-h-full bg-white px-4 pt-6 pb-24 sm:pb-6">
       {toast && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-zinc-900 text-white text-sm font-semibold px-5 py-3 rounded-2xl shadow-2xl border border-zinc-700 max-w-xs text-center">
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 text-white text-sm font-semibold px-5 py-3 rounded-2xl shadow-2xl max-w-xs text-center"
+          style={{ background: "#1D4ED8" }}>
           {toast}
         </div>
       )}
 
-      <p className="text-xs font-semibold tracking-widest text-gray-400 uppercase mb-5 px-1">
+      <p className="text-xs font-semibold tracking-widest uppercase mb-5 px-1"
+        style={{ color: "#1D4ED8" }}>
         Explore
       </p>
 
-      <div className="rounded-[26px] border border-sky-200 bg-sky-50 p-4 mb-6">
+      {/* ── Top feature cards ── */}
+      <div className="rounded-[26px] p-4 mb-6"
+        style={{ background: "#eff6ff", border: "1.5px solid #bfdbfe" }}>
         <div className="grid grid-cols-2 gap-3">
-          {TOP_LINKS.map((link) => (
+          {TOP_LINKS.map((link, i) => (
             <button
               key={link.name}
               onClick={() => handleClick(link)}
-              className="group flex flex-col justify-between rounded-3xl bg-sky-600 p-4 text-left text-white transition hover:bg-sky-700 active:scale-95"
+              className="group flex flex-col justify-between rounded-3xl p-4 text-left transition active:scale-95"
+              style={{
+                background: i % 2 === 0 ? "#1D4ED8" : "#FACC15",
+                color: i % 2 === 0 ? "#fff" : "#111",
+                border: "none",
+                boxShadow: i % 2 === 0
+                  ? "0 2px 12px rgba(29,78,216,0.25)"
+                  : "0 2px 12px rgba(250,204,21,0.3)",
+              }}
             >
               <div className="text-sm font-semibold">{link.name}</div>
-              <p className="text-xs text-sky-100 mt-2">{link.desc}</p>
+              <p className="text-xs mt-2"
+                style={{ color: i % 2 === 0 ? "rgba(255,255,255,0.75)" : "rgba(0,0,0,0.55)" }}>
+                {link.desc}
+              </p>
             </button>
           ))}
         </div>
       </div>
 
+      {/* ── Remaining links ── */}
       <div className="grid gap-3 sm:grid-cols-2">
         {remainingLinks.map((link) => (
           <button
             key={link.name}
             onClick={() => handleClick(link)}
-            className="group flex flex-col justify-between rounded-3xl border border-gray-200 bg-white p-4 text-left transition hover:border-gray-300 active:scale-95"
+            className="group flex flex-col justify-between rounded-3xl p-4 text-left transition active:scale-95"
+            style={{
+              background: "#fff",
+              border: "1.5px solid #e0e7ff",
+              boxShadow: "none",
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.borderColor = "#1D4ED8";
+              e.currentTarget.style.boxShadow = "0 2px 10px rgba(29,78,216,0.08)";
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.borderColor = "#e0e7ff";
+              e.currentTarget.style.boxShadow = "none";
+            }}
           >
-            <div className="text-sm font-semibold text-gray-900">{link.name}</div>
-            <p className="text-xs text-gray-500 mt-2">{link.desc}</p>
+            <div className="text-sm font-semibold" style={{ color: "#111" }}>{link.name}</div>
+            <p className="text-xs mt-2" style={{ color: "#6b7280" }}>{link.desc}</p>
           </button>
         ))}
       </div>

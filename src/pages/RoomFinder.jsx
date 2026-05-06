@@ -15,6 +15,7 @@ const EMPTY_FORM = {
   facilities: [], customFacility: "", customFacilities: [],
 };
 
+
 const EMPTY_FILTERS = { maxRent: "", minRent: "", facilities: [] };
 
 /* ─── tiny helpers ──────────────────────────────────────────────────────────── */

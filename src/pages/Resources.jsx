@@ -19,16 +19,29 @@ function saveCustomTags(tags) {
   localStorage.setItem(LOCAL_KEY, JSON.stringify(tags));
 }
 
+// ── Theme tokens ──────────────────────────────────────────────────────────────
+const T = {
+  blue:       "#1D4ED8",
+  blueSoft:   "#eff6ff",
+  blueBorder: "#bfdbfe",
+  yellow:     "#FACC15",
+  yellowSoft: "#fefce8",
+  white:      "#fff",
+  text:       "#111",
+  muted:      "#6b7280",
+  border:     "#e5e7eb",
+};
+
 // ─── Toast ────────────────────────────────────────────────────────────────────
 function Toast({ toast }) {
   if (!toast) return null;
   return (
     <div style={{
       position: "fixed", top: 16, right: 16, zIndex: 9999,
-      background: toast.type === "error" ? "#1a1a1a" : "#1a1a1a",
+      background: toast.type === "error" ? "#dc2626" : T.blue,
       color: "#fff", fontSize: 13, fontWeight: 500,
       padding: "10px 16px", borderRadius: 10,
-      borderLeft: `3px solid ${toast.type === "error" ? "#ef4444" : "#22c55e"}`,
+      borderLeft: `3px solid ${toast.type === "error" ? "#fca5a5" : T.yellow}`,
       maxWidth: 280,
     }}>
       {toast.msg}
@@ -47,9 +60,9 @@ function TagPill({ label, active, onClick, onDelete }) {
         padding: "5px 11px", borderRadius: 20,
         fontSize: 12, fontWeight: 500, cursor: "pointer",
         border: "1px solid",
-        borderColor: active ? "#000" : "#D4D4D4",
-        background: active ? "#000" : "#F5F5F5",
-        color: active ? "#fff" : "#555",
+        borderColor: active ? T.blue : "#D4D4D4",
+        background: active ? T.blue : T.blueSoft,
+        color: active ? "#fff" : T.blue,
         transition: "all 0.12s",
         whiteSpace: "nowrap",
       }}
@@ -64,8 +77,8 @@ function TagPill({ label, active, onClick, onDelete }) {
           style={{
             width: 14, height: 14, display: "flex", alignItems: "center",
             justifyContent: "center", borderRadius: "50%",
-            background: active ? "rgba(255,255,255,0.25)" : "#D4D4D4",
-            color: active ? "#fff" : "#666",
+            background: active ? "rgba(255,255,255,0.3)" : T.blueBorder,
+            color: active ? "#fff" : T.blue,
             fontSize: 10, lineHeight: 1, fontWeight: 700,
             cursor: "pointer",
           }}
@@ -78,7 +91,7 @@ function TagPill({ label, active, onClick, onDelete }) {
   );
 }
 
-// ─── Tag Selector (upload form) ───────────────────────────────────────────────
+// ─── Tag Selector ─────────────────────────────────────────────────────────────
 function TagSelector({ selected, onChange }) {
   const [customTags, setCustomTags] = useState(loadCustomTags);
   const [inputVal, setInputVal] = useState("");
@@ -108,7 +121,7 @@ function TagSelector({ selected, onChange }) {
 
   return (
     <div>
-      <p style={{ fontSize: 11, color: "#888", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 8 }}>
+      <p style={{ fontSize: 11, color: T.blue, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 8 }}>
         Tags
       </p>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
@@ -132,8 +145,8 @@ function TagSelector({ selected, onChange }) {
           placeholder="Custom tag..."
           style={{
             flex: 1, padding: "7px 11px", fontSize: 13,
-            border: "1px solid #E0E0E0", borderRadius: 8,
-            outline: "none", background: "#FAFAFA", color: "#111",
+            border: `1px solid ${T.blueBorder}`, borderRadius: 8,
+            outline: "none", background: T.blueSoft, color: T.text,
           }}
         />
         <button
@@ -141,8 +154,8 @@ function TagSelector({ selected, onChange }) {
           onClick={addCustom}
           style={{
             padding: "7px 14px", fontSize: 12, fontWeight: 600,
-            border: "1px solid #D4D4D4", borderRadius: 8,
-            background: "#F5F5F5", color: "#333", cursor: "pointer",
+            border: `1px solid ${T.blueBorder}`, borderRadius: 8,
+            background: T.blue, color: "#fff", cursor: "pointer",
           }}
         >
           Add
@@ -199,10 +212,10 @@ function UploadModal({ activeTab, onClose, onSuccess, showToast, user }) {
 
   const inputStyle = {
     width: "100%", padding: "10px 13px", fontSize: 13,
-    border: "1px solid #E0E0E0", borderRadius: 9, outline: "none",
-    background: "#FAFAFA", color: "#111", boxSizing: "border-box",
+    border: `1px solid ${T.blueBorder}`, borderRadius: 9, outline: "none",
+    background: T.blueSoft, color: T.text, boxSizing: "border-box",
   };
-  const labelStyle = { fontSize: 11, color: "#888", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", display: "block", marginBottom: 5 };
+  const labelStyle = { fontSize: 11, color: T.blue, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", display: "block", marginBottom: 5 };
 
   return (
     <div style={{
@@ -211,25 +224,24 @@ function UploadModal({ activeTab, onClose, onSuccess, showToast, user }) {
       display: "flex", alignItems: "flex-end",
     }}>
       <div style={{
-        background: "#fff", width: "100%", maxWidth: 520,
+        background: T.white, width: "100%", maxWidth: 520,
         margin: "0 auto",
         borderRadius: "18px 18px 0 0",
         maxHeight: "92vh", overflowY: "auto",
       }}>
-        {/* Header */}
         <div style={{
-          position: "sticky", top: 0, background: "#fff",
-          borderBottom: "1px solid #F0F0F0",
+          position: "sticky", top: 0, background: T.white,
+          borderBottom: `1px solid ${T.blueBorder}`,
           padding: "16px 20px",
           display: "flex", alignItems: "center", justifyContent: "space-between",
         }}>
-          <span style={{ fontSize: 14, fontWeight: 600, color: "#111" }}>
+          <span style={{ fontSize: 14, fontWeight: 600, color: T.blue }}>
             {activeTab === "notes" ? "Upload Note" : "Upload PYQ"}
           </span>
           <button onClick={onClose} style={{
             width: 28, height: 28, borderRadius: "50%",
-            border: "1px solid #E0E0E0", background: "#F5F5F5",
-            cursor: "pointer", fontSize: 14, color: "#555",
+            border: `1px solid ${T.blueBorder}`, background: T.blueSoft,
+            cursor: "pointer", fontSize: 14, color: T.blue,
             display: "flex", alignItems: "center", justifyContent: "center",
           }}>x</button>
         </div>
@@ -251,7 +263,6 @@ function UploadModal({ activeTab, onClose, onSuccess, showToast, user }) {
               value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
           </div>
 
-          {/* Unit */}
           <div>
             <label style={labelStyle}>Unit</label>
             <div style={{ display: "flex", gap: 6 }}>
@@ -259,37 +270,32 @@ function UploadModal({ activeTab, onClose, onSuccess, showToast, user }) {
                 <button key={u} type="button" onClick={() => toggleUnit(u)} style={{
                   width: 38, height: 38, borderRadius: 9,
                   border: "1px solid",
-                  borderColor: form.units.includes(u) ? "#000" : "#D4D4D4",
-                  background: form.units.includes(u) ? "#000" : "#F5F5F5",
-                  color: form.units.includes(u) ? "#fff" : "#555",
+                  borderColor: form.units.includes(u) ? T.blue : T.blueBorder,
+                  background: form.units.includes(u) ? T.blue : T.blueSoft,
+                  color: form.units.includes(u) ? "#fff" : T.blue,
                   fontSize: 13, fontWeight: 600, cursor: "pointer",
                 }}>{u}</button>
               ))}
             </div>
           </div>
 
-          {/* Tags */}
-          <TagSelector
-            selected={form.tags}
-            onChange={(tags) => setForm({ ...form, tags })}
-          />
+          <TagSelector selected={form.tags} onChange={(tags) => setForm({ ...form, tags })} />
 
-          {/* Links */}
           {activeTab === "notes" && (
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               <div>
                 <label style={labelStyle}>Notes Link <span style={{ color: "#ef4444" }}>*</span></label>
-                <input style={{ ...inputStyle, borderColor: !form.notesLink ? "#FBBF24" : "#E0E0E0" }}
+                <input style={{ ...inputStyle, borderColor: !form.notesLink ? T.yellow : T.blueBorder }}
                   placeholder="https://drive.google.com/..." value={form.notesLink}
                   onChange={(e) => setForm({ ...form, notesLink: e.target.value })} />
               </div>
               <div>
-                <label style={labelStyle}>Lecture Link <span style={{ color: "#D4D4D4" }}>(optional)</span></label>
+                <label style={labelStyle}>Lecture Link <span style={{ color: T.muted }}>(optional)</span></label>
                 <input style={inputStyle} placeholder="https://youtube.com/..." value={form.lectureLink}
                   onChange={(e) => setForm({ ...form, lectureLink: e.target.value })} />
               </div>
               <div>
-                <label style={labelStyle}>Assignment Link <span style={{ color: "#D4D4D4" }}>(optional)</span></label>
+                <label style={labelStyle}>Assignment Link <span style={{ color: T.muted }}>(optional)</span></label>
                 <input style={inputStyle} placeholder="https://..." value={form.assignmentLink}
                   onChange={(e) => setForm({ ...form, assignmentLink: e.target.value })} />
               </div>
@@ -299,26 +305,26 @@ function UploadModal({ activeTab, onClose, onSuccess, showToast, user }) {
           {activeTab === "pyq" && (
             <div>
               <label style={labelStyle}>PYQ Link <span style={{ color: "#ef4444" }}>*</span></label>
-              <input style={{ ...inputStyle, borderColor: !form.pyqLink ? "#FBBF24" : "#E0E0E0" }}
+              <input style={{ ...inputStyle, borderColor: !form.pyqLink ? T.yellow : T.blueBorder }}
                 placeholder="https://drive.google.com/..." value={form.pyqLink}
                 onChange={(e) => setForm({ ...form, pyqLink: e.target.value })} />
             </div>
           )}
 
-          {/* Actions */}
           <div style={{ display: "flex", gap: 8, paddingTop: 4 }}>
             <button type="submit" disabled={uploading} style={{
               flex: 1, padding: "12px 0", borderRadius: 10,
-              background: "#000", color: "#fff",
-              fontSize: 13, fontWeight: 600, border: "none", cursor: "pointer",
+              background: T.yellow, color: "#111",
+              fontSize: 13, fontWeight: 700, border: "none", cursor: "pointer",
               opacity: uploading ? 0.5 : 1,
+              boxShadow: "0 1px 6px rgba(250,204,21,0.35)",
             }}>
               {uploading ? "Uploading..." : activeTab === "notes" ? "Upload Note" : "Upload PYQ"}
             </button>
             <button type="button" onClick={onClose} style={{
               padding: "12px 18px", borderRadius: 10,
-              border: "1px solid #E0E0E0", background: "#F5F5F5",
-              fontSize: 13, fontWeight: 500, cursor: "pointer", color: "#555",
+              border: `1px solid ${T.blueBorder}`, background: T.blueSoft,
+              fontSize: 13, fontWeight: 500, cursor: "pointer", color: T.blue,
             }}>Cancel</button>
           </div>
         </form>
@@ -371,40 +377,34 @@ function EditModal({ resource, onClose, onSuccess, showToast }) {
 
   const inputStyle = {
     width: "100%", padding: "10px 13px", fontSize: 13,
-    border: "1px solid #E0E0E0", borderRadius: 9, outline: "none",
-    background: "#FAFAFA", color: "#111", boxSizing: "border-box",
+    border: `1px solid ${T.blueBorder}`, borderRadius: 9, outline: "none",
+    background: T.blueSoft, color: T.text, boxSizing: "border-box",
   };
-  const labelStyle = { fontSize: 11, color: "#888", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", display: "block", marginBottom: 5 };
+  const labelStyle = { fontSize: 11, color: T.blue, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", display: "block", marginBottom: 5 };
 
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 50, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "flex-end" }}>
-      <div style={{ background: "#fff", width: "100%", maxWidth: 520, margin: "0 auto", borderRadius: "18px 18px 0 0", maxHeight: "92vh", overflowY: "auto" }}>
-        <div style={{ position: "sticky", top: 0, background: "#fff", borderBottom: "1px solid #F0F0F0", padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <span style={{ fontSize: 14, fontWeight: 600, color: "#111" }}>Edit Resource</span>
-          <button onClick={onClose} style={{ width: 28, height: 28, borderRadius: "50%", border: "1px solid #E0E0E0", background: "#F5F5F5", cursor: "pointer", fontSize: 14, color: "#555", display: "flex", alignItems: "center", justifyContent: "center" }}>x</button>
+      <div style={{ background: T.white, width: "100%", maxWidth: 520, margin: "0 auto", borderRadius: "18px 18px 0 0", maxHeight: "92vh", overflowY: "auto" }}>
+        <div style={{ position: "sticky", top: 0, background: T.white, borderBottom: `1px solid ${T.blueBorder}`, padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <span style={{ fontSize: 14, fontWeight: 600, color: T.blue }}>Edit Resource</span>
+          <button onClick={onClose} style={{ width: 28, height: 28, borderRadius: "50%", border: `1px solid ${T.blueBorder}`, background: T.blueSoft, cursor: "pointer", fontSize: 14, color: T.blue, display: "flex", alignItems: "center", justifyContent: "center" }}>x</button>
         </div>
         <form onSubmit={handleSave} style={{ padding: 20, display: "flex", flexDirection: "column", gap: 14 }}>
-          <div>
-            <label style={labelStyle}>Subject *</label>
-            <input style={inputStyle} value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} required />
-          </div>
-          <div>
-            <label style={labelStyle}>Title</label>
-            <input style={inputStyle} placeholder="Optional" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
-          </div>
-          <div>
-            <label style={labelStyle}>Description</label>
-            <textarea style={{ ...inputStyle, resize: "none", height: 60 }} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
-          </div>
+          <div><label style={labelStyle}>Subject *</label>
+            <input style={inputStyle} value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} required /></div>
+          <div><label style={labelStyle}>Title</label>
+            <input style={inputStyle} placeholder="Optional" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></div>
+          <div><label style={labelStyle}>Description</label>
+            <textarea style={{ ...inputStyle, resize: "none", height: 60 }} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
           <div>
             <label style={labelStyle}>Unit</label>
             <div style={{ display: "flex", gap: 6 }}>
               {units.map((u) => (
                 <button key={u} type="button" onClick={() => toggleUnit(u)} style={{
                   width: 38, height: 38, borderRadius: 9, border: "1px solid",
-                  borderColor: form.units.includes(u) ? "#000" : "#D4D4D4",
-                  background: form.units.includes(u) ? "#000" : "#F5F5F5",
-                  color: form.units.includes(u) ? "#fff" : "#555",
+                  borderColor: form.units.includes(u) ? T.blue : T.blueBorder,
+                  background: form.units.includes(u) ? T.blue : T.blueSoft,
+                  color: form.units.includes(u) ? "#fff" : T.blue,
                   fontSize: 13, fontWeight: 600, cursor: "pointer",
                 }}>{u}</button>
               ))}
@@ -413,31 +413,23 @@ function EditModal({ resource, onClose, onSuccess, showToast }) {
           <TagSelector selected={form.tags} onChange={(tags) => setForm({ ...form, tags })} />
           {resource.type === "notes" && (
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              <div>
-                <label style={labelStyle}>Notes Link</label>
-                <input style={inputStyle} placeholder="https://drive.google.com/..." value={form.notesLink} onChange={(e) => setForm({ ...form, notesLink: e.target.value })} />
-              </div>
-              <div>
-                <label style={labelStyle}>Lecture Link</label>
-                <input style={inputStyle} placeholder="https://youtube.com/..." value={form.lectureLink} onChange={(e) => setForm({ ...form, lectureLink: e.target.value })} />
-              </div>
-              <div>
-                <label style={labelStyle}>Assignment Link</label>
-                <input style={inputStyle} placeholder="https://..." value={form.assignmentLink} onChange={(e) => setForm({ ...form, assignmentLink: e.target.value })} />
-              </div>
+              <div><label style={labelStyle}>Notes Link</label>
+                <input style={inputStyle} placeholder="https://drive.google.com/..." value={form.notesLink} onChange={(e) => setForm({ ...form, notesLink: e.target.value })} /></div>
+              <div><label style={labelStyle}>Lecture Link</label>
+                <input style={inputStyle} placeholder="https://youtube.com/..." value={form.lectureLink} onChange={(e) => setForm({ ...form, lectureLink: e.target.value })} /></div>
+              <div><label style={labelStyle}>Assignment Link</label>
+                <input style={inputStyle} placeholder="https://..." value={form.assignmentLink} onChange={(e) => setForm({ ...form, assignmentLink: e.target.value })} /></div>
             </div>
           )}
           {resource.type === "pyq" && (
-            <div>
-              <label style={labelStyle}>PYQ Link</label>
-              <input style={inputStyle} placeholder="https://drive.google.com/..." value={form.pyqLink} onChange={(e) => setForm({ ...form, pyqLink: e.target.value })} />
-            </div>
+            <div><label style={labelStyle}>PYQ Link</label>
+              <input style={inputStyle} placeholder="https://drive.google.com/..." value={form.pyqLink} onChange={(e) => setForm({ ...form, pyqLink: e.target.value })} /></div>
           )}
           <div style={{ display: "flex", gap: 8, paddingTop: 4 }}>
-            <button type="submit" disabled={saving} style={{ flex: 1, padding: "12px 0", borderRadius: 10, background: "#000", color: "#fff", fontSize: 13, fontWeight: 600, border: "none", cursor: "pointer", opacity: saving ? 0.5 : 1 }}>
+            <button type="submit" disabled={saving} style={{ flex: 1, padding: "12px 0", borderRadius: 10, background: T.yellow, color: "#111", fontSize: 13, fontWeight: 700, border: "none", cursor: "pointer", opacity: saving ? 0.5 : 1 }}>
               {saving ? "Saving..." : "Save Changes"}
             </button>
-            <button type="button" onClick={onClose} style={{ padding: "12px 18px", borderRadius: 10, border: "1px solid #E0E0E0", background: "#F5F5F5", fontSize: 13, fontWeight: 500, cursor: "pointer", color: "#555" }}>Cancel</button>
+            <button type="button" onClick={onClose} style={{ padding: "12px 18px", borderRadius: 10, border: `1px solid ${T.blueBorder}`, background: T.blueSoft, fontSize: 13, fontWeight: 500, cursor: "pointer", color: T.blue }}>Cancel</button>
           </div>
         </form>
       </div>
@@ -478,68 +470,57 @@ function ResourceCard({ resource, user, onView, onDownload, onDelete, onEdit, on
   const greyBtnStyle = {
     fontSize: 12, fontWeight: 500,
     padding: "6px 13px", borderRadius: 7,
-    border: "1px solid #E0E0E0",
-    background: "#F5F5F5", color: "#444",
+    border: `1px solid ${T.blueBorder}`,
+    background: T.blueSoft, color: T.blue,
     cursor: "pointer", textDecoration: "none",
     display: "inline-block", textAlign: "center",
   };
 
   return (
     <div style={{
-      background: "#fff", borderRadius: 13,
-      border: "1px solid #EBEBEB",
+      background: T.white, borderRadius: 13,
+      border: `1px solid ${T.blueBorder}`,
       overflow: "hidden",
     }}>
-      {/* Body */}
       <div style={{ padding: "13px 14px" }}>
         <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <p style={{ fontSize: 13, fontWeight: 600, color: "#111", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            <p style={{ fontSize: 13, fontWeight: 600, color: T.text, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {resource.title}
             </p>
             {resource.subject && (
-              <p style={{ fontSize: 11, color: "#888", margin: "3px 0 0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              <p style={{ fontSize: 11, color: T.blue, margin: "3px 0 0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {resource.subject}
               </p>
             )}
             {resource.description && (
-              <p style={{ fontSize: 11, color: "#AAAAAA", margin: "2px 0 0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              <p style={{ fontSize: 11, color: T.muted, margin: "2px 0 0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {resource.description}
               </p>
             )}
             {(unitTags.length > 0 || resourceTags.length > 0) && (
               <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 7 }}>
                 {unitTags.map((u) => (
-                  <span key={u} style={{ fontSize: 10, fontWeight: 600, background: "#F0F0F0", color: "#666", padding: "2px 7px", borderRadius: 5 }}>U{u}</span>
+                  <span key={u} style={{ fontSize: 10, fontWeight: 600, background: T.blueSoft, color: T.blue, padding: "2px 7px", borderRadius: 5, border: `1px solid ${T.blueBorder}` }}>U{u}</span>
                 ))}
                 {resourceTags.map((t) => (
-                  <button
-                    key={t}
-                    type="button"
-                    onClick={() => onTagClick?.(t)}
-                    style={{
-                      fontSize: 10, fontWeight: 500,
-                      background: "#F0F0F0", color: "#666",
-                      padding: "2px 7px", borderRadius: 5,
-                      border: "none", cursor: onTagClick ? "pointer" : "default",
-                    }}
-                  >
-                    {t}
-                  </button>
+                  <button key={t} type="button" onClick={() => onTagClick?.(t)} style={{
+                    fontSize: 10, fontWeight: 500,
+                    background: T.blueSoft, color: T.blue,
+                    padding: "2px 7px", borderRadius: 5,
+                    border: `1px solid ${T.blueBorder}`, cursor: onTagClick ? "pointer" : "default",
+                  }}>{t}</button>
                 ))}
               </div>
             )}
           </div>
           <button onClick={handleShare} style={{
             padding: "6px 10px", borderRadius: 7,
-            border: "1px solid #BFDBFE", background: "#EFF6FF",
-            color: "#2563EB", fontSize: 12, fontWeight: 600,
+            border: `1px solid ${T.yellow}`, background: T.yellowSoft,
+            color: "#92400e", fontSize: 12, fontWeight: 600,
             cursor: "pointer", flexShrink: 0,
-          }}>
-            Share
-          </button>
+          }}>Share</button>
 
-          {/* Right action buttons */}
           <div style={{ display: "flex", gap: 5, flexShrink: 0, alignItems: "center" }}>
             {hasFile && (
               <>
@@ -548,20 +529,15 @@ function ResourceCard({ resource, user, onView, onDownload, onDelete, onEdit, on
               </>
             )}
             {isAdmin && (
-              <button onClick={() => onEdit(resource)} style={{ ...greyBtnStyle, color: "#1d4ed8", borderColor: "#bfdbfe", background: "#eff6ff" }}>
-                Edit
-              </button>
+              <button onClick={() => onEdit(resource)} style={{ ...greyBtnStyle, color: T.blue, borderColor: T.blueBorder, background: T.blueSoft }}>Edit</button>
             )}
             {canManage && (
-              <button onClick={() => onDelete(resource._id)} style={{ ...greyBtnStyle, color: "#ef4444", borderColor: "#fecaca", background: "#fff5f5" }}>
-                Del
-              </button>
+              <button onClick={() => onDelete(resource._id)} style={{ ...greyBtnStyle, color: "#ef4444", borderColor: "#fecaca", background: "#fff5f5" }}>Del</button>
             )}
           </div>
         </div>
       </div>
 
-      {/* Notes links */}
       {resource.type === "notes" && (resource.notesLink || resource.lectureLink || resource.assignmentLink) && (
         <div style={{ display: "flex", gap: 6, padding: "0 14px 12px" }}>
           {resource.notesLink && (
@@ -576,20 +552,18 @@ function ResourceCard({ resource, user, onView, onDownload, onDelete, onEdit, on
         </div>
       )}
 
-      {/* PYQ link */}
       {resource.type === "pyq" && resource.pyqLink && (
         <div style={{ padding: "0 14px 12px" }}>
-          <a href={resource.pyqLink} target="_blank" rel="noopener noreferrer" style={{ ...greyBtnStyle, display: "block", textAlign: "center" }}>
+          <a href={resource.pyqLink} target="_blank" rel="noopener noreferrer" style={{ ...greyBtnStyle, display: "block", textAlign: "center", background: T.blue, color: "#fff", borderColor: T.blue }}>
             View PYQ
           </a>
         </div>
       )}
-
     </div>
   );
 }
 
-// ─── Notes View (flat list) ───────────────────────────────────────────────────
+// ─── Notes View ───────────────────────────────────────────────────────────────
 function NotesView({ resources, user, onView, onDownload, onDelete, onEdit, onTagClick, showToast, activeFilterTags }) {
   const filtered = activeFilterTags.length === 0
     ? resources
@@ -600,13 +574,9 @@ function NotesView({ resources, user, onView, onDownload, onDelete, onEdit, onTa
 
   if (filtered.length === 0) {
     return (
-      <div style={{
-        textAlign: "center", padding: "60px 0",
-        background: "#FAFAFA", borderRadius: 14,
-        border: "1px dashed #DDDDD8",
-      }}>
-        <p style={{ fontSize: 14, fontWeight: 600, color: "#555", margin: 0 }}>No notes found</p>
-        <p style={{ fontSize: 12, color: "#AAA", marginTop: 4 }}>
+      <div style={{ textAlign: "center", padding: "60px 0", background: T.blueSoft, borderRadius: 14, border: `1px dashed ${T.blueBorder}` }}>
+        <p style={{ fontSize: 14, fontWeight: 600, color: T.blue, margin: 0 }}>No notes found</p>
+        <p style={{ fontSize: 12, color: T.muted, marginTop: 4 }}>
           {activeFilterTags.length > 0 ? "Try a different tag filter" : "Be the first to upload"}
         </p>
       </div>
@@ -653,9 +623,9 @@ function PYQView({ resources, user, onView, onDownload, onDelete, onEdit, onTagC
 
   if (resources.length === 0) {
     return (
-      <div style={{ textAlign: "center", padding: "60px 0", background: "#FAFAFA", borderRadius: 14, border: "1px dashed #DDDDD8" }}>
-        <p style={{ fontSize: 14, fontWeight: 600, color: "#555", margin: 0 }}>No PYQs yet</p>
-        <p style={{ fontSize: 12, color: "#AAA", marginTop: 4 }}>Be the first to upload</p>
+      <div style={{ textAlign: "center", padding: "60px 0", background: T.blueSoft, borderRadius: 14, border: `1px dashed ${T.blueBorder}` }}>
+        <p style={{ fontSize: 14, fontWeight: 600, color: T.blue, margin: 0 }}>No PYQs yet</p>
+        <p style={{ fontSize: 12, color: T.muted, marginTop: 4 }}>Be the first to upload</p>
       </div>
     );
   }
@@ -663,27 +633,27 @@ function PYQView({ resources, user, onView, onDownload, onDelete, onEdit, onTagC
   return (
     <div>
       <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
-        <span style={{ fontSize: 11, color: "#888", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase" }}>Unit</span>
+        <span style={{ fontSize: 11, color: T.blue, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase" }}>Unit</span>
         <button onClick={() => setActiveUnits([])} style={{
           ...btnBase,
-          borderColor: activeUnits.length === 0 ? "#000" : "#D4D4D4",
-          background: activeUnits.length === 0 ? "#000" : "#F5F5F5",
-          color: activeUnits.length === 0 ? "#fff" : "#555",
+          borderColor: activeUnits.length === 0 ? T.blue : T.blueBorder,
+          background: activeUnits.length === 0 ? T.blue : T.blueSoft,
+          color: activeUnits.length === 0 ? "#fff" : T.blue,
         }}>All</button>
         {units.map((u) => (
           <button key={u} onClick={() => toggleUnit(u)} style={{
             ...btnBase, width: 32, height: 32, padding: 0,
             display: "flex", alignItems: "center", justifyContent: "center",
-            borderColor: activeUnits.includes(u) ? "#000" : "#D4D4D4",
-            background: activeUnits.includes(u) ? "#000" : "#F5F5F5",
-            color: activeUnits.includes(u) ? "#fff" : "#555",
+            borderColor: activeUnits.includes(u) ? T.blue : T.blueBorder,
+            background: activeUnits.includes(u) ? T.blue : T.blueSoft,
+            color: activeUnits.includes(u) ? "#fff" : T.blue,
           }}>{u}</button>
         ))}
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {filtered.length === 0 ? (
-          <p style={{ textAlign: "center", color: "#AAA", fontSize: 13, padding: "40px 0" }}>No results</p>
+          <p style={{ textAlign: "center", color: T.muted, fontSize: 13, padding: "40px 0" }}>No results</p>
         ) : (
           filtered.map((resource) => (
             <ResourceCard key={resource._id} resource={resource} user={user}
@@ -703,18 +673,16 @@ function FileViewer({ url, title, ext, onClose, onDownload }) {
     <div style={{ position: "fixed", inset: 0, zIndex: 50, background: "#111", display: "flex", flexDirection: "column" }}>
       <div style={{
         display: "flex", alignItems: "center", justifyContent: "space-between",
-        padding: "12px 16px", background: "#fff", borderBottom: "1px solid #E8E8E8", flexShrink: 0,
+        padding: "12px 16px", background: T.white, borderBottom: `1px solid ${T.blueBorder}`, flexShrink: 0,
       }}>
         <p style={{ fontSize: 13, fontWeight: 600, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, marginRight: 12 }}>{title}</p>
         <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-          <button onClick={onDownload} style={{ fontSize: 12, fontWeight: 600, padding: "7px 14px", borderRadius: 8, background: "#000", color: "#fff", border: "none", cursor: "pointer" }}>Download</button>
-          <button onClick={onClose} style={{ fontSize: 12, fontWeight: 600, padding: "7px 14px", borderRadius: 8, background: "#F5F5F5", color: "#333", border: "1px solid #E0E0E0", cursor: "pointer" }}>Close</button>
+          <button onClick={onDownload} style={{ fontSize: 12, fontWeight: 600, padding: "7px 14px", borderRadius: 8, background: T.yellow, color: "#111", border: "none", cursor: "pointer" }}>Download</button>
+          <button onClick={onClose} style={{ fontSize: 12, fontWeight: 600, padding: "7px 14px", borderRadius: 8, background: T.blueSoft, color: T.blue, border: `1px solid ${T.blueBorder}`, cursor: "pointer" }}>Close</button>
         </div>
       </div>
       <div style={{ flex: 1, overflowY: "auto", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
-        {imgLoading && !isPdf && (
-          <p style={{ color: "#888", fontSize: 13 }}>Loading...</p>
-        )}
+        {imgLoading && !isPdf && <p style={{ color: "#888", fontSize: 13 }}>Loading...</p>}
         {!isPdf && (
           <img src={url} alt={title} style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain", borderRadius: 8 }}
             onLoad={() => setImgLoading(false)} />
@@ -729,7 +697,7 @@ function TagFilterBar({ allTags, activeFilterTags, onToggle }) {
   if (allTags.length === 0) return null;
   return (
     <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 14, alignItems: "center" }}>
-      <span style={{ fontSize: 11, color: "#888", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase" }}>Filter</span>
+      <span style={{ fontSize: 11, color: T.blue, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase" }}>Filter</span>
       {allTags.map((t) => (
         <TagPill key={t} label={t} active={activeFilterTags.includes(t)} onClick={() => onToggle(t)} />
       ))}
@@ -749,7 +717,6 @@ export default function Resources() {
   const [toast, setToast] = useState(null);
   const [viewer, setViewer] = useState(null);
   const [activeFilterTags, setActiveFilterTags] = useState([]);
-  const [customTags] = useState(loadCustomTags);
 
   useEffect(() => { fetchResources(); }, [activeTab]);
 
@@ -806,7 +773,6 @@ export default function Resources() {
     }
   };
 
-  // Collect all unique tags from current resources + saved custom tags
   const allTagsInResources = Array.from(new Set(
     resources.flatMap((r) => r.tags ? r.tags.split(",").map((t) => t.trim()).filter(Boolean) : [])
   ));
@@ -818,10 +784,8 @@ export default function Resources() {
   const toggleFilterTag = (tag) =>
     setActiveFilterTags((prev) => prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]);
 
-  const dividerStyle = { borderTop: "1px solid #F0F0F0", margin: "0 0 14px" };
-
   return (
-    <div style={{ maxWidth: 600, margin: "0 auto", padding: "20px 16px 120px", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
+    <div style={{ maxWidth: 600, margin: "0 auto", padding: "20px 16px 120px", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", background: T.white, minHeight: "100vh" }}>
       <Toast toast={toast} />
 
       {viewer && (
@@ -851,41 +815,37 @@ export default function Resources() {
         <button
           onClick={() => navigate("/")}
           aria-label="Go back"
-          style={{ background: "none", border: "none", cursor: "pointer", padding: 4, display: "flex", alignItems: "center", color: "#111", flexShrink: 0 }}
+          style={{ background: T.blueSoft, border: `1px solid ${T.blueBorder}`, cursor: "pointer", padding: 6, borderRadius: 8, display: "flex", alignItems: "center", color: T.blue, flexShrink: 0 }}
         >
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M12.5 15L7.5 10L12.5 5" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </button>
         <div>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: "#111", margin: 0, letterSpacing: "-0.4px" }}>Resources</h1>
-          <p style={{ fontSize: 11, color: "#AAA", margin: "2px 0 0" }}>Notes and PYQs</p>
+          <h1 style={{ fontSize: 20, fontWeight: 700, color: T.blue, margin: 0, letterSpacing: "-0.4px" }}>Resources</h1>
+          <p style={{ fontSize: 11, color: T.muted, margin: "2px 0 0" }}>Notes and PYQs</p>
         </div>
       </div>
 
       {/* Tabs */}
-      <div style={{ display: "flex", marginBottom: 18, borderBottom: "1px solid #F0F0F0" }}>
+      <div style={{ display: "flex", marginBottom: 18, borderBottom: `2px solid ${T.blueBorder}` }}>
         {[{ id: "notes", label: "Notes" }, { id: "pyq", label: "PYQs" }].map((tab) => (
           <button key={tab.id} onClick={() => { setActiveTab(tab.id); setActiveFilterTags([]); }}
             style={{
               flex: 1, padding: "10px 0",
               fontSize: 13, fontWeight: activeTab === tab.id ? 700 : 500,
-              color: activeTab === tab.id ? "#111" : "#AAA",
+              color: activeTab === tab.id ? T.blue : T.muted,
               background: "transparent", border: "none", cursor: "pointer",
-              borderBottom: activeTab === tab.id ? "2px solid #111" : "2px solid transparent",
-              marginBottom: -1, transition: "all 0.12s",
+              borderBottom: activeTab === tab.id ? `2px solid ${T.blue}` : "2px solid transparent",
+              marginBottom: -2, transition: "all 0.12s",
             }}>{tab.label}</button>
         ))}
       </div>
 
-      {/* Tag filter */}
       <TagFilterBar allTags={displayableTags} activeFilterTags={activeFilterTags} onToggle={toggleFilterTag} />
 
-      {/* Content */}
       {loading ? (
-        <div style={{ textAlign: "center", padding: "60px 0", color: "#BBB", fontSize: 13 }}>
-          Loading...
-        </div>
+        <div style={{ textAlign: "center", padding: "60px 0", color: T.blue, fontSize: 13 }}>Loading...</div>
       ) : (
         <>
           {activeTab === "notes" && (
@@ -901,7 +861,7 @@ export default function Resources() {
         </>
       )}
 
-      {/* FAB — raised above bottom nav */}
+      {/* FAB */}
       {user && (
         <button
           onClick={() => setShowUpload(true)}
@@ -909,14 +869,14 @@ export default function Resources() {
           style={{
             position: "fixed", bottom: 80, right: 20,
             width: 52, height: 52, borderRadius: 14,
-            background: "#111", color: "#fff",
+            background: T.yellow, color: "#111",
             border: "none", cursor: "pointer", zIndex: 30,
             display: "flex", alignItems: "center", justifyContent: "center",
-            boxShadow: "0 2px 12px rgba(0,0,0,0.2)",
+            boxShadow: "0 2px 12px rgba(250,204,21,0.4)",
           }}
         >
           <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M11 4V18M4 11H18" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+            <path d="M11 4V18M4 11H18" stroke="#111" strokeWidth="2" strokeLinecap="round"/>
           </svg>
         </button>
       )}

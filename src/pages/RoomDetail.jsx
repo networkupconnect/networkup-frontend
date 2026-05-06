@@ -13,6 +13,7 @@ function Avatar({ name = "", src }) {
   );
 }
 
+
 export default function RoomDetail() {
   const { roomId } = useParams();
   const navigate = useNavigate();

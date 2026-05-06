@@ -16,6 +16,7 @@ function Chip({ label, onRemove, editing }) {
   );
 }
 
+
 function ChipInput({ placeholder, onAdd }) {
   const [val, setVal] = useState("");
   const submit = () => {
