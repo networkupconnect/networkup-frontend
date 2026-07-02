@@ -220,7 +220,6 @@ const STYLES = `
     #7C3AED,
     #DB2777,
     #EA580C,
-    #0D9488
   );
 
   background-size: 400% 400%;
