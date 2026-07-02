@@ -247,7 +247,7 @@ export default function DashboardLayout() {
       <div className="color flex flex-1 overflow-hidden">
         {/* Desktop sidebar */}
         <aside className="hidden sm:flex flex-col w-44 shrink-0 bg-gray-100 overflow-y-auto">
-          <div className="color:gray-100 flex flex-col p-2 gap-0.5">
+          <div className="bg-green-500 flex flex-col p-2 gap-0.5">
             {allLinks1.map((link) => (
               <NavLink key={link.name} to={link.path} onClick={(e) => handleNavClick(e, link)} className={navLinkClass}>
                 <img className={`w-5 h-5 shrink-0 ${link.name === "My Profile" ? "rounded-full object-cover" : ""}`} src={link.imgsrc} alt="" />
@@ -256,7 +256,7 @@ export default function DashboardLayout() {
             ))}
           </div>
           <div className="border-t border-gray-300 mx-2 my-1" />
-          <div className="color:gray-100 flex flex-col p-2 pb-8 gap-0.5">
+          <div className="bg-green-500 flex flex-col p-2 pb-8 gap-0.5">
             {allLinks2.map((link) => (
               <NavLink key={link.name} to={link.path} onClick={(e) => handleNavClick(e, link)} className={navLinkClass}>
                 <img className="w-5 h-5 shrink-0" src={link.imgsrc} alt="" />
