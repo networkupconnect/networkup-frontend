@@ -208,18 +208,30 @@ const STYLES = `
   .feed-empty { text-align:center; padding:72px 0; color:rgba(255,255,255,0.75); font-size:14px; font-weight:700; font-family:'Nunito',sans-serif; }
 
   /* ── Sidebar ── */
-  .dh-sidebar { display:none; }
-  @media(min-width:640px){
-    .dh-sidebar {
-      display:block; flex:1;
-      background:rgba(255,255,255,0.10);
-      backdrop-filter:blur(20px);
-      height:calc(100vh - 28px);
-      position:sticky; top:14px;
-      border:1.5px solid rgba(255,255,255,0.18);
-      border-radius:16px;
-    }
-  }
+  .dh-sidebar {
+  display: block;
+  flex: 1;
+  position: sticky;
+  top: 14px;
+  height: calc(100vh - 28px);
+
+  background: linear-gradient(
+    -45deg,
+    #7C3AED,
+    #DB2777,
+    #EA580C,
+    #0D9488
+  );
+
+  background-size: 400% 400%;
+  animation: gradientMove 12s ease infinite;
+
+  border-radius: 16px;
+  border: 1.5px solid rgba(255,255,255,.2);
+
+  backdrop-filter: blur(20px);
+  overflow: hidden;
+}
 
   /* ── Lightbox ── */
   .lightbox-overlay {

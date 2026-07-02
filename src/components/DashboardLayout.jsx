@@ -246,7 +246,7 @@ export default function DashboardLayout() {
 
       <div className="color flex flex-1 overflow-hidden">
         {/* Desktop sidebar */}
-        <aside className="bg-green-500 hidden sm:flex flex-col w-44 shrink-0 bg-gray-100 overflow-y-auto">
+        <aside className="hidden sm:flex flex-col w-44 shrink-0 bg-gray-100 overflow-y-auto">
           <div className="flex flex-col p-2 gap-0.5">
             {allLinks1.map((link) => (
               <NavLink key={link.name} to={link.path} onClick={(e) => handleNavClick(e, link)} className={navLinkClass}>
