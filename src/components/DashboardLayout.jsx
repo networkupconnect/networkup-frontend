@@ -1,13 +1,110 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import Navbar from "../pages/Navbar.jsx";
 import { useAuth } from "../context/AuthContext";
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   DASHBOARD LAYOUT
+   Solid purple nav (#5B21B6). Scroll-reactive gradient bg. WhatsApp texture.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+const TEXTURE_SVG = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80'%3E%3Ccircle cx='10' cy='10' r='2.2' fill='rgba(255,255,255,0.07)'/%3E%3Ccircle cx='40' cy='10' r='1.4' fill='rgba(255,255,255,0.04)'/%3E%3Ccircle cx='70' cy='10' r='2.2' fill='rgba(255,255,255,0.07)'/%3E%3Ccircle cx='25' cy='28' r='1.8' fill='rgba(255,255,255,0.05)'/%3E%3Ccircle cx='55' cy='28' r='1.8' fill='rgba(255,255,255,0.05)'/%3E%3Ccircle cx='10' cy='48' r='1.4' fill='rgba(255,255,255,0.04)'/%3E%3Ccircle cx='40' cy='48' r='2.2' fill='rgba(255,255,255,0.07)'/%3E%3Ccircle cx='70' cy='48' r='1.4' fill='rgba(255,255,255,0.04)'/%3E%3Ccircle cx='25' cy='68' r='1.8' fill='rgba(255,255,255,0.05)'/%3E%3Ccircle cx='55' cy='68' r='1.8' fill='rgba(255,255,255,0.05)'/%3E%3Crect x='6' y='36' width='8' height='8' rx='1' fill='rgba(255,255,255,0.03)' transform='rotate(45 10 40)'/%3E%3Crect x='36' y='56' width='8' height='8' rx='1' fill='rgba(255,255,255,0.03)' transform='rotate(45 40 60)'/%3E%3Crect x='66' y='36' width='8' height='8' rx='1' fill='rgba(255,255,255,0.03)' transform='rotate(45 70 40)'/%3E%3C/svg%3E")`;
+
+if (typeof document !== "undefined" && !document.getElementById("dl-nav-styles")) {
+  const style = document.createElement("style");
+  style.id = "dl-nav-styles";
+  style.textContent = `
+    @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
+
+    :root {
+      --scroll-t: 0;
+      --grad-h1: 250;
+      --grad-h2: 290;
+      --grad-h3: 330;
+    }
+
+    /* ── Scroll-reactive background on main content ── */
+    .dl-main-bg {
+      background:
+        ${TEXTURE_SVG},
+        linear-gradient(
+          160deg,
+          hsl(calc(250 + var(--scroll-t) * 110), 72%, 22%) 0%,
+          hsl(calc(286 + var(--scroll-t) * 55),  68%, 29%) 35%,
+          hsl(calc(328 + var(--scroll-t) * 80),  72%, 32%) 65%,
+          hsl(calc(22  + var(--scroll-t) * 40),  78%, 36%) 85%,
+          hsl(calc(42  + var(--scroll-t) * 20),  80%, 38%) 100%
+        );
+      background-attachment: local;
+      background-size: 80px 80px, cover;
+      transition: background 0.15s ease;
+    }
+
+    /* ── Bottom nav — solid purple ── */
+    .dl-bottom-nav {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      z-index: 20;
+      background: #5B21B6;
+      border-top: 1.5px solid rgba(255,255,255,0.12);
+      display: flex;
+      justify-content: stretch;
+      align-items: center;
+      height: 54px;
+      padding: 0 4px;
+    }
+
+    .dl-tab {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      flex: 1;
+      padding: 5px 2px;
+      text-decoration: none;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .dl-tab-icon {
+      width: 34px;
+      height: 34px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 10px;
+      transition: background 0.12s;
+    }
+
+    .dl-tab.active .dl-tab-icon {
+      background: rgba(251,191,36,0.22);
+    }
+
+    .dl-tab-label {
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.55);
+      font-family: 'Nunito', sans-serif;
+      line-height: 1;
+    }
+
+    .dl-tab.active .dl-tab-label {
+      color: #FCD34D;
+    }
+  `;
+  document.head.appendChild(style);
+}
+
 export default function DashboardLayout() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const mainRef = useRef(null);
 
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [cart, setCart] = useState(() => {
     try {
       const savedCart = localStorage.getItem("cart");
@@ -19,22 +116,25 @@ export default function DashboardLayout() {
     }
   });
 
-  const [showPopup, setShowPopup] = useState(false);
   const [products, setProducts] = useState([]);
   const [authMsg, setAuthMsg] = useState(null);
 
+  /* Scroll-reactive gradient */
   useEffect(() => {
-    const handleResize = () => setIsSidebarOpen(window.innerWidth >= 640);
-    handleResize();
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
+    const el = mainRef.current;
+    if (!el) return;
+    const onScroll = () => {
+      const t = el.scrollTop / Math.max(1, el.scrollHeight - el.clientHeight);
+      el.style.setProperty("--scroll-t", t.toFixed(4));
+    };
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => el.removeEventListener("scroll", onScroll);
   }, []);
 
   useEffect(() => {
     try { localStorage.setItem("cart", JSON.stringify(cart)); } catch {}
   }, [cart]);
 
-  const hamBurger = () => setIsSidebarOpen((prev) => !prev);
   const getItemId = (item) => item._id || item.id;
   const clearCart = () => { setCart([]); localStorage.removeItem("cart"); };
 
@@ -43,30 +143,16 @@ export default function DashboardLayout() {
     setCart((prev) => {
       const productId = getItemId(product);
       const existing = prev.find((item) => getItemId(item) === productId);
-      if (existing)
-        return prev.map((item) =>
-          getItemId(item) === productId ? { ...item, quantity: item.quantity + 1 } : item
-        );
+      if (existing) return prev.map((item) => getItemId(item) === productId ? { ...item, quantity: item.quantity + 1 } : item);
       return [...prev, { _id: product._id, title: product.title, price: product.price, image: product.image, quantity: 1, sellerId: product.sellerId }];
     });
-    setShowPopup(true);
-    setTimeout(() => setShowPopup(false), 2000);
   };
 
-  const increaseQty = (id) =>
-    setCart((prev) => prev.map((item) => getItemId(item) === id ? { ...item, quantity: item.quantity + 1 } : item));
-  const decreaseQty = (id) =>
-    setCart((prev) =>
-      prev.map((item) => getItemId(item) === id ? { ...item, quantity: item.quantity - 1 } : item)
-          .filter((item) => item.quantity > 0)
-    );
+  const increaseQty = (id) => setCart((prev) => prev.map((item) => getItemId(item) === id ? { ...item, quantity: item.quantity + 1 } : item));
+  const decreaseQty = (id) => setCart((prev) => prev.map((item) => getItemId(item) === id ? { ...item, quantity: item.quantity - 1 } : item).filter((item) => item.quantity > 0));
 
-  const showAuthToast = (msg) => {
-    setAuthMsg(msg);
-    setTimeout(() => setAuthMsg(null), 3000);
-  };
+  const showAuthToast = (msg) => { setAuthMsg(msg); setTimeout(() => setAuthMsg(null), 3000); };
 
-  // ── Desktop sidebar links (unchanged) ──────────────────────────────────────
   const allLinks1 = [
     { name: "Home",        path: "/",            imgsrc: "/images/home.svg",        authType: null },
     ...(user ? [{ name: "Connections", path: "/connections", imgsrc: "/images/connections.svg", authType: null }] : []),
@@ -74,8 +160,6 @@ export default function DashboardLayout() {
     { name: "Attendance",  path: "/attendance",  imgsrc: "/images/attendance.svg",  authType: null },
     { name: "Chat",        path: "/messages",    imgsrc: "/images/chat.svg",        authType: null },
   ];
-
-  
   const allLinks2 = [
     { name: "Rooms",        path: "/rooms",       imgsrc: "/images/room.svg",        authType: null },
     { name: "Confessions",  path: "/confessions", imgsrc: "/images/inc.svg",         authType: null },
@@ -84,58 +168,85 @@ export default function DashboardLayout() {
     { name: "Course",       path: "/course",      imgsrc: "/images/course.svg",      authType: null },
     { name: "Internships",  path: "/Internships", imgsrc: "/images/alert.svg",       authType: null },
     { name: "Feedback",     path: "/feedback",    imgsrc: "/images/feedback.svg",    authType: "login" },
-   
     ...(user && (user.role === "seller" || user.role === "admin")
-      ? [{ name: "Seller Dashboard", path: "/seller", imgsrc: "/images/seller-cart.svg", authType: null }]
-      : []),
+      ? [{ name: "Seller Dashboard", path: "/seller", imgsrc: "/images/seller-cart.svg", authType: null }] : []),
     ...(user && user.role === "admin"
-      ? [{ name: "Admin Dashboard", path: "/admin", imgsrc: "/images/admin.svg", authType: null }]
-      : []),
+      ? [{ name: "Admin Dashboard", path: "/admin", imgsrc: "/images/admin.svg", authType: null }] : []),
   ];
 
-  // ── Mobile bottom nav — 5 fixed tabs including Explore ────────────────────
   const mobileNavTabs = [
-    { name: "Home", path: "/", imgsrc: "/images/home.svg" },
-    { name: "Resources", path: "/resources", imgsrc: null },
-    { name: "Explore", path: "/explore", imgsrc: null },
-    { name: "Connect", path: "/connections", imgsrc: "/images/connections.svg" },
-    { name: "Profile", path: "/profile", imgsrc: "/images/profile.svg" },
+    { name: "Home",      path: "/",            icon: "home" },
+    { name: "Resources", path: "/resources",   icon: "resources" },
+    { name: "Explore",   path: "/explore",     icon: "explore" },
+    { name: "Connect",   path: "/connections", icon: "connect" },
+    { name: "Profile",   path: "/profile",     icon: "profile" },
   ];
 
   const handleNavClick = (e, link) => {
     if (!link.authType) return;
-    if (!user) {
-      e.preventDefault();
-      showAuthToast(
-        link.authType === "profile"
-          ? " Please setup your profile first — add Branch, Year & Section"
-          : " Please login first to access this feature"
-      );
-      return;
-    }
-    if (link.authType === "profile" && (!user.branch || !user.year || !user.section)) {
-      e.preventDefault();
-      showAuthToast(" Please setup your profile first — add Branch, Year & Section");
-    }
+    if (!user) { e.preventDefault(); showAuthToast(link.authType === "profile" ? "Please setup your profile first — add Branch, Year and Section" : "Please login first to access this feature"); return; }
+    if (link.authType === "profile" && (!user.branch || !user.year || !user.section)) { e.preventDefault(); showAuthToast("Please setup your profile first — add Branch, Year and Section"); }
   };
 
   const navLinkClass = ({ isActive }) =>
-    `flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-700 transition-colors ${
-      isActive ? "bg-blue-100 font-semibold text-black" : "hover:bg-gray-200"
-    }`;
+    `flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-700 transition-colors ${isActive ? "bg-violet-100 font-semibold text-violet-900" : "hover:bg-gray-200"}`;
+
+  const TabIcon = ({ type, isActive }) => {
+    const color = isActive ? "#FCD34D" : "rgba(255,255,255,0.75)";
+
+    if (type === "home") return (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M3 12L12 3L21 12V21H15V15H9V21H3V12Z"/>
+      </svg>
+    );
+    if (type === "resources") return (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+      </svg>
+    );
+    if (type === "explore") return (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="9"/>
+        <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" fill={color} strokeWidth="0"/>
+      </svg>
+    );
+    if (type === "connect") return (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="9" cy="7" r="3"/>
+        <circle cx="16" cy="10" r="3"/>
+        <path d="M3 21C3 17.686 5.686 15 9 15H13"/>
+        <path d="M16 21C16 18.239 17.343 16 19 15"/>
+      </svg>
+    );
+    if (type === "profile") return (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="8" r="4"/>
+        <path d="M4 20C4 16.686 7.582 14 12 14C16.418 14 20 16.686 20 20"/>
+      </svg>
+    );
+    return null;
+  };
 
   return (
     <div className="overflow-hidden relative h-screen flex flex-col">
       <Navbar />
 
       {authMsg && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-zinc-900 text-white text-sm font-semibold px-5 py-3 rounded-2xl shadow-2xl border border-zinc-700 max-w-xs text-center">
+        <div style={{
+          position:"fixed", top:16, left:"50%", transform:"translateX(-50%)",
+          zIndex:50, background:"#5B21B6", color:"#fff",
+          fontSize:13, fontWeight:700, padding:"11px 20px",
+          borderRadius: 12,
+          border:"1.5px solid rgba(255,255,255,0.2)",
+          maxWidth:300, textAlign:"center", fontFamily:"'Nunito', sans-serif",
+        }}>
           {authMsg}
         </div>
       )}
 
       <div className="flex flex-1 overflow-hidden">
-        {/* ── Desktop sidebar ─────────────────────────────────────────────── */}
+        {/* Desktop sidebar */}
         <aside className="hidden sm:flex flex-col w-44 shrink-0 bg-gray-100 overflow-y-auto">
           <div className="flex flex-col p-2 gap-0.5">
             {allLinks1.map((link) => (
@@ -156,44 +267,33 @@ export default function DashboardLayout() {
           </div>
         </aside>
 
-        {/* ── Mobile bottom nav — 5 tabs, no More/drawer ──────────────────── */}
-        {/* Replace the existing mobile bottom nav JSX with this: */}
-<div className="sm:hidden fixed bottom-0 left-0 right-0 z-20 bg-white border-t border-gray-200 flex justify-around items-center h-16 px-1">
-  {mobileNavTabs.map((tab) => (
-    <NavLink
-      key={tab.name}
-      to={tab.path}
-      className={({ isActive }) =>
-        `flex flex-col items-center justify-center gap-0.5 flex-1 py-1 transition ${
-          isActive ? "text-blue-600" : "text-gray-500"
-        }`
-      }
-    >
-      {({ isActive }) => (
-        <>
-          <span className={`flex items-center justify-center w-10 h-10 rounded-2xl transition-colors ${isActive ? "bg-blue-100" : "bg-transparent"}`}>
-            {tab.name === "Resources" ? (
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M4 19.5C4 18.67 4.67 18 5.5 18H8.5C9.33 18 10 18.67 10 19.5V20.5C10 21.33 9.33 22 8.5 22H5.5C4.67 22 4 21.33 4 20.5V19.5Z" />
-                <path d="M13 19.5C13 18.67 13.67 18 14.5 18H17.5C18.33 18 19 18.67 19 19.5V20.5C19 21.33 18.33 22 17.5 22H14.5C13.67 22 13 21.33 13 20.5V19.5Z" />
-                <path d="M4 4.5C4 3.67 4.67 3 5.5 3H8.5C9.33 3 10 3.67 10 4.5V15.5C10 16.33 9.33 17 8.5 17H5.5C4.67 17 4 16.33 4 15.5V4.5Z" />
-                <path d="M13 4.5C13 3.67 13.67 3 14.5 3H17.5C18.33 3 19 3.67 19 4.5V15.5C19 16.33 18.33 17 17.5 17H14.5C13.67 17 13 16.33 13 15.5V4.5Z" />
-              </svg>
-            ) : (
-              <img className="w-5 h-5" src={tab.imgsrc} alt="" />
-            )}
-          </span>
-          <span className={`text-[10px] leading-tight text-center truncate w-full px-0.5 ${isActive ? "text-black font-semibold" : "text-gray-500"}`}>
-            {tab.name}
-          </span>
-        </>
-      )}
-    </NavLink>
-  ))}
-</div>
+        {/* Mobile bottom nav */}
+        <nav className="sm:hidden dl-bottom-nav">
+          {mobileNavTabs.map((tab) => (
+            <NavLink
+              key={tab.name}
+              to={tab.path}
+              end={tab.path === "/"}
+              className={({ isActive }) => `dl-tab${isActive ? " active" : ""}`}
+            >
+              {({ isActive }) => (
+                <>
+                  <span className="dl-tab-icon">
+                    <TabIcon type={tab.icon} isActive={isActive} />
+                  </span>
+                  <span className="dl-tab-label">{tab.name}</span>
+                </>
+              )}
+            </NavLink>
+          ))}
+        </nav>
 
-        {/* ── Main content ─────────────────────────────────────────────────── */}
-        <main className="flex-1 overflow-y-auto bg-white hide-scrollbar pb-16 sm:pb-0">
+        {/* Main content — scroll-reactive gradient background */}
+        <main
+          ref={mainRef}
+          className="dl-main-bg flex-1 overflow-y-auto hide-scrollbar pb-16 sm:pb-0"
+          style={{ "--scroll-t": "0" }}
+        >
           <Outlet
             context={{
               cart, addToCart, increaseQty, decreaseQty,
