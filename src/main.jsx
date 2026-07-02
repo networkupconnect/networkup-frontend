@@ -27,7 +27,6 @@ import Chat from "./pages/Chat.jsx";
 import Messages from "./pages/Messages.jsx";
 import Connections from "./pages/Connections.jsx";
 import Confessions from "./pages/Confessions";
-import Internships from "./pages/Internships.jsx";
 import Feedback from "./pages/Feedback.jsx";
 import Assignments from "./pages/Assignments.jsx";
 import RoomFinder from "./pages/RoomFinder.jsx";
@@ -106,7 +105,6 @@ const router = createBrowserRouter([
       { path: "confessions",  element: <Confessions /> },
       { path: "messages",     element: <Messages /> },
       { path: "connections",  element: <Connections /> },
-      { path: "Internships",  element: <Internships /> },
       { path: "assignments",  element: <Assignments /> },
       { path: "rooms",        element: <RoomFinder /> },
       { path: "buy-sell",     element: <BuySell /> },
