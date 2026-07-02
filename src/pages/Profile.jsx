@@ -543,9 +543,9 @@ export default function Profile() {
           --shadow-md:0 4px 12px rgba(0,0,0,0.08),0 2px 4px rgba(0,0,0,0.04);
         }
         .p-wrap{font-family:var(--font);background:var(--bg);min-height:100vh;color:var(--text-primary)}
-        .loader-ring{display:inline-block;width:28px;height:28px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
+        .loader-ring{display:inline-block;width:28px;height:28px;border:2px solid var(--border);:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
         @keyframes spin{to{transform:rotate(360deg)}}
-        .btn-spinner{display:inline-block;width:12px;height:12px;border:1.5px solid currentColor;border-top-color:transparent;border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:4px}
+        .btn-spinner{display:inline-block;width:12px;height:12px;border:1.5px solid currentColor;:transparent;border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:4px}
         .p-toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:100;padding:10px 18px;border-radius:var(--radius-full);font-size:13px;font-weight:500;font-family:var(--font);box-shadow:var(--shadow-md);white-space:nowrap}
         .p-toast.success{background:var(--text-primary);color:#fff}
         .p-toast.error{background:var(--red);color:#fff}

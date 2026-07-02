@@ -5,7 +5,6 @@ import { useAuth } from "../context/AuthContext";
 const EXPLORE_LINKS = [
   { name: "Attendance", path: "/attendance", desc: "Bunk safe" },
   { name: "Rooms", path: "/rooms", desc: "Find PGs & roommates" },
-  { name: "Internships", path: "/Internships", desc: "Browse opportunities" },
   { name: "Chat", path: "/messages", desc: "Message classmates" },
   { name: "Confessions", path: "/confessions", desc: "Anonymous board" },
   { name: "Course", path: "/course", desc: "Explore courses" },
