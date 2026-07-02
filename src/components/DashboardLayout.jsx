@@ -166,7 +166,6 @@ export default function DashboardLayout() {
     { name: "PYQS & Notes", path: "/resources",   imgsrc: "/images/book.svg",        authType: null },
     { name: "Assignments",  path: "/assignments", imgsrc: "/images/assignment.svg",  authType: "profile" },
     { name: "Course",       path: "/course",      imgsrc: "/images/course.svg",      authType: null },
-    { name: "Internships",  path: "/Internships", imgsrc: "/images/alert.svg",       authType: null },
     { name: "Feedback",     path: "/feedback",    imgsrc: "/images/feedback.svg",    authType: "login" },
     ...(user && (user.role === "seller" || user.role === "admin")
       ? [{ name: "Seller Dashboard", path: "/seller", imgsrc: "/images/seller-cart.svg", authType: null }] : []),
